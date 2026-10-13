@@ -14,6 +14,14 @@ press Generate, get an MP4 (H.264 / yuv420p / AAC 48 kHz / faststart).
   `make fake-on` / `make fake-off`) proves that engines plug in
   without core changes.
 
+## Templates
+
+| Template                                    | What it does                                                                                                                                                                                                          |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Before / After (`before-after`)             | 13 s cinematic before → after reveal (choice of reveal effects, finale, motion intensity), intro and outro cards                                                                                                      |
+| Before / After — Card (`before-after-card`) | the photo shrinks into a floating 3D card, the edit is revealed inside it (any shared reveal effect, split slider by default), the card opens back up, a soft before/after flash closes it; built from `references/1` |
+| Test card (`test-card`)                     | stub template of the fake engine, hidden by default (`make fake-on`)                                                                                                                                                  |
+
 ## Quick start
 
 Requirements: Docker (Docker Desktop or OrbStack) with at least 8 GB of memory, GNU Make.
@@ -77,7 +85,8 @@ Progress and status go through Redis pub/sub to the API, which streams them to t
 More: [docs/architecture.md](docs/architecture.md).
 
 Guides: [adding a template](docs/adding-a-template.md) · [adding an engine](docs/adding-an-engine.md) ·
-[admin conventions](docs/frontend.md).
+[admin conventions](docs/frontend.md). Working rules and project state for Claude Code sessions:
+[CLAUDE.md](CLAUDE.md).
 
 ## Template development
 

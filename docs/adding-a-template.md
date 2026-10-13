@@ -1,5 +1,10 @@
 # Adding a template
 
+A new look (for example, a new reference video) is a **new template**, not a variant of an
+existing one: templates differ in structure and in how few settings they expose. What they share
+lives in the engine's `core/` (effects, transitions, primitives), so a new template is mostly
+composition.
+
 A template belongs to one engine. Its engine-agnostic part (schema, media slots, metadata) is a
 manifest the API and the admin read; the engine-specific part (for Remotion, React components)
 stays inside the engine package. No core code changes and no new admin screens are needed.
@@ -49,23 +54,39 @@ Rules that keep everything else automatic:
   `switch`, `color`, `font`, `text`, `textarea`, or a custom id), `optionLabels`, `unit`, `step`.
 - `scope: 'content'` marks per-video data (it is never saved in presets). Everything else is style.
 - Effects and transitions come from the engine registries (`revealEffectField`,
-  `seamTransitionField`): their options are generated, not hardcoded.
+  `seamTransitionField`): their options are generated, not hardcoded. Without `allowed`, a
+  template offers every registered entry, including ones added later; existing templates pin
+  their list so a new effect never changes them. Each reveal effect declares `durationSec`
+  (natural length) and `revealedAt` (progress from which "after" dominates) for templates that
+  let the effect set the pace (see `before-after-card`).
+- `version`: bump it on visible changes (defaults, timing, options). Drafts and presets made with
+  another version are re-validated and the owner gets a notice.
 - Manifests are isomorphic: no React, `remotion`, `sharp` or `node:*` imports (lint-enforced).
 - Deterministic: no `Math.random` / `Date.now` (lint-enforced); use the seeded random of the engine.
 
 ## 2. The composition (`templates/<id>/Slideshow.tsx`)
 
-A React component receiving `{ props, assets }` (validated props + resolved media URLs). Build it
-from `core/` (`PhotoCard` for a full-bleed ↔ 3D card move, `TypeOn` for typewriter text, `pairs/`
-for before/after photo alignment and checks, `placement.ts` for anything that moves): scenes (`SceneRenderer`), primitives (`PhotoPlane`, `BlurredBackdrop`, `Label`),
-reveals and transitions, `MusicLayer`, typography, `useLayout()` for the four formats and safe
-zones, `useFonts()`. Use relative geometry and `cover` framing, so the preview (smaller photos)
-matches the render.
+A React component receiving `{ props, assets }` (validated props + resolved media URLs), built
+from `core/`:
+
+- scenes and effects: `SceneRenderer`, the reveal and transition registries;
+- primitives: `PhotoPlane` (with a camera for Ken Burns moves), `PhotoCard` (full bleed ↔ 3D
+  card), `BlurredBackdrop`, `Label`, `Vignette` / `Grain`;
+- typography: `WordReveal`, `TypeOn` (typewriter);
+- `pairs/` for before/after alignment (`prepareAssets`) and media checks;
+- `MusicLayer`, `useLayout()` (the four formats and safe zones), `useFonts()`, `motion.ts`
+  (easing, `cubicBezier`, keyframes);
+- `placement.ts` for anything that moves.
+
+Use relative geometry and `cover` framing, so the preview (smaller photos) matches the render.
+Keep timing in a pure `timeline.ts` with tests (see `templates/before-after-card/timeline.ts`).
 
 Anything that moves across frames moves by **transforms only**: place it with `placeAt(x, y)`
 from `core/placement.ts` and never animate `left` / `top` / `width` / `letter-spacing`. The
 headless renderer snaps layout positions and glyphs to whole pixels, so layout-driven slow
-motion judders in the MP4 even though the browser preview looks smooth.
+motion judders in the MP4 even though the browser preview looks smooth. Do not put
+`will-change: transform` on layers whose scale changes (frozen raster scale; frames rendered in
+different Chrome tabs then differ). `make check-jitter` guards the placement rule.
 
 ## 3. Register it
 
@@ -74,8 +95,13 @@ motion judders in the MP4 even though the browser preview looks smooth.
   to `REMOTION_TEMPLATES` (Studio, bundle and the browser player use this list).
 
 That's it: the API lists it, the admin shows it in the gallery and builds its screen, the worker
-renders it. Check with `make studio`, `make demo` (adapt the script for a new template) and a
-render from the admin.
+renders it (the dev worker rebuilds its bundle on save). Then:
+
+- `make seed` creates the template's "Default" style preset;
+- `make studio`, and `make demo args="--template=<id> [--effects=a,b] [--frames=0,100 --png]"`
+  (stills or full videos with the fixture photos, or `--photos=/app/<dir>`; paths are absolute
+  container paths);
+- a render from the admin, and `make check`.
 
 ## 4. From a reference video
 

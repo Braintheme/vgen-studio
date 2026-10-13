@@ -81,12 +81,36 @@ hashes everything that affects the frame and either returns the cached JPEG or e
 high-priority `preview` job on the engine's queue and waits for it (60 s timeout → 503
 `WORKER_UNAVAILABLE`). The worker reuses the same asset preparation and calls `engine.renderStill`.
 
+## Remotion engine internals
+
+Templates are compositions of shared, data-driven blocks in `packages/engines/remotion/src/core`:
+registries of reveal effects and seam transitions (a template picks allowed ids and a default;
+each reveal declares its natural `durationSec` and `revealedAt`), primitives (`PhotoPlane` with a
+virtual camera, `PhotoCard`, labels, overlays), typography, before/after `pairs/` helpers, and a
+`SceneRenderer` that turns effect descriptions (plain data) into DOM. Everything that moves is
+placed with transforms only (`placement.ts`): headless Chrome snaps layout positions and glyphs to
+whole pixels, and `make check-jitter` fails when that comes back.
+
+In development the Remotion worker rebuilds its bundle when composition sources change
+(debounced; never during a render). Production images ship a bundle prebuilt at image build and a
+baked-in Chrome Headless Shell.
+
 ## Music
 
 Uploaded audio gets waveform peaks (ffmpeg, stored next to the file) so the admin draws the
 waveform without decoding the file. `music.trackId = null` means "the library default track";
 a deleted track is a 400 for new renders, and drafts/presets that reference it fall back to the
 default with a notice. The fragment starts at `music.startSec`; tracks shorter than the video loop.
+
+## Development tooling
+
+- `make fake-on` / `make fake-off`: the fake stub engine (`worker-fake` + `test-card`) is hidden by
+  default (`DISABLED_ENGINES=fake`); e2e covers it only when enabled.
+- Reference videos (`references/<n>/`, git- and docker-ignored): `make reference` (frames, contact
+  sheets, cuts, motion curve, onsets) and `make reference-compare` (side by side + timing) back the
+  `/template-from-reference` Claude Code command.
+- `make check` runs lint, unit tests, `check-jitter` and the e2e smoke; it is required before and
+  after dependency upgrades.
 
 ## Configuration and operations
 
