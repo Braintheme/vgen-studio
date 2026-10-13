@@ -1,0 +1,113 @@
+# Production-like stack from prebuilt images (no bind mounts, no dev servers):
+#   make prod-build && make prod-up   ->   http://localhost:${PROD_HOST_PORT:-8080}
+# The admin (nginx) also proxies /api, so only one port is published.
+name: vgen-prod
+
+x-prod-build: &prod-build
+  context: .
+  dockerfile: docker/prod.Dockerfile
+
+x-backend: &backend
+  env_file: .env
+  restart: unless-stopped
+  volumes:
+    - media:/data/media
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    <<: *backend
+    build:
+      <<: *prod-build
+      target: api
+    image: vgen/api:prod
+    environment:
+      API_PORT: 3000
+      LOG_FORMAT: json
+      # The fake engine is a development stub.
+      DISABLED_ENGINES: fake
+      SEED_DIR: /seed
+    volumes:
+      - media:/data/media
+      - ./seed:/seed:ro
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+
+  worker-remotion:
+    <<: *backend
+    build:
+      <<: *prod-build
+      target: worker-remotion
+    image: vgen/worker-remotion:prod
+    shm_size: ${REMOTION_SHM_SIZE:-2gb}
+    environment:
+      WORKER_HEALTH_PORT: 3100
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
+      REMOTION_CONCURRENCY: ${REMOTION_CONCURRENCY:-}
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 6
+    stop_grace_period: 30s
+
+  admin:
+    build:
+      <<: *prod-build
+      target: admin
+    image: vgen/admin:prod
+    ports:
+      - '${PROD_HOST_PORT:-8080}:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  media:

@@ -1,0 +1,32 @@
+{
+  "name": "@vgen/devtools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only command line tools (render without the API, e2e smoke, reference analysis).",
+  "scripts": {
+    "e2e": "node --conditions=@vgen/source --import @swc-node/register/esm-register src/e2e.ts",
+    "reference": "node --conditions=@vgen/source --import @swc-node/register/esm-register src/reference.ts",
+    "reference-compare": "node --conditions=@vgen/source --import @swc-node/register/esm-register src/reference-compare.ts",
+    "render": "node --conditions=@vgen/source --import @swc-node/register/esm-register src/render.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@vgen/catalog": "workspace:*",
+    "@vgen/db": "workspace:*",
+    "@vgen/media": "workspace:*",
+    "@vgen/shared": "workspace:*",
+    "@vgen/storage": "workspace:*",
+    "bullmq": "catalog:",
+    "ioredis": "catalog:",
+    "reflect-metadata": "catalog:",
+    "typeorm": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@swc-node/register": "catalog:",
+    "@swc/core": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

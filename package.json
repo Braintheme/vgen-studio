@@ -1,0 +1,37 @@
+{
+  "name": "vgen",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=10.12.1"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "10.12.1",
+      "onFail": "error"
+    }
+  },
+  "scripts": {
+    "preinstall": "node scripts/only-pnpm.mjs",
+    "lint": "node scripts/check-catalog.mjs && eslint . && prettier --check .",
+    "lint:fix": "eslint . --fix && prettier --write .",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "test": "vitest run --passWithNoTests",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "eslint-plugin-vue": "catalog:",
+    "globals": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:"
+  }
+}

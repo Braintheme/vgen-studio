@@ -1,0 +1,79 @@
+{
+  "name": "@vgen/engine-remotion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./manifest": {
+      "@vgen/source": "./src/manifest/index.ts",
+      "types": "./dist/src/manifest/index.d.ts",
+      "default": "./dist/src/manifest/index.js"
+    },
+    "./remotion": {
+      "@vgen/source": "./src/remotion/index.ts",
+      "default": "./src/remotion/index.ts"
+    },
+    "./server": {
+      "@vgen/source": "./src/server/index.ts",
+      "types": "./dist/src/server/index.d.ts",
+      "default": "./dist/src/server/index.js"
+    },
+    "./player": {
+      "types": "./src/player/public.d.ts",
+      "@vgen/source": "./src/player/index.tsx",
+      "default": "./dist/src/player/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "studio": "remotion studio src/remotion/index.ts --port 3001 --ipv4",
+    "fixtures": "node --conditions=@vgen/source --import @swc-node/register/esm-register scripts/fixtures.ts",
+    "demo": "node --conditions=@vgen/source --import @swc-node/register/esm-register scripts/render-demo.ts",
+    "bundle": "node --conditions=@vgen/source --import @swc-node/register/esm-register scripts/bundle.ts",
+    "check-jitter": "node --conditions=@vgen/source --import @swc-node/register/esm-register scripts/check-jitter.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "catalog:",
+    "@fontsource-variable/manrope": "catalog:",
+    "@fontsource-variable/montserrat": "catalog:",
+    "@fontsource-variable/oswald": "catalog:",
+    "@fontsource-variable/playfair-display": "catalog:",
+    "@fontsource-variable/unbounded": "catalog:",
+    "@fontsource/bebas-neue": "catalog:",
+    "@remotion/media": "catalog:",
+    "@remotion/player": "catalog:",
+    "@remotion/transitions": "catalog:",
+    "@remotion/zod-types": "catalog:",
+    "@vgen/shared": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "remotion": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@remotion/bundler": "catalog:",
+    "@remotion/cli": "catalog:",
+    "@remotion/renderer": "catalog:",
+    "@swc-node/register": "catalog:",
+    "@swc/core": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "sharp": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@remotion/bundler": "catalog:",
+    "@remotion/renderer": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@remotion/bundler": {
+      "optional": true
+    },
+    "@remotion/renderer": {
+      "optional": true
+    }
+  }
+}

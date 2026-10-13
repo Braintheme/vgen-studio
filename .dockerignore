@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+**/.remotion
+**/.remotion-bundle
+**/*.tsbuildinfo
+.env
+coverage
+fixtures/.studio
+fixtures/renders
+fixtures/generated
+**/*.mp4
+.DS_Store
+references

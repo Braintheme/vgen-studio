@@ -1,0 +1,43 @@
+{
+  "name": "@vgen/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --conditions=@vgen/source --import @swc-node/register/esm-register src/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "seed": "node --conditions=@vgen/source --import @swc-node/register/esm-register src/cli/seed.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "catalog:",
+    "@nestjs/config": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "@nestjs/swagger": "catalog:",
+    "@nestjs/typeorm": "catalog:",
+    "@vgen/catalog": "workspace:*",
+    "@vgen/db": "workspace:*",
+    "@vgen/media": "workspace:*",
+    "@vgen/shared": "workspace:*",
+    "@vgen/storage": "workspace:*",
+    "bullmq": "catalog:",
+    "ioredis": "catalog:",
+    "nestjs-cls": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "sharp": "catalog:",
+    "typeorm": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@swc-node/register": "catalog:",
+    "@swc/core": "catalog:",
+    "@types/express": "catalog:",
+    "@types/multer": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

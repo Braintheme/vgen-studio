@@ -1,0 +1,123 @@
+packages:
+  - apps/*
+  - packages/*
+  - packages/engines/*
+  - tools/*
+
+# NOTE: `pnpm add` may rewrite this file and drop comments; `make lint` checks the zod note below.
+# Single source of truth for dependency versions; every package uses "catalog:".
+# Versions are enforced twice: `catalog-mode=strict` in .npmrc makes `pnpm add <pkg>@<other>`
+# fail, and `make lint` runs scripts/check-catalog.mjs.
+
+catalog:
+  # Tooling
+  # TypeScript stays on 6.x: typescript-eslint and @nestjs/swagger do not support 7 yet.
+  typescript: 6.0.3
+  '@types/node': 24.19.2
+  eslint: 10.12.0
+  '@eslint/js': 10.0.1
+  typescript-eslint: 8.71.2
+  eslint-plugin-vue: 10.11.1
+  eslint-config-prettier: 10.1.8
+  globals: 17.13.0
+  prettier: 3.9.10
+  vitest: 5.0.4
+  '@swc-node/register': 1.12.1
+  '@swc/core': 1.16.18
+  esbuild: 0.28.1
+
+  # Shared contracts
+  # Remotion requires one EXACT zod version (4.5.4 for Remotion 4.0.535); its Studio warns about
+  # any other. Upgrade remotion/@remotion/* and zod TOGETHER: check the required zod version with
+  # `pnpm --filter @vgen/engine-remotion exec remotion versions`.
+  zod: 4.5.4
+
+  # Backend
+  '@nestjs/common': 12.1.3
+  '@nestjs/core': 12.1.3
+  '@nestjs/platform-express': 12.1.3
+  '@nestjs/config': 12.0.1
+  '@nestjs/swagger': 12.0.2
+  '@nestjs/typeorm': 12.0.2
+  reflect-metadata: 0.2.2
+  rxjs: 7.8.2
+  typeorm: 1.1.2
+  pg: 8.23.1
+  bullmq: 6.3.13
+  nestjs-cls: 7.0.1
+  '@types/express': 5.0.6
+  '@types/multer': 2.3.0
+  ioredis: 6.0.0
+  sharp: 0.35.5
+
+  # Render engine: Remotion (exact, identical versions)
+  remotion: 4.0.535
+  '@remotion/bundler': 4.0.535
+  '@remotion/renderer': 4.0.535
+  '@remotion/cli': 4.0.535
+  '@remotion/player': 4.0.535
+  '@remotion/transitions': 4.0.535
+  '@remotion/zod-types': 4.0.535
+  '@remotion/media': 4.0.535
+  react: 19.3.0
+  react-dom: 19.3.0
+  '@types/react': 19.3.0
+  '@types/react-dom': 19.3.0
+
+  # Fonts shipped with render engines (local files, no network at render time)
+  '@fontsource-variable/inter': 5.3.0
+  '@fontsource-variable/manrope': 5.3.0
+  '@fontsource-variable/montserrat': 5.3.0
+  '@fontsource-variable/playfair-display': 5.3.0
+  '@fontsource-variable/unbounded': 5.3.0
+  '@fontsource-variable/oswald': 5.3.0
+  '@fontsource/bebas-neue': 5.3.0
+
+  # Admin
+  # @tanstack/vue-table stays on v8: shadcn-vue's Data Table is built on the v8 API (v9 is a rewrite).
+  vue: 3.5.43
+  vue-router: 5.4.0
+  pinia: 4.0.3
+  vite: 8.3.4
+  '@vitejs/plugin-vue': 6.0.10
+  '@vitejs/plugin-react': 6.1.2
+  vue-tsc: 3.3.13
+  '@vue/tsconfig': 0.9.1
+  tailwindcss: 4.3.3
+  '@tailwindcss/vite': 4.3.3
+  vee-validate: 4.15.1
+  '@tanstack/vue-query': 5.104.2
+  '@tanstack/vue-table': 8.21.3
+  axios: 1.20.0
+  '@vueuse/core': 15.0.0
+  vue-sonner: 2.0.9
+  reka-ui: 2.11.0
+  '@lucide/vue': 1.55.0
+  class-variance-authority: 0.7.1
+  clsx: 2.1.1
+  tailwind-merge: 3.7.0
+  tw-animate-css: 1.4.0
+  wavesurfer.js: 8.0.2
+
+ignoredBuiltDependencies:
+  - '@scarf/scarf'
+
+onlyBuiltDependencies:
+  - '@swc/core'
+  - esbuild
+  - sharp
+  - '@tailwindcss/oxide'
+  - '@nestjs/core'
+  - vue-demi
+
+peerDependencyRules:
+  allowedVersions:
+    # ioredis is only an optional peer of TypeORM (query cache); BullMQ accepts >=5.
+    typeorm>ioredis: '6'
+
+# node_modules is shared between the macOS host (IDE, local tooling) and Linux containers
+# (bind-mounted sources), so install native binaries for both.
+supportedArchitectures:
+  os: [current, linux, darwin]
+  cpu: [current]
+  libc: [current, glibc]

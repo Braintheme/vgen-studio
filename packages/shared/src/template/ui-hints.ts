@@ -1,0 +1,22 @@
+/** Dot-separated path into template props, e.g. `texts.title` or `params.revealEffect`. */
+export type PropPath = string;
+
+export interface UiFieldGroup {
+  readonly id: string;
+  readonly label: string;
+  readonly fields: readonly PropPath[];
+  readonly collapsed?: boolean;
+}
+
+export type UiSlotAction = {
+  readonly type: 'swap';
+  readonly slots: readonly [string, string];
+  readonly label: string;
+};
+
+/** Optional presentation hints for the admin form; never required for rendering. */
+export interface UiHints {
+  readonly groups?: readonly UiFieldGroup[];
+  readonly slotActions?: readonly UiSlotAction[];
+  readonly hiddenFields?: readonly PropPath[];
+}

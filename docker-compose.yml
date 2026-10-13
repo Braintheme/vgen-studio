@@ -1,0 +1,169 @@
+name: vgen
+
+x-node-dev: &node-dev
+  build:
+    context: .
+    dockerfile: docker/node.Dockerfile
+    target: dev
+  image: vgen/node-dev:local
+  working_dir: /app
+  env_file: .env
+  volumes:
+    - .:/app
+    - pnpm-store:/pnpm/store
+  restart: unless-stopped
+
+x-remotion-dev: &remotion-dev
+  <<: *node-dev
+  build:
+    context: .
+    dockerfile: docker/node.Dockerfile
+    target: remotion-dev
+  image: vgen/remotion-dev:local
+  shm_size: ${REMOTION_SHM_SIZE:-2gb}
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - '127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    <<: *node-dev
+    command: ['pnpm', '--filter', '@vgen/api', 'dev']
+    ports:
+      - '${API_HOST_PORT:-3800}:3000'
+    environment:
+      API_PORT: 3000
+      MEDIA_ROOT: /data/media
+      # The fake engine (dev stub) is hidden unless enabled: `make fake-on` / `make fake-off`.
+      DISABLED_ENGINES: ${DISABLED_ENGINES-fake}
+    volumes:
+      - .:/app
+      - pnpm-store:/pnpm/store
+      - media:/data/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 6
+
+  worker-remotion:
+    <<: *remotion-dev
+    command: ['pnpm', '--filter', '@vgen/worker-remotion', 'dev']
+    environment:
+      MEDIA_ROOT: /data/media
+      WORKER_HEALTH_PORT: 3100
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
+      REMOTION_CONCURRENCY: ${REMOTION_CONCURRENCY:-}
+      # Rebuild the Remotion bundle after composition changes (debounced, never mid-render).
+      REMOTION_WATCH_SOURCES: 'true'
+    volumes:
+      - .:/app
+      - pnpm-store:/pnpm/store
+      - media:/data/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      start_period: 120s
+      retries: 6
+    # Lets an in-flight render finish (or be handed back to the queue) on stop.
+    stop_grace_period: 30s
+
+  # Development stub engine (plain ffmpeg). Proves that engines plug in without core changes.
+  # Off by default: `make fake-on` starts it and shows its template, `make fake-off` hides it.
+  worker-fake:
+    <<: *node-dev
+    profiles: ['fake']
+    command: ['pnpm', '--filter', '@vgen/worker-fake', 'dev']
+    environment:
+      MEDIA_ROOT: /data/media
+      WORKER_HEALTH_PORT: 3100
+      WORKER_CONCURRENCY: 1
+    volumes:
+      - .:/app
+      - pnpm-store:/pnpm/store
+      - media:/data/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 6
+
+  admin:
+    <<: *node-dev
+    command: ['pnpm', '--filter', '@vgen/admin', 'dev', '--host', '0.0.0.0', '--port', '5173']
+    ports:
+      - '${ADMIN_HOST_PORT:-5173}:5173'
+    depends_on:
+      api:
+        condition: service_started
+
+  # Remotion Studio for template development: `make studio`.
+  studio:
+    <<: *remotion-dev
+    profiles: ['studio']
+    restart: 'no'
+    command: ['pnpm', '--filter', '@vgen/engine-remotion', 'studio']
+    ports:
+      - '${STUDIO_HOST_PORT:-3801}:3001'
+
+volumes:
+  postgres-data:
+  redis-data:
+  media:
+  pnpm-store:

@@ -1,0 +1,109 @@
+# Architecture
+
+## Components
+
+```
+            ┌──────────── admin (Vue) ─────────────┐
+            │ schema-driven forms, engine players,  │
+            │ Vue Query + SSE                       │
+            └──────────────┬───────────────────────┘
+                           │ REST /api/v1, SSE
+┌──────────────────────────▼──────────────────────────┐
+│ api (NestJS)   catalog · media · music · presets ·   │──── Postgres (TypeORM)
+│                renders · previews · auth stub        │──── media volume (StorageService)
+└───────┬───────────────────────────────▲─────────────┘
+        │ BullMQ: render-<engine>        │ Redis pub/sub: progress, status, cancel
+┌───────▼───────────────────────────────┴─────────────┐
+│ worker-<engine> = worker-core + the engine adapter   │──── Postgres, media volume
+└──────────────────────────────────────────────────────┘
+```
+
+| Package                | Role                                                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/shared`      | contracts (`TemplateDefinition`, `RenderEngine`, `PlayerAdapter`), base props schema, registries, DTO and event schemas, props scope/sanitize helpers |
+| `packages/catalog`     | composition root of engines: the only list of installed engine manifests and player loaders                                                           |
+| `packages/engines/*`   | one package per engine: `./manifest` (isomorphic), `./server` (worker), optional `./player` (browser)                                                 |
+| `packages/worker-core` | engine-agnostic worker: queue consumer, render pipeline, asset preparation, delivery post-processing, progress, cancel, previews                      |
+| `packages/db`          | entities and migrations shared by the API and workers                                                                                                 |
+| `packages/storage`     | `StorageService` port (+ local implementation) and storage key layout                                                                                 |
+| `packages/media`       | sharp / ffprobe / ffmpeg helpers                                                                                                                      |
+
+Boundaries are enforced by ESLint (`eslint.config.js`, `apps/admin/eslint.layers.js`): the core
+cannot import `remotion`, `react` or engine packages except through the catalog; manifests cannot
+import renderer code (the catalog test bundles it for the browser to prove it).
+
+## Templates and props
+
+A template is declared with `defineTemplate()` (see [adding-a-template.md](adding-a-template.md)).
+Its props schema is the **base schema** (format, duration, fps, seed, media, texts, style, music,
+image processing) extended with the template's text fields and `params`. One zod schema drives:
+
+- validation in the API (`POST /renders`) and in the worker (stored snapshot);
+- the JSON Schema served by `GET /templates/:id` and the admin's generated form
+  (field metadata via `.meta({ title, widget, optionLabels, unit, step, scope })`);
+- presets: every field is `scope: 'content'` (media, per-video texts) or `'style'` (default).
+  A preset stores the style part; applying it = template defaults ← preset style ← current content;
+- draft and preset sanitizing: stored values that no longer fit the current schema fall back to
+  defaults (`sanitizeTemplateSettings`).
+
+Renders keep a full props snapshot plus the template version, so a duplicate re-renders the same
+video (the admin warns when the template version changed since).
+
+## Render flow
+
+1. `POST /renders` → props validated, media checked (existence, kind; template `checkMedia`
+   warnings), music checked (`NO_MUSIC` warning), `RenderJob` row created, BullMQ job
+   `render` with the same id added to `render-<engine>`.
+2. The engine's worker (`worker-core` pipeline):
+   - marks the job `rendering` (conditional update — cancels and retries cannot race);
+   - downloads originals from storage into a temp dir, normalizes photos (EXIF orientation,
+     sRGB, size relative to the output frame, sharpen) and runs the template's `prepareAssets`;
+   - serves the files on a loopback HTTP server (Chromium blocks `file://`);
+   - calls `engine.render()` with resolved assets (`{ src, width, height }`) and encoding settings;
+   - `ensureDeliverySpec`: ffprobe; remux for faststart or re-encode only when needed; a silent
+     AAC track when there is no music;
+   - extracts the poster frame (`template.posterFrame`), stores output + thumbnail as media
+     assets, marks the job `done`.
+3. Progress is throttled (500 ms) into the DB and Redis pub/sub; each API instance relays events
+   to SSE clients (`/renders/events`, `/renders/:id/events`). The admin falls back to polling
+   while the stream is down.
+4. Cancel: a queued job is removed from BullMQ; a running one gets a Redis message → the worker
+   aborts the BullMQ job's `AbortSignal` → the engine stops. Failures never crash a worker:
+   permanent errors fail at once, transient ones retry (`RENDER_ATTEMPTS`).
+
+## Previews
+
+The admin previews through the engine's **player adapter** when it has one (Remotion: a React
+island with `@remotion/player`, lazily loaded; the same composition code as the render, fed with
+the ~1600 px preview copies of the photos). Engines without a browser player
+(`capabilities.browserPreview: false`) get **poster frames**: `POST /previews` validates props,
+hashes everything that affects the frame and either returns the cached JPEG or enqueues a
+high-priority `preview` job on the engine's queue and waits for it (60 s timeout → 503
+`WORKER_UNAVAILABLE`). The worker reuses the same asset preparation and calls `engine.renderStill`.
+
+## Music
+
+Uploaded audio gets waveform peaks (ffmpeg, stored next to the file) so the admin draws the
+waveform without decoding the file. `music.trackId = null` means "the library default track";
+a deleted track is a 400 for new renders, and drafts/presets that reference it fall back to the
+default with a notice. The fragment starts at `music.startSec`; tracks shorter than the video loop.
+
+## Configuration and operations
+
+- Env is validated with zod at startup (`apps/api/src/config/env.schema.ts`,
+  `packages/worker-core/src/config.ts`); `.env.example` documents every variable.
+- Health checks: API `GET /api/v1/health` (DB, Redis), workers `GET :3100/health` (DB, Redis,
+  queue). Logs go to stdout (JSON in production).
+- 8 GB of Docker memory is enough with `WORKER_CONCURRENCY=1`, `REMOTION_CONCURRENCY<=4`,
+  `shm_size: 2gb`.
+
+## Ready for later (not implemented)
+
+- **Users and permissions**: every request runs in a request context (`nestjs-cls`) with the
+  current user from a global `AuthGuard`, which currently returns the system user. Real
+  authentication replaces the guard; entities can gain `ownerId` / `workspaceId` by migration.
+- **Scaling**: the API is stateless (events go through Redis); workers scale by replicas and
+  independently per engine.
+- **Storage**: everything goes through `StorageService` + storage keys; an S3/MinIO
+  implementation replaces `LocalStorageService`.
+- **Video media slots**: the media model and slot kinds already include `video`.

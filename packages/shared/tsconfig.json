@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // Shared contracts are consumed by browsers too: no Node globals here. DOM lib is
+    // only for web-standard types available in both runtimes (AbortSignal, URL).
+    "types": [],
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["src"]
+}

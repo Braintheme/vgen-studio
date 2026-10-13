@@ -1,0 +1,33 @@
+{
+  "name": "@vgen/worker-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "@vgen/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@vgen/db": "workspace:*",
+    "@vgen/media": "workspace:*",
+    "@vgen/shared": "workspace:*",
+    "@vgen/storage": "workspace:*",
+    "bullmq": "catalog:",
+    "ioredis": "catalog:",
+    "reflect-metadata": "catalog:",
+    "typeorm": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

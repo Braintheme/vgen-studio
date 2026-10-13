@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.remotion-bundle/
+*.tsbuildinfo
+.env
+coverage/
+*.mp4
+!seed/**/*.mp4
+.DS_Store
+fixtures/.studio/
+fixtures/generated/
+fixtures/renders/
+
+# Reference videos and their analysis (third-party content: analysis only, never shipped)
+references/

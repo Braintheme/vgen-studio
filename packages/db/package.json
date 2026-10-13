@@ -1,0 +1,33 @@
+{
+  "name": "@vgen/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "@vgen/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typeorm": "node --conditions=@vgen/source --import @swc-node/register/esm-register ./node_modules/typeorm/cli.js -d src/data-source.ts",
+    "migration:run": "pnpm typeorm migration:run",
+    "migration:revert": "pnpm typeorm migration:revert",
+    "migration:generate": "pnpm typeorm migration:generate"
+  },
+  "dependencies": {
+    "@vgen/shared": "workspace:*",
+    "pg": "catalog:",
+    "reflect-metadata": "catalog:",
+    "typeorm": "catalog:"
+  },
+  "devDependencies": {
+    "@swc-node/register": "catalog:",
+    "@swc/core": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
