@@ -29,8 +29,13 @@ export const beforeAfterCardTemplate = defineTemplate({
     afterLabel: textField({ label: 'After label', default: 'AFTER', maxLength: 16, scope: 'style' }),
   },
   params: {
-    // Any shared reveal effect; each one sets its own pace (its natural length).
-    revealEffect: revealEffectField({ title: 'Reveal inside the card', default: 'split-slider' }),
+    // Any of the shared reveal effects it shipped with (new ones are opt-in); each one sets
+    // its own pace (its natural length).
+    revealEffect: revealEffectField({
+      title: 'Reveal inside the card',
+      allowed: ['diagonal-wipe', 'circle-reveal', 'blinds', 'split-slider', 'slide-over'],
+      default: 'split-slider',
+    }),
     introMotion: z.boolean().default(false).meta({ title: 'Move the first photo', widget: 'switch' }),
     tilt: z
       .enum(CARD_TILTS)

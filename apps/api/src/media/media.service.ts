@@ -2,7 +2,7 @@ import { rm } from 'node:fs/promises';
 import type { Readable } from 'node:stream';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { MediaAssetEntity } from '@vgen/db';
-import type { MediaAssetDto, MediaInfo } from '@vgen/shared';
+import type { MediaAssetDto, MediaFileVariant, MediaInfo } from '@vgen/shared';
 import type { StorageService } from '@vgen/storage';
 import { QueryFailedError } from 'typeorm';
 import { AppError, ConflictError, NotFoundError, ValidationFailedError } from '../common/errors.js';
@@ -20,10 +20,13 @@ export interface MediaFile {
   readonly range: { readonly start: number; readonly end: number } | null;
 }
 
-export type MediaFileVariant = 'original' | 'preview' | 'peaks';
-
-/** Where derivative files are recorded in `MediaAsset.meta`. */
-const VARIANT_META_KEYS = { preview: 'previewKey', peaks: 'peaksKey' } as const;
+/** Where derivative files are recorded in `MediaAsset.meta`, and how they are served. */
+const VARIANTS = {
+  preview: { metaKey: 'previewKey', mime: 'image/webp', suffix: 'preview.webp' },
+  peaks: { metaKey: 'peaksKey', mime: 'application/json', suffix: 'peaks.json' },
+  proxy: { metaKey: 'proxyKey', mime: 'video/mp4', suffix: 'proxy.mp4' },
+  filmstrip: { metaKey: 'filmstripKey', mime: 'image/jpeg', suffix: 'filmstrip.jpg' },
+} as const satisfies Record<Exclude<MediaFileVariant, 'original'>, unknown>;
 
 /** Postgres `foreign_key_violation` and `restrict_violation` (FKs declared ON DELETE RESTRICT). */
 const REFERENCED_ROW_CODES: readonly unknown[] = ['23503', '23001'];
@@ -127,13 +130,12 @@ export class MediaService {
     if (variant === 'original') {
       return { key: asset.storageKey, mime: asset.mime, fileName: asset.originalName };
     }
-    const key = asset.meta[VARIANT_META_KEYS[variant]];
+    const spec = VARIANTS[variant];
+    const key = asset.meta[spec.metaKey];
     if (typeof key !== 'string') {
       throw new NotFoundError(`${variant} of media`, asset.id);
     }
-    return variant === 'preview'
-      ? { key, mime: 'image/webp', fileName: `${asset.id}-preview.webp` }
-      : { key, mime: 'application/json', fileName: `${asset.id}-peaks.json` };
+    return { key, mime: spec.mime, fileName: `${asset.id}-${spec.suffix}` };
   }
 
   /**
@@ -168,7 +170,7 @@ export class MediaService {
 
   /** Files are removed after the row: a leftover file is harmless, a dangling row is not. */
   private async removeFiles(asset: MediaAssetEntity): Promise<void> {
-    const derivatives = Object.values(VARIANT_META_KEYS).map((metaKey) => asset.meta[metaKey]);
+    const derivatives = Object.values(VARIANTS).map((spec) => asset.meta[spec.metaKey]);
     const keys = [asset.storageKey, ...derivatives].filter((key): key is string => typeof key === 'string');
     for (const key of keys) {
       await this.storage.delete(key).catch((error: unknown) => {

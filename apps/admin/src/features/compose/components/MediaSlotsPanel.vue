@@ -3,6 +3,7 @@ import { ArrowLeftRight } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { MediaSlotView, MediaWarning, SlotActionView } from '@/features/compose/types';
+import MediaGallerySlot from './MediaGallerySlot.vue';
 import MediaSlotCard from './MediaSlotCard.vue';
 import MediaWarnings from './MediaWarnings.vue';
 
@@ -15,6 +16,8 @@ defineProps<{
 const emit = defineEmits<{
   upload: [slotKey: string, files: File[]];
   clear: [slotKey: string];
+  remove: [slotKey: string, index: number];
+  move: [slotKey: string, from: number, to: number];
   action: [action: SlotActionView];
 }>();
 </script>
@@ -36,13 +39,22 @@ const emit = defineEmits<{
     </CardHeader>
     <CardContent class="grid gap-4 px-4">
       <div class="grid gap-4 sm:grid-cols-2">
-        <MediaSlotCard
-          v-for="slot in slots"
-          :key="slot.key"
-          :media-slot="slot"
-          @upload="emit('upload', slot.key, $event)"
-          @clear="emit('clear', slot.key)"
-        />
+        <template v-for="slot in slots" :key="slot.key">
+          <MediaGallerySlot
+            v-if="slot.multiple"
+            class="sm:col-span-2"
+            :media-slot="slot"
+            @upload="emit('upload', slot.key, $event)"
+            @remove="(index) => emit('remove', slot.key, index)"
+            @move="(from, to) => emit('move', slot.key, from, to)"
+          />
+          <MediaSlotCard
+            v-else
+            :media-slot="slot"
+            @upload="emit('upload', slot.key, $event)"
+            @clear="emit('clear', slot.key)"
+          />
+        </template>
       </div>
       <MediaWarnings :warnings="warnings" />
     </CardContent>

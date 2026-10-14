@@ -9,6 +9,7 @@
     "reference": "node --conditions=@vgen/source --import @swc-node/register/esm-register src/reference.ts",
     "reference-compare": "node --conditions=@vgen/source --import @swc-node/register/esm-register src/reference-compare.ts",
     "render": "node --conditions=@vgen/source --import @swc-node/register/esm-register src/render.ts",
+    "sfx": "node --conditions=@vgen/source --import @swc-node/register/esm-register src/sfx.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

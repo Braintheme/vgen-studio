@@ -54,3 +54,7 @@ export const isDeepEqual = (a: unknown, b: unknown): boolean => {
   }
   return false;
 };
+
+/** Value at a dot path (`params.clip.startSec`), or undefined. */
+export const valueAtPath = (root: unknown, path: string): unknown =>
+  path.split('.').reduce<unknown>((node, key) => (isPlainObject(node) ? node[key] : undefined), root);

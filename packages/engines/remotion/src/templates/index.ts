@@ -7,6 +7,8 @@ import { BeforeAfterCard } from './before-after-card/BeforeAfterCard.js';
 import { beforeAfterCardTemplate } from './before-after-card/manifest.js';
 import { BeforeAfter } from './before-after/BeforeAfter.js';
 import { beforeAfterTemplate } from './before-after/manifest.js';
+import { PresetReel } from './preset-reel/PresetReel.js';
+import { presetReelTemplate } from './preset-reel/manifest.js';
 
 export interface RemotionTemplateEntry {
   readonly template: TemplateDefinition;
@@ -28,6 +30,7 @@ const entry = <P extends BaseProps>(
 export const REMOTION_TEMPLATES: readonly RemotionTemplateEntry[] = [
   entry(beforeAfterTemplate, BeforeAfter),
   entry(beforeAfterCardTemplate, BeforeAfterCard),
+  entry(presetReelTemplate, PresetReel),
 ];
 
 export const findRemotionTemplate = (templateId: string): RemotionTemplateEntry | undefined =>

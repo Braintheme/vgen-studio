@@ -26,7 +26,7 @@ export const DRAFT_SAVE_DEBOUNCE_MS = 500;
 
 export const ACCEPT_BY_SLOT_KIND = {
   image: UPLOAD_MIME_TYPES.image.join(','),
-  video: 'video/mp4,video/quicktime',
+  video: UPLOAD_MIME_TYPES.video.join(','),
 } as const;
 
 export const QUALITY_OPTIONS = [
@@ -39,6 +39,9 @@ export const NO_PRESET_VALUE = 'none';
 
 /** Select value for "use the library default track". */
 export const DEFAULT_TRACK_VALUE = 'library-default';
+
+/** Select value for "the engine's built-in sound" of a sound cue. */
+export const BUILT_IN_SOUND_VALUE = 'built-in';
 
 /** The music fragment start is stored with this many decimals (0.1 s). */
 export const MUSIC_START_DECIMALS = 1;

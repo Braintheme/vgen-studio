@@ -1,6 +1,6 @@
 import { watchDebounced } from '@vueuse/core';
 import type { QualityPreset, TemplateDefinition } from '@vgen/shared';
-import type { ComputedRef, ShallowRef, WritableComputedRef } from 'vue';
+import { computed, type ComputedRef, type ShallowRef, type WritableComputedRef } from 'vue';
 import { useRoute } from 'vue-router';
 import { useGroupedNotice } from '@/composables/useGroupedNotice';
 import { findTemplateDefinition } from '@/engines/catalog';
@@ -9,12 +9,13 @@ import type { FormSectionSpec } from '@/lib/schema-form';
 import { ROUTE_PARAMS } from '@/lib/routes';
 import { cloneJson } from '@/lib/utils';
 import { DRAFT_NOTICE_TITLE, DRAFT_SAVE_DEBOUNCE_MS } from '@/features/compose/constants';
-import type { OutputSummary, PosterPreviewView } from '@/features/compose/types';
+import type { OutputSummary, PosterPreviewView, VideoRangeSource } from '@/features/compose/types';
 import { useComposeDraft } from './useComposeDraft';
 import { useComposeForm } from './useComposeForm';
 import { useComposeMusic, type ComposeMusicState } from './useComposeMusic';
 import { useComposePresets, type ComposePresetsState } from './useComposePresets';
 import { useComposePreview } from './useComposePreview';
+import { useComposeVideoRanges } from './useComposeVideoRanges';
 import { useGenerateRender } from './useGenerateRender';
 import { useMediaSlots, type MediaSlotsState } from './useMediaSlots';
 import { usePlayerAdapter } from './usePlayerAdapter';
@@ -28,6 +29,8 @@ export interface ComposeScreenReady {
   readonly media: Omit<MediaSlotsState, 'validate' | 'assets'>;
   readonly presets: ComposePresetsState;
   readonly music: Omit<ComposeMusicState, 'previewAudio'>;
+  /** The video each `video-range` field trims, by field path. */
+  readonly videoSources: ComputedRef<Readonly<Record<string, VideoRangeSource | null>>>;
   readonly player: ShallowRef<PlayerAdapter<HTMLElement> | null>;
   readonly playerUnavailable: ShallowRef<boolean>;
   readonly preview: ReturnType<typeof useComposePreview>['input'];
@@ -77,9 +80,14 @@ export const useComposeScreen = (): ComposeScreen => {
     presetId: draft.presetId,
     isFresh: draft.isFresh,
   });
+  // Templates may derive the length from their content (e.g. a clip plus screenshots).
+  const videoSec = computed(() => {
+    const metadata = template.resolveMetadata({ ...settings.value, media: draft.media.value });
+    return metadata.durationInFrames / metadata.fps;
+  });
   const { previewAudio, ...music } = useComposeMusic({
     values: form.values,
-    settings,
+    videoSec,
     setFieldValue: form.setFieldValue,
     report: reportDraftFix,
   });
@@ -88,7 +96,22 @@ export const useComposeScreen = (): ComposeScreen => {
     assets,
     ...media
   } = useMediaSlots(template, draft.media, draft.setMedia, reportDraftFix);
-  const preview = useComposePreview({ template, settings, media: draft.media, assets, music: previewAudio });
+  const videoRanges = useComposeVideoRanges({
+    template,
+    sections: form.sections,
+    values: form.values,
+    setFieldValue: form.setFieldValue,
+    media: draft.media,
+    assets,
+  });
+  const preview = useComposePreview({
+    template,
+    settings,
+    media: draft.media,
+    assets,
+    music: previewAudio,
+    tracks: music.tracks,
+  });
   const player = usePlayerAdapter(template.engine);
   const poster = usePosterPreview({ template, input: preview.input, enabled: player.unavailable });
   const generation = useGenerateRender({
@@ -107,6 +130,7 @@ export const useComposeScreen = (): ComposeScreen => {
     media,
     presets,
     music,
+    videoSources: videoRanges.sources,
     player: player.adapter,
     playerUnavailable: player.unavailable,
     preview: preview.input,

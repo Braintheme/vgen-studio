@@ -3,11 +3,19 @@ import { cancelRender, continueRender, delayRender } from 'remotion';
 import type { FontId } from '@vgen/shared';
 import bebasLatin from '@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff2';
 import bebasLatinExt from '@fontsource/bebas-neue/files/bebas-neue-latin-ext-400-normal.woff2';
+import interLatinItalic from '@fontsource-variable/inter/files/inter-latin-wght-italic.woff2';
 import interLatin from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2';
+import interLatinExtItalic from '@fontsource-variable/inter/files/inter-latin-ext-wght-italic.woff2';
 import interLatinExt from '@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2';
+import jetbrainsLatinItalic from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-italic.woff2';
+import jetbrainsLatin from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2';
+import jetbrainsLatinExtItalic from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-ext-wght-italic.woff2';
+import jetbrainsLatinExt from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-ext-wght-normal.woff2';
 import manropeLatin from '@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2';
 import manropeLatinExt from '@fontsource-variable/manrope/files/manrope-latin-ext-wght-normal.woff2';
+import montserratLatinItalic from '@fontsource-variable/montserrat/files/montserrat-latin-wght-italic.woff2';
 import montserratLatin from '@fontsource-variable/montserrat/files/montserrat-latin-wght-normal.woff2';
+import montserratLatinExtItalic from '@fontsource-variable/montserrat/files/montserrat-latin-ext-wght-italic.woff2';
 import montserratLatinExt from '@fontsource-variable/montserrat/files/montserrat-latin-ext-wght-normal.woff2';
 import oswaldLatin from '@fontsource-variable/oswald/files/oswald-latin-wght-normal.woff2';
 import oswaldLatinExt from '@fontsource-variable/oswald/files/oswald-latin-ext-wght-normal.woff2';
@@ -22,28 +30,53 @@ const LATIN =
 const LATIN_EXT =
   'U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF';
 
+interface FontFile {
+  readonly url: string;
+  readonly unicodeRange: string;
+  /** Real italic face; without one, `font-style: italic` is synthesized by the browser. */
+  readonly style?: 'italic';
+}
+
 interface FontSource {
   /** Internal family name; prefixed so system fonts can never shadow it. */
   readonly family: string;
   readonly weight: string;
   readonly fallback: string;
-  readonly files: readonly { readonly url: string; readonly unicodeRange: string }[];
+  readonly files: readonly FontFile[];
 }
 
-const variable = (family: string, latin: string, latinExt: string, fallback = 'sans-serif'): FontSource => ({
+const variable = (
+  family: string,
+  latin: string,
+  latinExt: string,
+  fallback = 'sans-serif',
+  italic?: { readonly latin: string; readonly latinExt: string },
+): FontSource => ({
   family,
   weight: '100 900',
   fallback,
   files: [
     { url: latin, unicodeRange: LATIN },
     { url: latinExt, unicodeRange: LATIN_EXT },
+    ...(italic
+      ? [
+          { url: italic.latin, unicodeRange: LATIN, style: 'italic' as const },
+          { url: italic.latinExt, unicodeRange: LATIN_EXT, style: 'italic' as const },
+        ]
+      : []),
   ],
 });
 
 const FONT_SOURCES: Record<FontId, FontSource> = {
-  inter: variable('vgen-inter', interLatin, interLatinExt),
+  inter: variable('vgen-inter', interLatin, interLatinExt, 'sans-serif', {
+    latin: interLatinItalic,
+    latinExt: interLatinExtItalic,
+  }),
   manrope: variable('vgen-manrope', manropeLatin, manropeLatinExt),
-  montserrat: variable('vgen-montserrat', montserratLatin, montserratLatinExt),
+  montserrat: variable('vgen-montserrat', montserratLatin, montserratLatinExt, 'sans-serif', {
+    latin: montserratLatinItalic,
+    latinExt: montserratLatinExtItalic,
+  }),
   'playfair-display': variable('vgen-playfair-display', playfairLatin, playfairLatinExt, 'serif'),
   unbounded: variable('vgen-unbounded', unboundedLatin, unboundedLatinExt),
   oswald: variable('vgen-oswald', oswaldLatin, oswaldLatinExt),
@@ -56,6 +89,10 @@ const FONT_SOURCES: Record<FontId, FontSource> = {
       { url: bebasLatinExt, unicodeRange: LATIN_EXT },
     ],
   },
+  'jetbrains-mono': variable('vgen-jetbrains-mono', jetbrainsLatin, jetbrainsLatinExt, 'monospace', {
+    latin: jetbrainsLatinItalic,
+    latinExt: jetbrainsLatinExtItalic,
+  }),
 };
 
 /** Average glyph advance in `em` for mixed-case Latin text; used to fit text to a width. */
@@ -67,6 +104,7 @@ const WIDTH_FACTORS: Record<FontId, number> = {
   unbounded: 0.84,
   oswald: 0.47,
   'bebas-neue': 0.42,
+  'jetbrains-mono': 0.6,
 };
 
 /**
@@ -105,6 +143,7 @@ export const loadFont = (id: FontId): Promise<void> => {
         weight: source.weight,
         unicodeRange: file.unicodeRange,
         display: 'block',
+        ...(file.style ? { style: file.style } : {}),
       });
       await face.load();
       document.fonts.add(face);

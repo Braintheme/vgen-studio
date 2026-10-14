@@ -33,6 +33,11 @@ export interface TemplateDefinition<P extends BaseProps = BaseProps> {
   checkMedia?(media: MediaInfoMap): readonly MediaWarning[];
   /** Template-specific asset preparation, run by the worker after generic normalization. */
   prepareAssets?(context: PrepareAssetsContext<P>): Promise<PreparedMediaMap>;
+  /**
+   * Music-library tracks used as sound cues, by cue key (enabled cues with a chosen track
+   * only); resolved into `ResolvedAssets.sounds` by the worker and the admin preview.
+   */
+  soundTracks?(props: P): Readonly<Record<string, string>>;
 }
 
 /** Text fields must be built with `textField()` (or produce the same shape). */
@@ -102,6 +107,7 @@ export interface TemplateSpec<
   posterFrame(props: P): number;
   checkMedia?(media: MediaInfoMap): readonly MediaWarning[];
   prepareAssets?(context: PrepareAssetsContext<P>): Promise<PreparedMediaMap>;
+  soundTracks?(props: P): Readonly<Record<string, string>>;
 }
 
 /** Builds a template definition (including its props schema) from a declarative spec. */
@@ -135,6 +141,7 @@ export const defineTemplate = <
     posterFrame: (props) => spec.posterFrame(props),
     ...(spec.checkMedia === undefined ? {} : { checkMedia: spec.checkMedia.bind(spec) }),
     ...(spec.prepareAssets === undefined ? {} : { prepareAssets: spec.prepareAssets.bind(spec) }),
+    ...(spec.soundTracks === undefined ? {} : { soundTracks: spec.soundTracks.bind(spec) }),
   };
 };
 

@@ -15,6 +15,12 @@ export interface ResolvedVideo {
   readonly width: number;
   readonly height: number;
   readonly durationSec: number;
+  /**
+   * Where the used fragment starts in `src`, seconds: 0 for the fragment the worker cut,
+   * the range start when the admin previews the whole (proxy) video.
+   */
+  readonly startSec: number;
+  readonly hasAudio: boolean;
 }
 
 export type ResolvedMediaItem = ResolvedImage | ResolvedVideo;
@@ -30,4 +36,9 @@ export interface ResolvedAssets {
   readonly media: ResolvedMedia;
   /** `null` when music is disabled or no track is available. */
   readonly music: ResolvedAudio | null;
+  /**
+   * Library tracks chosen for the template's sound cues (`TemplateDefinition.soundTracks`),
+   * by cue key. Cues without an entry use the engine's built-in sound.
+   */
+  readonly sounds?: Readonly<Record<string, ResolvedAudio>>;
 }

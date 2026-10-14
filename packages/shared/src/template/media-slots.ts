@@ -16,6 +16,11 @@ export interface MediaSlot<K extends string = string> {
   readonly required: boolean;
   /** Present for list slots (e.g. a slideshow); the value is then an array of asset ids. */
   readonly multiple?: { readonly min: number; readonly max: number };
+  /**
+   * Video slots: the props path of the `videoRangeField` that picks the used fragment
+   * (e.g. `params.clip`). The worker cuts that fragment; the admin edits it next to the video.
+   */
+  readonly range?: string;
 }
 
 type SingleRequired = z.ZodType<string, string>;
@@ -62,6 +67,11 @@ export const imageSlot = <const K extends string, const R extends boolean>(
   key: K,
   options: { label: string; required: R; description?: string },
 ): MediaSlot<K> & { readonly kind: 'image'; readonly required: R } => ({ key, kind: 'image', ...options });
+
+export const videoSlot = <const K extends string, const R extends boolean>(
+  key: K,
+  options: { label: string; required: R; description?: string; range: string },
+): MediaSlot<K> & { readonly kind: 'video'; readonly required: R } => ({ key, kind: 'video', ...options });
 
 /** Metadata of an uploaded asset, as seen by template media checks. */
 export interface MediaInfo {

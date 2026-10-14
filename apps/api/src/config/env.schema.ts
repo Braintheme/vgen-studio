@@ -9,7 +9,7 @@ export const EnvSchema = z.object({
   DB_LOGGING: z.stringbool().default(false),
   MEDIA_ROOT: z.string().min(1).default('/data/media'),
   /** Max size of one uploaded file. */
-  MAX_UPLOAD_MB: z.coerce.number().positive().default(80),
+  MAX_UPLOAD_MB: z.coerce.number().positive().default(1024),
   /** Render attempts per job (1 = no retry). */
   RENDER_ATTEMPTS: z.coerce.number().int().min(1).max(5).default(2),
   LOG_FORMAT: z.enum(['pretty', 'json']).default('pretty'),

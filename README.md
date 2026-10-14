@@ -16,11 +16,12 @@ press Generate, get an MP4 (H.264 / yuv420p / AAC 48 kHz / faststart).
 
 ## Templates
 
-| Template                                    | What it does                                                                                                                                                                                                          |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Before / After (`before-after`)             | 13 s cinematic before → after reveal (choice of reveal effects, finale, motion intensity), intro and outro cards                                                                                                      |
-| Before / After — Card (`before-after-card`) | the photo shrinks into a floating 3D card, the edit is revealed inside it (any shared reveal effect, split slider by default), the card opens back up, a soft before/after flash closes it; built from `references/1` |
-| Test card (`test-card`)                     | stub template of the fake engine, hidden by default (`make fake-on`)                                                                                                                                                  |
+| Template                                    | What it does                                                                                                                                                                                                                                                               |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Before / After (`before-after`)             | 13 s cinematic before → after reveal (choice of reveal effects, finale, motion intensity), intro and outro cards                                                                                                                                                           |
+| Before / After — Card (`before-after-card`) | the photo shrinks into a floating 3D card, the edit is revealed inside it (any shared reveal effect, split slider by default), the card opens back up, a soft before/after flash closes it; built from `references/1`                                                      |
+| Preset Reel (`preset-reel`)                 | your clip (a chosen fragment of an uploaded video, reframed, optional punch-in) with a styled title → zoom → Lightroom settings screenshots on an animated background → zoom → before/after on an instant-photo card; shutter and swoosh sounds; built from `references/2` |
+| Test card (`test-card`)                     | stub template of the fake engine, hidden by default (`make fake-on`)                                                                                                                                                                                                       |
 
 ## Quick start
 
@@ -40,6 +41,10 @@ make help    # all commands
 | Swagger  | http://localhost:3800/api/docs        |
 | Studio   | http://localhost:3801 (`make studio`) |
 | Postgres | 127.0.0.1:5433                        |
+
+From a phone or another computer on the same network open the admin by the laptop's address:
+`make up` and `make url` print it (`http://<ip>:5173`, or the stable `http://<name>.local:5173`).
+There is no login, so anyone on that network can use it.
 
 Host ports are configurable in `.env` (`*_HOST_PORT`). No login: the API has an auth stub that
 treats every request as the system user (see [docs/architecture.md](docs/architecture.md)).
@@ -103,6 +108,7 @@ make check-jitter                   # fails if moving overlays snap to the pixel
 make reference file=references/<file>.mp4   # break down a reference video (frames, sheets, cuts, beats)
 make reference-compare file=references/<slug>/<video>.mp4 render=<render>.mp4   # side by side + timing
 make demo args="--template=before-after-card --photos=references/<slug>/compare-photos"
+make demo args="--template=preset-reel --clip=/app/<video>.mp4 --screens=/app/<dir of screenshots>"
 ```
 
 New templates can start from a reference video: `make reference` writes frames, contact sheets,
