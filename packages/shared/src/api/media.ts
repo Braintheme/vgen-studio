@@ -6,7 +6,29 @@ import { MEDIA_ROLES } from '../render/status.js';
 export const UPLOAD_MIME_TYPES = {
   image: ['image/jpeg', 'image/png', 'image/webp'],
   audio: ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/x-m4a', 'audio/aac'],
+  video: ['video/mp4', 'video/quicktime'],
 } as const;
+
+/** A strip of evenly spaced video frames in one image (scrubbing and trimming UI). */
+export const FilmstripDtoSchema = z.object({
+  url: z.string(),
+  frames: z.number().int().min(1),
+  frameWidth: z.number().int(),
+  frameHeight: z.number().int(),
+  /** Time of frame `i` is `(i + 0.5) * intervalSec`. */
+  intervalSec: z.number(),
+});
+export type FilmstripDto = z.infer<typeof FilmstripDtoSchema>;
+
+/** Video-only details of a media asset. */
+export const VideoInfoDtoSchema = z.object({
+  fps: z.number(),
+  hasAudio: z.boolean(),
+  /** Light H.264 copy (~720 p, dense keyframes) for browser previews and scrubbing. */
+  proxyUrl: z.string().nullable(),
+  filmstrip: FilmstripDtoSchema.nullable(),
+});
+export type VideoInfoDto = z.infer<typeof VideoInfoDtoSchema>;
 
 export const MediaAssetDtoSchema = z.object({
   id: z.uuid(),
@@ -21,15 +43,22 @@ export const MediaAssetDtoSchema = z.object({
   createdAt: z.iso.datetime(),
   /** Original file (supports HTTP Range). */
   url: z.string(),
-  /** Lightweight preview (images only): ~1600 px WebP with EXIF orientation applied. */
+  /**
+   * Lightweight preview: ~1600 px WebP with EXIF orientation applied (images), a poster
+   * frame of the same kind (videos).
+   */
   previewUrl: z.string().nullable(),
   /** Waveform peaks JSON (audio only), see WaveformPeaksDto. */
   peaksUrl: z.string().nullable(),
+  video: VideoInfoDtoSchema.nullable(),
 });
 export type MediaAssetDto = z.infer<typeof MediaAssetDtoSchema>;
 
+export const MEDIA_FILE_VARIANTS = ['original', 'preview', 'peaks', 'proxy', 'filmstrip'] as const;
+export type MediaFileVariant = (typeof MEDIA_FILE_VARIANTS)[number];
+
 export const MediaFileQuerySchema = z.object({
-  variant: z.enum(['original', 'preview', 'peaks']).default('original'),
+  variant: z.enum(MEDIA_FILE_VARIANTS).default('original'),
   /** `1` -> `Content-Disposition: attachment`. */
   download: z.stringbool().default(false),
 });

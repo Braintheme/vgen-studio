@@ -41,8 +41,15 @@ export type FieldSpec =
   /** A template text: `{ enabled, value }` with an on/off switch. */
   | (FieldBase & { readonly kind: 'text'; readonly multiline: boolean; readonly maxLength: number | null })
   | (FieldBase & { readonly kind: 'string'; readonly maxLength: number | null })
-  /** A widget the generic form does not know (e.g. `music-track`); the screen supplies it. */
-  | (FieldBase & { readonly kind: 'custom'; readonly widget: string });
+  /**
+   * A widget the generic form does not know (e.g. `music-track`); the screen supplies it.
+   * Compound values (objects) with such a widget stay one field; `limits` are their bounds.
+   */
+  | (FieldBase & {
+      readonly kind: 'custom';
+      readonly widget: string;
+      readonly limits: { readonly min: number; readonly max: number } | null;
+    });
 
 export type FieldKind = FieldSpec['kind'];
 
@@ -131,6 +138,13 @@ const isTextField = (node: Node): boolean => {
   return props['enabled']?.['type'] === 'boolean' && props['value']?.['type'] === 'string';
 };
 
+const customField = (node: Node, path: string, label: string, widget: string): FieldSpec => {
+  const limits = isNode(node['limits']) ? node['limits'] : null;
+  const min = limits ? num(limits, 'min') : null;
+  const max = limits ? num(limits, 'max') : null;
+  return { kind: 'custom', path, label, widget, limits: min !== null && max !== null ? { min, max } : null };
+};
+
 /** One leaf field, or null when no widget fits it. */
 const describeLeaf = (node: Node, path: string, label: string): FieldSpec | null => {
   const widget = str(node, 'widget');
@@ -145,7 +159,7 @@ const describeLeaf = (node: Node, path: string, label: string): FieldSpec | null
   const min = bound('minimum');
   const max = bound('maximum');
 
-  if (widget !== null && !GENERIC_WIDGETS.has(widget)) return { kind: 'custom', path, label, widget };
+  if (widget !== null && !GENERIC_WIDGETS.has(widget)) return customField(node, path, label, widget);
   if (widget === 'font' && values)
     return { kind: 'font', path, label, options: optionsOf(node, values, FONT_LABELS) };
   if (values && (widget === 'select' || widget === 'segmented' || widget === null)) {
@@ -176,6 +190,9 @@ const expand = (node: Node, path: string, hidden: ReadonlySet<string>): FieldSpe
     const maxLength = num(properties(node)['value'] ?? {}, 'maxLength');
     return [{ kind: 'text', path, label, multiline: str(node, 'widget') === 'textarea', maxLength }];
   }
+  // An object with a screen-supplied widget (e.g. `video-range`) is edited as a whole.
+  const widget = str(node, 'widget');
+  if (widget !== null && !GENERIC_WIDGETS.has(widget)) return [customField(node, path, label, widget)];
   const children = properties(node);
   if (str(node, 'type') === 'object' && Object.keys(children).length > 0) {
     return Object.entries(children).flatMap(([key, child]) => expand(child, `${path}.${key}`, hidden));

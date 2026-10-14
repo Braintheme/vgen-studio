@@ -30,7 +30,7 @@ export interface BundleManager {
 
 const DEFAULT_DEBOUNCE_MS = 800;
 /** Source files that end up in the bundle. */
-const BUNDLED_FILE = /\.(tsx?|css|woff2?)$/;
+const BUNDLED_FILE = /\.(tsx?|css|woff2?|wav)$/;
 
 /**
  * Owns the Remotion bundle of a worker. With `watchDirs` (development) it rebuilds after

@@ -37,6 +37,12 @@ up: .env node_modules ## Start all services in the background
 	@echo "Admin:   http://localhost:$(or $(ADMIN_HOST_PORT),5173)"
 	@echo "API:     http://localhost:$(or $(API_HOST_PORT),3800)/api/v1"
 	@echo "Swagger: http://localhost:$(or $(API_HOST_PORT),3800)/api/docs"
+	@sh scripts/lan-urls.sh $(or $(ADMIN_HOST_PORT),5173)
+
+.PHONY: url
+url: ## Print the admin URLs for this machine and for other devices on the local network
+	@echo "Admin:   http://localhost:$(or $(ADMIN_HOST_PORT),5173)"
+	@sh scripts/lan-urls.sh $(or $(ADMIN_HOST_PORT),5173)
 
 .PHONY: down
 down: ## Stop all services
@@ -123,12 +129,12 @@ demo: ## Render demo videos into fixtures/renders: make demo args="--formats=9:1
 .PHONY: reference
 reference: ## Analyze a reference video for template work: make reference file=references/<file>.mp4
 	@test -n "$(file)" || (echo "Usage: make reference file=references/<file>.mp4" && exit 1)
-	$(RUN_TOOLS) pnpm --filter @vgen/devtools reference --file=$(file) $(args)
+	$(RUN_TOOLS) pnpm --filter @vgen/devtools reference --file="$(file)" $(args)
 
 .PHONY: reference-compare
 reference-compare: ## Compare a render with its reference: make reference-compare file=references/<slug>/<video>.mp4 render=<render>.mp4
 	@test -n "$(file)" -a -n "$(render)" || (echo "Usage: make reference-compare file=<reference>.mp4 render=<render>.mp4" && exit 1)
-	$(RUN_TOOLS) pnpm --filter @vgen/devtools reference-compare --file=$(file) --render=$(render) $(args)
+	$(RUN_TOOLS) pnpm --filter @vgen/devtools reference-compare --file="$(file)" --render="$(render)" $(args)
 
 .PHONY: render
 render: ## Render via queue + worker without the API: make render args="--media=before:fixtures/before.jpg --media=after:fixtures/after.jpg"

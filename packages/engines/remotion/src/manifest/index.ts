@@ -2,6 +2,7 @@
 import type { EngineManifest } from '@vgen/shared';
 import { beforeAfterCardTemplate } from '../templates/before-after-card/manifest.js';
 import { beforeAfterTemplate } from '../templates/before-after/manifest.js';
+import { presetReelTemplate } from '../templates/preset-reel/manifest.js';
 
 /** Adapter version; build metadata pins the Remotion version it was built against. */
 export const REMOTION_ENGINE_VERSION = '0.1.0+remotion.4.0.535';
@@ -18,10 +19,12 @@ export const remotionEngineManifest: EngineManifest = {
     maxDurationSec: 120,
     browserPreview: true,
   },
-  templates: [beforeAfterTemplate, beforeAfterCardTemplate],
+  templates: [beforeAfterTemplate, beforeAfterCardTemplate, presetReelTemplate],
 };
 
 export { beforeAfterTemplate } from '../templates/before-after/manifest.js';
 export type { BeforeAfterProps } from '../templates/before-after/manifest.js';
 export { beforeAfterCardTemplate } from '../templates/before-after-card/manifest.js';
 export type { BeforeAfterCardProps } from '../templates/before-after-card/manifest.js';
+export { presetReelTemplate } from '../templates/preset-reel/manifest.js';
+export type { PresetReelProps } from '../templates/preset-reel/manifest.js';

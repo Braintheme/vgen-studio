@@ -86,14 +86,42 @@ high-priority `preview` job on the engine's queue and waits for it (60 s timeout
 Templates are compositions of shared, data-driven blocks in `packages/engines/remotion/src/core`:
 registries of reveal effects and seam transitions (a template picks allowed ids and a default;
 each reveal declares its natural `durationSec` and `revealedAt`), primitives (`PhotoPlane` with a
-virtual camera, `PhotoCard`, labels, overlays), typography, before/after `pairs/` helpers, and a
-`SceneRenderer` that turns effect descriptions (plain data) into DOM. Everything that moves is
+virtual camera, `PhotoCard`, `VideoPlane`, `ScreenshotPanel`, `InstantCard`, labels, overlays),
+animated backgrounds (`backgrounds/` registry), typography, sound cues, before/after `pairs/`
+helpers, `SeamedSection` (sections whose seams are centered on their boundaries, so cut-style
+transitions lose no content) and a `SceneRenderer` that turns effect descriptions (plain data)
+into DOM. Everything that moves is
 placed with transforms only (`placement.ts`): headless Chrome snaps layout positions and glyphs to
 whole pixels, and `make check-jitter` fails when that comes back.
 
 In development the Remotion worker rebuilds its bundle when composition sources change
 (debounced; never during a render). Production images ship a bundle prebuilt at image build and a
 baked-in Chrome Headless Shell.
+
+## Video media
+
+Uploads with a real video stream (MP4/MOV, any codec ffmpeg reads) become `video` assets. The
+original is stored as is; at upload the API also writes a poster (the `preview` variant, so
+media cards work unchanged), a light H.264 **proxy** (short side ≤ 720 px, dense keyframes) for
+the browser and a **filmstrip** (one row of evenly spaced frames) for trimming
+(`MediaAssetDto.video`). Videos are short (tens of seconds), so this runs inside the upload
+request (`MAX_UPLOAD_MB`, default 1 GB).
+
+A video slot points at a `videoRangeField` of the template (`videoSlot(..., { range })`): the
+worker cuts exactly that fragment from the original (frame-accurate, the output fps, sized to
+cover the frame twice over, H.264 + AAC) and hands the engine a `ResolvedVideo` with
+`startSec: 0`. The admin preview plays the proxy instead, starting at the range start. Templates
+place videos with `VideoPlane` (zoom/pan framing, punch-ins by transforms).
+
+Templates may derive their length from content (`resolveMetadata`, e.g. clip + screenshots +
+card) and hide `durationSec`; the admin then sizes the music fragment by the derived length.
+
+## Sound cues
+
+`soundEffectField()` is a cue (`{ enabled, trackId, volume }`): `trackId: null` plays the engine's
+built-in sound (synthesized, license-free: `pnpm --filter @vgen/devtools sfx`), otherwise a track
+from the music library. A template lists the chosen tracks with `soundTracks(props)`; the worker
+and the admin preview resolve them into `ResolvedAssets.sounds`.
 
 ## Music
 
@@ -130,4 +158,3 @@ default with a notice. The fragment starts at `music.startSec`; tracks shorter t
   independently per engine.
 - **Storage**: everything goes through `StorageService` + storage keys; an S3/MinIO
   implementation replaces `LocalStorageService`.
-- **Video media slots**: the media model and slot kinds already include `video`.

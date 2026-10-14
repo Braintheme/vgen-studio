@@ -1,24 +1,26 @@
 import type { MusicTrackDto, ResolvedAudio } from '@vgen/shared';
-import { computed, watch, type ComputedRef, type Ref, type WritableComputedRef } from 'vue';
+import { computed, watch, type ComputedRef, type WritableComputedRef } from 'vue';
 import { valueAtPath } from '@/lib/utils';
 import { useMusicTracksQuery, useWaveformPeaksQuery } from '@/queries/music';
 import { MUSIC_PATHS } from '@/lib/music';
 import { MUSIC_START_DECIMALS } from '@/features/compose/constants';
 import type { WaveformSource } from '@/lib/waveform-region';
 import type { MusicNotice, MusicWidgetsView } from '@/features/compose/types';
-import type { SettingsValues, TemplateSettings } from './useComposeForm';
+import type { SettingsValues } from './useComposeForm';
 
 export interface ComposeMusicDeps {
   /** Reactive form values. */
   readonly values: Readonly<SettingsValues>;
-  /** Last valid settings (video duration). */
-  readonly settings: Readonly<Ref<TemplateSettings>>;
+  /** Length of the video (templates may derive it from their content). */
+  readonly videoSec: ComputedRef<number>;
   readonly setFieldValue: (path: string, value: unknown) => void;
   /** Reports an automatic fix (e.g. a deleted track) to the user. */
   readonly report: (line: string) => void;
 }
 
 export interface ComposeMusicState {
+  /** Every library track (also offered for sound cues). */
+  readonly tracks: ComputedRef<readonly MusicTrackDto[]>;
   /** What the music widgets show. */
   readonly view: ComputedRef<MusicWidgetsView>;
   /** Chosen track id; `null` = the library default. */
@@ -39,7 +41,7 @@ const roundStart = (seconds: number): number => {
  */
 export const useComposeMusic = ({
   values,
-  settings,
+  videoSec,
   setFieldValue,
   report,
 }: ComposeMusicDeps): ComposeMusicState => {
@@ -73,7 +75,6 @@ export const useComposeMusic = ({
       ? defaultTrack.value
       : (tracks.value.find((candidate) => candidate.id === trackId.value) ?? null),
   );
-  const videoSec = computed(() => settings.value.durationSec);
   const regionSec = computed(() => Math.min(videoSec.value, track.value?.durationSec ?? videoSec.value));
 
   // A track deleted from the library (chosen in a draft or a preset) falls back to the default.
@@ -110,6 +111,7 @@ export const useComposeMusic = ({
   });
 
   return {
+    tracks,
     view: computed(() => ({
       enabled: enabled.value,
       tracks: tracks.value,

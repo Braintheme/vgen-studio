@@ -43,6 +43,8 @@ export const slideshowTemplate = defineTemplate({
   // formats: ['9:16', '1:1'],                 all four by default
   // checkMedia: (media) => [...warnings],     non-blocking warnings shown in the admin and API
   // prepareAssets: async (ctx) => {...},      pixel work on prepared photos (never reframing)
+  // resolveMetadata: (props) => ({...}),      a length derived from content (hide `durationSec`)
+  // soundTracks: (props) => ({...}),          library tracks chosen for sound cues
 });
 
 export type SlideshowProps = z.output<typeof slideshowTemplate.schema>;
@@ -59,6 +61,14 @@ Rules that keep everything else automatic:
   their list so a new effect never changes them. Each reveal effect declares `durationSec`
   (natural length) and `revealedAt` (progress from which "after" dominates) for templates that
   let the effect set the pace (see `before-after-card`).
+- Video: `videoSlot('clip', { label, required, range: 'params.clip' })` plus
+  `clip: videoRangeField({ label, minSec, maxSec, defaultSec })` in `params`. The admin shows a
+  trimmer next to the video; the worker cuts that fragment. Draw it with `VideoPlane`.
+- List slots (`multiple: { min, max }`) get a sortable gallery in the admin; read them with
+  `imageAssets(assets.media, key)`.
+- Sounds: `soundEffectField({ label })` per cue and `soundTracks: (props) =>
+soundEffectTracks({ cue: props.params.cue })`; play them with `SoundCue` (built-in sound when
+  no track is chosen). See `templates/preset-reel`.
 - `version`: bump it on visible changes (defaults, timing, options). Drafts and presets made with
   another version are re-validated and the owner gets a notice.
 - Manifests are isomorphic: no React, `remotion`, `sharp` or `node:*` imports (lint-enforced).
@@ -71,8 +81,11 @@ from `core/`:
 
 - scenes and effects: `SceneRenderer`, the reveal and transition registries;
 - primitives: `PhotoPlane` (with a camera for Ken Burns moves), `PhotoCard` (full bleed ↔ 3D
-  card), `BlurredBackdrop`, `Label`, `Vignette` / `Grain`;
-- typography: `WordReveal`, `TypeOn` (typewriter);
+  card), `VideoPlane`, `ScreenshotPanel`, `InstantCard`, `BlurredBackdrop`, `Label`,
+  `Vignette` / `Grain`;
+- the backgrounds registry (`BackgroundLayer`, `backgroundField`) and `SeamedSection` for
+  sections joined by registered transitions;
+- typography: `WordReveal`, `TypeOn` (typewriter), `AccentTitle` (lines with `*accents*`);
 - `pairs/` for before/after alignment (`prepareAssets`) and media checks;
 - `MusicLayer`, `useLayout()` (the four formats and safe zones), `useFonts()`, `motion.ts`
   (easing, `cubicBezier`, keyframes);

@@ -15,6 +15,9 @@ export interface MediaSlotsState {
   readonly assets: ComputedRef<ReadonlyMap<string, MediaAssetDto>>;
   readonly upload: (slotKey: string, files: readonly File[]) => Promise<void>;
   readonly clear: (slotKey: string) => void;
+  /** List slots: removes one item / moves an item to another position. */
+  readonly removeAt: (slotKey: string, index: number) => void;
+  readonly move: (slotKey: string, from: number, to: number) => void;
   readonly runAction: (action: SlotActionView) => void;
   /** Marks empty required slots; true when all are filled. */
   readonly validate: () => boolean;
@@ -75,17 +78,19 @@ export const useMediaSlots = (
           ]),
         ),
       );
-      report('Deleted photos were removed from the slots.');
+      report('Deleted media were removed from the slots.');
     },
   );
 
   const slots = computed<MediaSlotView[]>(() =>
     template.mediaSlots.map((slot) => ({
       key: slot.key,
+      kind: slot.kind,
       label: slot.label,
       description: slot.description ?? null,
       required: slot.required,
       multiple: slot.multiple !== undefined,
+      maxItems: slot.multiple?.max ?? 1,
       accept: ACCEPT_BY_SLOT_KIND[slot.kind],
       assets: idsOf(media.value[slot.key])
         .map((id) => assets.value.get(id))
@@ -154,6 +159,16 @@ export const useMediaSlots = (
         ...media.value,
         [slotKey]: template.mediaSlots.find((slot) => slot.key === slotKey)?.multiple ? [] : null,
       });
+    },
+    removeAt: (slotKey, index) => {
+      setMedia({ ...media.value, [slotKey]: idsOf(media.value[slotKey]).filter((_, i) => i !== index) });
+    },
+    move: (slotKey, from, to) => {
+      const ids = idsOf(media.value[slotKey]);
+      const [moved] = ids.splice(from, 1);
+      if (moved === undefined || to < 0 || to > ids.length) return;
+      ids.splice(to, 0, moved);
+      setMedia({ ...media.value, [slotKey]: ids });
     },
     runAction: (action) => {
       const [first, second] = action.slots;

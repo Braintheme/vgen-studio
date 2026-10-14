@@ -25,8 +25,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
   },
   server: {
-    // `admin` is the service name inside the docker network (used by headless smoke checks).
-    allowedHosts: ['localhost', 'admin'],
+    // `admin` is the service name inside the docker network (used by headless smoke checks);
+    // `.local` names (Bonjour, e.g. `MacBook.local`) open the admin from phones on the same
+    // network. IP addresses are always allowed.
+    allowedHosts: ['localhost', 'admin', '.local'],
     proxy: {
       '/api': { target: apiTarget, changeOrigin: true },
     },

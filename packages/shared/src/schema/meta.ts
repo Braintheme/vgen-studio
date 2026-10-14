@@ -19,6 +19,10 @@ export type FieldWidget =
   | 'font'
   | 'music-track'
   | 'music-region'
+  /** `{ startSec, endSec }` of a video slot (see `videoRangeField`). */
+  | 'video-range'
+  /** `{ enabled, trackId, volume }`: a built-in sound or a library track (see `soundEffectField`). */
+  | 'sound-effect'
   /** Engine/template specific widgets. */
   | `custom:${string}`;
 
@@ -32,6 +36,8 @@ declare module 'zod' {
     step?: number;
     /** Unit suffix shown next to numeric widgets (e.g. `s`, `%`). */
     unit?: string;
+    /** Bounds of compound widgets, e.g. the allowed fragment length of a `video-range`. */
+    limits?: { min: number; max: number };
   }
 }
 

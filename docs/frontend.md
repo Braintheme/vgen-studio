@@ -46,7 +46,7 @@ src/
   components/
     ui/           shadcn-vue (generated)
     common/       DataTable, DataTablePagination, ConfirmDialog, PromptDialog, EmptyState, ErrorState, FilterSelect,
-                  FileDropzone, PageHeader, LiveIndicator, PlayerHost, WaveformRegion
+                  FileDropzone, PageHeader, LiveIndicator, PlayerHost, WaveformRegion, FilmstripRange
     layout/       AppSidebar, AppSidebarNav, AppBrand, AppHeader, ThemeToggle
   features/<feature>/
     constants.ts  types.ts
@@ -125,7 +125,10 @@ library): any widget id that is not generic becomes a `{ kind: 'custom', widget 
 `SchemaForm` renders the slot `widget:<id>` with `{ field }`. The screen fills it (see
 `features/compose/components/ComposeSettingsForm.vue`) and writes values through
 `useSchemaForm().setFieldValue(path, value)`; a custom field without a slot is not shown.
-Engine/template widgets use ids `custom:<name>`. `replaceValues(values)` swaps all values at
+Engine/template widgets use ids `custom:<name>`. An object field with such a widget stays one
+field (its `limits` meta, if any, comes along): the compose screen fills `video-range` (a video
+trimmer bound to the slot whose `range` points at the field) and `sound-effect` (built-in sound or
+a library track, with volume). `replaceValues(values)` swaps all values at
 once (applying a style preset).
 
 ## Engine previews

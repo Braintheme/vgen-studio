@@ -38,35 +38,45 @@ Start with [README.md](README.md); details in [docs/](docs/).
 | -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `before-after` v1.0.0      | remotion | 13 s cinematic reveal; reveal effects pinned to the original four                                                                                                     |
 | `before-after-card` v1.1.0 | remotion | from `references/1`: full bleed → 3D card → reveal inside (any shared reveal, default split-slider) → full bleed → soft before/after flash; optional first-photo push |
+| `preset-reel` v1.0.0       | remotion | from `references/2`: video clip fragment + title → punch zoom → settings screenshots on an animated background → punch zoom → before/after on an instant card; sounds |
 | `test-card`                | fake     | dev stub proving engines plug in; hidden by default (`make fake-on` / `make fake-off`)                                                                                |
 
 Shared Remotion building blocks (`packages/engines/remotion/src/core`):
 
-- `reveals/` registry: `diagonal-wipe`, `circle-reveal`, `blinds`, `split-slider`, `slide-over`.
-  Each effect declares `durationSec` (natural length) and `revealedAt` (when "after"
+- `reveals/` registry: `diagonal-wipe`, `circle-reveal`, `blinds`, `split-slider`, `slide-over`,
+  `line-wipe`. Each effect declares `durationSec` (natural length) and `revealedAt` (when "after"
   dominates, used to sync labels);
-- `transitions/` registry (seams between scenes);
-- `primitives/`: `PhotoPlane` (+ camera), `PhotoCard` (full bleed ↔ 3D card), `Label`,
-  `BlurredBackdrop`, overlays;
-- `typography/`: `WordReveal`, `TypeOn`;
+- `transitions/` registry (seams between scenes, incl. `punch-zoom`) and `SeamedSection`
+  (sections with seams centered on their boundaries);
+- `backgrounds/` registry: `light-streaks`, `aurora`, `soft-gradient`, `bokeh`, `solid`;
+- `primitives/`: `PhotoPlane` (+ camera), `PhotoCard` (full bleed ↔ 3D card), `VideoPlane`
+  (framing + focus zoom), `ScreenshotPanel`, `InstantCard`, `Label`, `BlurredBackdrop`, overlays;
+- `typography/`: `WordReveal`, `TypeOn`, `AccentTitle` (`*accent*` runs);
+- `audio/`: `MusicLayer`, `SoundCue` + built-in `sfx/` (`pnpm --filter @vgen/devtools sfx`);
 - `pairs/`: before/after alignment and media checks;
 - `placement.ts`: `placeAt()` for anything that moves (see gotchas);
 - `scene/` data-driven `SceneRenderer`, `layout.ts` (4 formats + safe zones), `motion.ts`
   (easing, `cubicBezier`, keyframes).
 
+Video media: uploads get a poster, an H.264 proxy and a filmstrip; a video slot points at a
+`videoRangeField` and the worker cuts that fragment (see docs/architecture.md "Video media").
+
 Deferred (agreed "later"): bulk delete, cleanup of orphan files and of the preview-frame cache
-(`previews/`), gallery thumbnails for templates, music beat sync.
+(`previews/`), gallery thumbnails for templates, music beat sync, reading camera settings (EXIF)
+from before/after photos into `preset-reel`'s card.
 Open questions on `before-after-card`: end-flash softness, more card "float" in holds.
 
 ## Everyday commands
 
 ```bash
 make up / make down / make logs s=api / make ps
+make url                         # admin URLs, incl. LAN ones for a phone (IP and <name>.local)
 make check                       # lint + unit tests + check-jitter + e2e (required for upgrades)
 make lint / make test / make test-e2e / make check-jitter
 make seed                        # default preset per template, music from ./seed
 make studio                      # Remotion Studio :3801
 make demo args="--template=before-after-card --effects=split-slider --frames=0,100 --png"
+make demo args="--template=preset-reel --clip=/app/<video>.mp4 --screens=/app/<dir>"
 make reference file=references/<n>/<video>.mp4
 make reference-compare file=references/<n>/<video>.mp4 render=<render>.mp4
 make fake-on / make fake-off
@@ -121,5 +131,9 @@ Also compare a template's option lists via `GET /api/v1/templates/<id>` when reg
   pairs frames unreliably on B-frame streams and reports phantom flicker.
 - `pnpm add` rewrites `pnpm-workspace.yaml` and drops its comments (lint checks the zod note).
 - The shadcn-vue CLI may try to change dependency versions; the strict catalog rejects it.
+- ffmpeg `fps` → `tile` drops the last sample at end of stream (black last tile): pad the input
+  with `tpad=stop_mode=clone` first (`makeFilmstrip`).
+- A cut-style transition must not run through `TransitionSeries` (its overlap eats frames on both
+  sides): use `SeamedSection`.
 - In this shell (zsh) avoid `read a b < <(...)` and unquoted variables in `rm`; use small bash
   scripts in the scratchpad instead.

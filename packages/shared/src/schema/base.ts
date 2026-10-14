@@ -119,6 +119,83 @@ export const textField = (options: TextFieldOptions) => {
 
 export type TextField = z.output<ReturnType<typeof textField>>;
 
+export interface VideoRangeOptions {
+  readonly label: string;
+  /** Shortest and longest allowed fragment, seconds. */
+  readonly minSec: number;
+  readonly maxSec: number;
+  /** Fragment length before the user picks one (starts at 0). */
+  readonly defaultSec: number;
+}
+
+/**
+ * The used fragment of a video slot (the slot points at it with `range`): per-video content.
+ * The admin clamps it to the uploaded video; the worker cuts exactly this part.
+ */
+export const videoRangeField = (options: VideoRangeOptions) =>
+  z
+    .object({
+      startSec: z.number().min(0).default(0),
+      endSec: z.number().min(0).default(options.defaultSec),
+    })
+    .prefault({})
+    .refine(
+      (range) =>
+        range.endSec - range.startSec >= options.minSec - 0.001 &&
+        range.endSec - range.startSec <= options.maxSec + 0.001,
+      `The fragment must be ${options.minSec}–${options.maxSec} s long`,
+    )
+    .meta({
+      title: options.label,
+      scope: 'content',
+      widget: 'video-range',
+      unit: 's',
+      limits: { min: options.minSec, max: options.maxSec },
+    });
+
+export type VideoRange = z.output<ReturnType<typeof videoRangeField>>;
+
+/** Length of a video fragment, seconds. */
+export const videoRangeSec = (range: VideoRange): number => Math.max(0, range.endSec - range.startSec);
+
+export interface SoundEffectOptions {
+  readonly label: string;
+  readonly enabled?: boolean;
+  readonly volume?: number;
+}
+
+/**
+ * A sound cue of a template (shutter click, swoosh): `trackId: null` plays the engine's
+ * built-in sound, otherwise a track from the music library.
+ */
+export const soundEffectField = (options: SoundEffectOptions) => {
+  const enabled = options.enabled ?? true;
+  return z
+    .object({
+      enabled: z.boolean().default(enabled),
+      trackId: z.uuid().nullable().default(null),
+      volume: z
+        .number()
+        .min(0)
+        .max(1)
+        .default(options.volume ?? 0.8),
+    })
+    .prefault({})
+    .meta({ title: options.label, scope: 'style', widget: 'sound-effect' });
+};
+
+export type SoundEffect = z.output<ReturnType<typeof soundEffectField>>;
+
+/** Library tracks of the enabled cues (for `TemplateDefinition.soundTracks`). */
+export const soundEffectTracks = (
+  cues: Readonly<Record<string, SoundEffect>>,
+): Readonly<Record<string, string>> =>
+  Object.fromEntries(
+    Object.entries(cues).flatMap(([key, cue]) =>
+      cue.enabled && cue.trackId !== null ? [[key, cue.trackId] as const] : [],
+    ),
+  );
+
 export interface DurationSpec {
   readonly default: number;
   readonly min: number;

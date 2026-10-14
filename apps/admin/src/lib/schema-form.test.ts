@@ -1,4 +1,4 @@
-import { defineTemplate, imageSlot, textField } from '@vgen/shared';
+import { defineTemplate, imageSlot, soundEffectField, textField, videoRangeField } from '@vgen/shared';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { buildFormSections, childPaths, type FieldSpec } from './schema-form';
@@ -23,6 +23,8 @@ const template = defineTemplate({
     mode: z.enum(['x', 'y']).default('x'),
     strength: z.number().min(0).max(2).default(1).meta({ step: 0.1 }),
     count: z.number().int().min(1).default(3),
+    clip: videoRangeField({ label: 'Clip', minSec: 3, maxSec: 30, defaultSec: 10 }),
+    shutter: soundEffectField({ label: 'Shutter' }),
   },
   posterFrame: () => 0,
 });
@@ -110,5 +112,21 @@ describe('buildFormSections', () => {
       label: 'Fragment start',
     });
     expect(buildFormSections(schema, [{ id: 'x', title: 'X', paths: ['seed'] }], ['seed'])).toEqual([]);
+  });
+
+  it('keeps objects with a custom widget as one field, with their limits', () => {
+    expect(field(params?.fields ?? [], 'params.clip')).toEqual({
+      kind: 'custom',
+      path: 'params.clip',
+      label: 'Clip',
+      widget: 'video-range',
+      limits: { min: 3, max: 30 },
+    });
+    expect(field(params?.fields ?? [], 'params.shutter')).toMatchObject({
+      kind: 'custom',
+      widget: 'sound-effect',
+      limits: null,
+    });
+    expect(params?.fields.some((f) => f.path.startsWith('params.clip.'))).toBe(false);
   });
 });

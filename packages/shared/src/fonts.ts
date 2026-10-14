@@ -12,6 +12,7 @@ export const FONTS = [
   { id: 'unbounded', family: 'Unbounded', category: 'display', cyrillic: true },
   { id: 'oswald', family: 'Oswald', category: 'condensed', cyrillic: true },
   { id: 'bebas-neue', family: 'Bebas Neue', category: 'display', cyrillic: false },
+  { id: 'jetbrains-mono', family: 'JetBrains Mono', category: 'mono', cyrillic: true },
 ] as const;
 
 export type FontDefinition = (typeof FONTS)[number];

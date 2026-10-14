@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import SchemaForm from '@/components/schema-form/SchemaForm.vue';
 import type { FormSectionSpec } from '@/lib/schema-form';
-import type { MusicWidgetsView } from '@/features/compose/types';
+import type { MusicWidgetsView, VideoRangeSource } from '@/features/compose/types';
 import MusicNoticeAlert from './MusicNoticeAlert.vue';
 import MusicRegionField from './MusicRegionField.vue';
 import MusicTrackField from './MusicTrackField.vue';
+import SoundEffectField from './SoundEffectField.vue';
+import VideoRangeField from './VideoRangeField.vue';
 
-/** The template settings form with the compose screen's custom widgets (music). */
+/** The template settings form with the compose screen's custom widgets (music, video, sounds). */
 defineProps<{
   sections: readonly FormSectionSpec[];
   music: MusicWidgetsView;
+  /** The video each `video-range` field trims, by field path. */
+  videoSources: Readonly<Record<string, VideoRangeSource | null>>;
 }>();
 
 const trackId = defineModel<string | null>('trackId', { required: true });
@@ -27,6 +31,12 @@ const startSec = defineModel<number>('startSec', { required: true });
         :disabled="!music.enabled"
       />
       <MusicNoticeAlert v-if="music.notice" :notice="music.notice" />
+    </template>
+    <template #widget:video-range="{ field }">
+      <VideoRangeField :field="field" :source="videoSources[field.path] ?? null" />
+    </template>
+    <template #widget:sound-effect="{ field }">
+      <SoundEffectField :field="field" :tracks="music.tracks" />
     </template>
     <template #widget:music-region="{ field }">
       <MusicRegionField

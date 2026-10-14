@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import FileDropzone from '@/components/common/FileDropzone.vue';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { formatDuration } from '@/lib/format';
 import type { MediaSlotView } from '@/features/compose/types';
 
 const props = defineProps<{
@@ -44,6 +45,12 @@ const uploading = computed(() => props.mediaSlot.uploadProgress !== null);
           class="h-44 w-full object-cover"
         />
       </FileDropzone>
+      <span
+        v-if="preview && mediaSlot.kind === 'video' && preview.durationSec !== null"
+        class="absolute bottom-2 left-2 rounded bg-background/85 px-1.5 text-xs tabular-nums"
+      >
+        {{ formatDuration(preview.durationSec) }}
+      </span>
       <Button
         v-if="preview && !uploading"
         variant="secondary"

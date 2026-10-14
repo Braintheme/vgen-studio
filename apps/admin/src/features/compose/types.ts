@@ -1,13 +1,16 @@
-import type { MediaAssetDto, MediaWarning, MusicTrackDto } from '@vgen/shared';
+import type { FilmstripDto, MediaAssetDto, MediaWarning, MusicTrackDto, SlotMediaKind } from '@vgen/shared';
 import type { WaveformSource } from '@/lib/waveform-region';
 
 /** Everything a media slot card shows. */
 export interface MediaSlotView {
   readonly key: string;
+  readonly kind: SlotMediaKind;
   readonly label: string;
   readonly description: string | null;
   readonly required: boolean;
   readonly multiple: boolean;
+  /** Most items a list slot takes. */
+  readonly maxItems: number;
   readonly accept: string;
   readonly assets: readonly MediaAssetDto[];
   /** Upload in progress (0..1), or null. */
@@ -53,4 +56,13 @@ export interface PosterPreviewView {
   readonly loading: boolean;
   /** Why there is no (fresh) frame, if anything. */
   readonly message: string | null;
+}
+
+/** The video a `video-range` field trims (its slot's current asset). */
+export interface VideoRangeSource {
+  /** Browser-friendly copy (proxy) of the video. */
+  readonly url: string;
+  readonly posterUrl: string | null;
+  readonly durationSec: number;
+  readonly filmstrip: FilmstripDto | null;
 }

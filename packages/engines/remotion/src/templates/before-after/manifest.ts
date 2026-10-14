@@ -51,7 +51,12 @@ export const beforeAfterTemplate = defineTemplate({
         optionLabels: { subtle: 'Subtle', balanced: 'Balanced', dynamic: 'Dynamic' },
       }),
     // Calm entry by default; the energetic zoom stays available as an option.
-    introTransition: seamTransitionField({ title: 'Intro → Before', default: 'soft-focus' }),
+    // Pinned to the transitions that existed when the template shipped (new ones are opt-in).
+    introTransition: seamTransitionField({
+      title: 'Intro → Before',
+      allowed: ['soft-focus', 'fade', 'light-pass', 'slide-up', 'zoom-through', 'none'],
+      default: 'soft-focus',
+    }),
     // The end card should settle, not punch: no zoom on this seam.
     outroTransition: seamTransitionField({
       title: 'Finale → Outro',

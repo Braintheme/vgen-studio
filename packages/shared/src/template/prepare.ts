@@ -7,7 +7,16 @@ export interface PreparedImage extends Size {
   readonly mime: string;
 }
 
-export type PreparedMedia = PreparedImage | readonly PreparedImage[] | null;
+/** A video fragment cut and normalized for the render (H.264, output fps, sized for the frame). */
+export interface PreparedVideo extends Size {
+  readonly kind: 'video';
+  readonly path: string;
+  readonly mime: string;
+  readonly durationSec: number;
+  readonly hasAudio: boolean;
+}
+
+export type PreparedMedia = PreparedImage | PreparedVideo | readonly PreparedImage[] | null;
 export type PreparedMediaMap = Readonly<Record<string, PreparedMedia>>;
 
 export type ResizeFit = 'cover' | 'contain' | 'fill';
@@ -21,7 +30,7 @@ export interface PrepareAssetsContext<P> {
   readonly props: P;
   /** Output frame size of the render. */
   readonly frame: Size;
-  /** Media after the generic normalization (EXIF, sRGB, resize, sharpen). */
+  /** Media after the generic normalization (photos: EXIF, sRGB, resize, sharpen; videos: the cut fragment). */
   readonly media: PreparedMediaMap;
   readonly images: ImageToolkit;
   warn(warning: MediaWarning): void;

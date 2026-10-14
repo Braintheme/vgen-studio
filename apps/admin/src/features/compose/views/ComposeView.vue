@@ -28,6 +28,8 @@ const screen = useComposeScreen();
           :warnings="screen.media.warnings.value"
           @upload="screen.media.upload"
           @clear="screen.media.clear"
+          @remove="screen.media.removeAt"
+          @move="screen.media.move"
           @action="screen.media.runAction"
         />
         <PresetBar
@@ -44,6 +46,7 @@ const screen = useComposeScreen();
           v-model:start-sec="screen.music.startSec.value"
           :sections="screen.sections"
           :music="screen.music.view.value"
+          :video-sources="screen.videoSources.value"
         />
       </div>
       <div class="lg:sticky lg:top-4">

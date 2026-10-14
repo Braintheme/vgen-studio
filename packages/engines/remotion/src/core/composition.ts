@@ -1,4 +1,4 @@
-import type { BaseProps, ResolvedImage, ResolvedMedia, ResolvedMediaItem } from '@vgen/shared';
+import type { BaseProps, ResolvedImage, ResolvedMedia, ResolvedMediaItem, ResolvedVideo } from '@vgen/shared';
 import { z } from 'zod';
 
 const ResolvedImageSchema = z.object({
@@ -14,14 +14,19 @@ const ResolvedVideoSchema = z.object({
   width: z.number(),
   height: z.number(),
   durationSec: z.number(),
+  startSec: z.number().default(0),
+  hasAudio: z.boolean().default(false),
 });
+
+const ResolvedAudioSchema = z.object({ src: z.string(), durationSec: z.number() });
 
 const ResolvedItemSchema = z.discriminatedUnion('kind', [ResolvedImageSchema, ResolvedVideoSchema]);
 
 /** Used as part of `<Composition schema>` so Remotion Studio can edit inputs. */
 export const ResolvedAssetsSchema = z.object({
   media: z.record(z.string(), z.union([ResolvedItemSchema, z.array(ResolvedItemSchema), z.null()])),
-  music: z.object({ src: z.string(), durationSec: z.number() }).nullable(),
+  music: ResolvedAudioSchema.nullable(),
+  sounds: z.record(z.string(), ResolvedAudioSchema).optional(),
 });
 
 /** Resolved assets as validated by the composition schema (structurally `ResolvedAssets`). */
@@ -44,6 +49,26 @@ export const imageAsset = (media: ResolvedMedia, key: string): ResolvedImage | n
   // Array.isArray does not narrow readonly arrays, hence the explicit item type.
   const item = value as ResolvedMediaItem;
   return item.kind === 'image' ? item : null;
+};
+
+export const videoAsset = (media: ResolvedMedia, key: string): ResolvedVideo | null => {
+  const value = media[key];
+  if (!value || Array.isArray(value)) {
+    return null;
+  }
+  const item = value as ResolvedMediaItem;
+  return item.kind === 'video' ? item : null;
+};
+
+/** The images of a list slot (empty when nothing is uploaded yet). */
+export const imageAssets = (media: ResolvedMedia, key: string): readonly ResolvedImage[] => {
+  const value = media[key];
+  if (!value || !Array.isArray(value)) {
+    return [];
+  }
+  return (value as readonly ResolvedMediaItem[]).filter(
+    (item): item is ResolvedImage => item.kind === 'image',
+  );
 };
 
 /** Neutral stand-in for media that has not been uploaded yet (live preview). */
