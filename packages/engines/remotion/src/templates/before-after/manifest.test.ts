@@ -22,7 +22,11 @@ describe('before-after manifest', () => {
   it('defaults to a 13 s vertical video with the diagonal wipe', () => {
     const defaults = resolveTemplateDefaults(beforeAfterTemplate);
     expect(defaults).toMatchObject({ format: '9:16', durationSec: 13, fps: 30 });
-    expect(defaults.params).toEqual({
+    const { adjust, ...params } = defaults.params;
+    // Photo adjustments default to "as is" for both photos.
+    expect(adjust.before).toMatchObject({ look: 'none', exposure: 0, temperature: 0 });
+    expect(adjust.after).toMatchObject({ look: 'none', contrast: 0, tint: 0 });
+    expect(params).toEqual({
       revealEffect: 'diagonal-wipe',
       finale: 'split',
       motion: 'balanced',

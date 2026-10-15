@@ -2,6 +2,7 @@
 import type { EngineManifest } from '@vgen/shared';
 import { beforeAfterCardTemplate } from '../templates/before-after-card/manifest.js';
 import { beforeAfterTemplate } from '../templates/before-after/manifest.js';
+import { paletteGradeTemplate } from '../templates/palette-grade/manifest.js';
 import { presetReelTemplate } from '../templates/preset-reel/manifest.js';
 
 /** Adapter version; build metadata pins the Remotion version it was built against. */
@@ -19,7 +20,7 @@ export const remotionEngineManifest: EngineManifest = {
     maxDurationSec: 120,
     browserPreview: true,
   },
-  templates: [beforeAfterTemplate, beforeAfterCardTemplate, presetReelTemplate],
+  templates: [beforeAfterTemplate, beforeAfterCardTemplate, presetReelTemplate, paletteGradeTemplate],
 };
 
 export { beforeAfterTemplate } from '../templates/before-after/manifest.js';
@@ -28,3 +29,5 @@ export { beforeAfterCardTemplate } from '../templates/before-after-card/manifest
 export type { BeforeAfterCardProps } from '../templates/before-after-card/manifest.js';
 export { presetReelTemplate } from '../templates/preset-reel/manifest.js';
 export type { PresetReelProps } from '../templates/preset-reel/manifest.js';
+export { paletteGradeTemplate } from '../templates/palette-grade/manifest.js';
+export type { PaletteGradeProps } from '../templates/palette-grade/manifest.js';

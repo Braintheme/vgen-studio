@@ -9,13 +9,17 @@ import SliderField from './fields/SliderField.vue';
 import StringField from './fields/StringField.vue';
 import SwitchField from './fields/SwitchField.vue';
 import TextToggleField from './fields/TextToggleField.vue';
+import ColumnsField from './fields/ColumnsField.vue';
 
 defineProps<{
   field: GenericFieldSpec;
 }>();
 
-/** Widget registry: one component per generic field kind (custom ones come from slots). */
-const FIELD_COMPONENTS: Record<GenericFieldSpec['kind'], Component> = {
+/**
+ * Widget registry: one component per generic field kind (custom ones come from slots).
+ * `columns` lays out other fields and renders them through this component (below).
+ */
+const FIELD_COMPONENTS: Record<Exclude<GenericFieldSpec['kind'], 'columns'>, Component> = {
   select: ChoiceSelectField,
   font: ChoiceSelectField,
   segmented: SegmentedField,
@@ -29,5 +33,10 @@ const FIELD_COMPONENTS: Record<GenericFieldSpec['kind'], Component> = {
 </script>
 
 <template>
-  <component :is="FIELD_COMPONENTS[field.kind]" :field="field" />
+  <ColumnsField v-if="field.kind === 'columns'" :field="field">
+    <template #cell="{ field: cell }">
+      <SchemaField v-if="cell.kind !== 'custom'" :field="cell" />
+    </template>
+  </ColumnsField>
+  <component :is="FIELD_COMPONENTS[field.kind]" v-else :field="field" />
 </template>

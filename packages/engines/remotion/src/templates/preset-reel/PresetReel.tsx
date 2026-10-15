@@ -14,6 +14,7 @@ import { useFonts } from '../../core/fonts.js';
 import { useLayout } from '../../core/hooks.js';
 import { Grain, Vignette } from '../../core/primitives/Overlays.js';
 import { SeamedSection, type Seam } from '../../core/transitions/SeamedSection.js';
+import { useAdjustedPhoto } from '../../core/photo-adjust/useAdjustedPhoto.js';
 import { CardSection } from './CardSection.js';
 import { ClipSection } from './ClipSection.js';
 import { timelineOf, type PresetReelProps } from './manifest.js';
@@ -35,8 +36,14 @@ export const PresetReel: React.FC<RemotionTemplateProps<PresetReelProps>> = ({ p
     transition: params.toSettings,
   };
   const toCard: Seam = { at: timeline.card.from, frames: timeline.seamFrames, transition: params.toCard };
-  const before = imageAsset(assets.media, 'before')?.src ?? BEFORE_PLACEHOLDER;
-  const after = imageAsset(assets.media, 'after')?.src ?? AFTER_PLACEHOLDER;
+  const before = useAdjustedPhoto(
+    imageAsset(assets.media, 'before')?.src ?? BEFORE_PLACEHOLDER,
+    props.params.adjust.before,
+  );
+  const after = useAdjustedPhoto(
+    imageAsset(assets.media, 'after')?.src ?? AFTER_PLACEHOLDER,
+    props.params.adjust.after,
+  );
 
   return (
     <AbsoluteFill style={{ backgroundColor: style.colors.background, overflow: 'hidden' }}>
@@ -95,7 +102,6 @@ export const PresetReel: React.FC<RemotionTemplateProps<PresetReelProps>> = ({ p
       />
       <SoundCue
         at={timeline.swooshAt}
-        align="center"
         cue={params.swooshSound}
         track={assets.sounds?.['swoosh']}
         builtIn="swoosh"

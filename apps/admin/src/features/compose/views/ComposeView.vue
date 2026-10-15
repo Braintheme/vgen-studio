@@ -44,6 +44,7 @@ const screen = useComposeScreen();
         <ComposeSettingsForm
           v-model:track-id="screen.music.trackId.value"
           v-model:start-sec="screen.music.startSec.value"
+          v-model:collapsed="screen.collapsedSections.value"
           :sections="screen.sections"
           :music="screen.music.view.value"
           :video-sources="screen.videoSources.value"

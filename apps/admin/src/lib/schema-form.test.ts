@@ -130,3 +130,41 @@ describe('buildFormSections', () => {
     expect(params?.fields.some((f) => f.path.startsWith('params.clip.'))).toBe(false);
   });
 });
+
+describe('columns', () => {
+  const side = (title: string) =>
+    z
+      .object({
+        look: z.enum(['none', 'flat']).default('none').meta({ title: 'Look', widget: 'select' }),
+        exposure: z.number().min(-100).max(100).default(0).meta({ title: 'Exposure', widget: 'slider' }),
+      })
+      .prefault({})
+      .meta({ title });
+  const columnsSchema = z.toJSONSchema(
+    z.object({
+      adjust: z
+        .object({ before: side('Before'), after: side('After') })
+        .prefault({})
+        .meta({ title: 'Photo adjustments', widget: 'columns' }),
+    }),
+    { io: 'input' },
+  ) as Record<string, unknown>;
+
+  it('keeps an object with the columns widget as one field, its children as columns', () => {
+    const [section] = buildFormSections(columnsSchema, [
+      { id: 'photos', title: 'Photos', paths: ['adjust'] },
+    ]);
+    expect(section?.fields).toHaveLength(1);
+    const columns = section?.fields[0];
+    if (columns?.kind !== 'columns') throw new Error('expected a columns field');
+    expect(columns.columns.map((column) => column.label)).toEqual(['Before', 'After']);
+    expect(columns.columns[0]?.fields.map((f) => [f.path, f.kind])).toEqual([
+      ['adjust.before.look', 'select'],
+      ['adjust.before.exposure', 'slider'],
+    ]);
+    expect(columns.columns[1]?.fields.map((f) => f.path)).toEqual([
+      'adjust.after.look',
+      'adjust.after.exposure',
+    ]);
+  });
+});

@@ -18,10 +18,12 @@ defineProps<{
 
 const trackId = defineModel<string | null>('trackId', { required: true });
 const startSec = defineModel<number>('startSec', { required: true });
+/** Ids of the folded form sections. */
+const collapsed = defineModel<readonly string[]>('collapsed', { required: true });
 </script>
 
 <template>
-  <SchemaForm :sections="sections">
+  <SchemaForm v-model:collapsed="collapsed" :sections="sections">
     <template #widget:music-track="{ field }">
       <MusicTrackField
         v-model="trackId"

@@ -14,6 +14,7 @@ import { PhotoPlane } from '../../core/primitives/PhotoPlane.js';
 import { REVEAL_EFFECTS } from '../../core/reveals/registry.js';
 import { SceneRenderer } from '../../core/scene/SceneRenderer.js';
 import { TypeOn } from '../../core/typography/TypeOn.js';
+import { useAdjustedPhoto } from '../../core/photo-adjust/useAdjustedPhoto.js';
 import type { BeforeAfterCardProps } from './manifest.js';
 import { cardTimeline, LABEL_SEC } from './timeline.js';
 
@@ -69,8 +70,14 @@ export const BeforeAfterCard: React.FC<RemotionTemplateProps<BeforeAfterCardProp
       )
     : IDENTITY_CAMERA;
 
-  const before = imageAsset(assets.media, 'before')?.src ?? BEFORE_PLACEHOLDER;
-  const after = imageAsset(assets.media, 'after')?.src ?? AFTER_PLACEHOLDER;
+  const before = useAdjustedPhoto(
+    imageAsset(assets.media, 'before')?.src ?? BEFORE_PLACEHOLDER,
+    props.params.adjust.before,
+  );
+  const after = useAdjustedPhoto(
+    imageAsset(assets.media, 'after')?.src ?? AFTER_PLACEHOLDER,
+    props.params.adjust.after,
+  );
 
   const card =
     frame < t.expand.from

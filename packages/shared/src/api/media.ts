@@ -54,6 +54,9 @@ export const MediaAssetDtoSchema = z.object({
 });
 export type MediaAssetDto = z.infer<typeof MediaAssetDtoSchema>;
 
+/** Files one `POST /media` request accepts; clients upload larger selections in batches. */
+export const MAX_UPLOAD_FILES_PER_REQUEST = 10;
+
 export const MEDIA_FILE_VARIANTS = ['original', 'preview', 'peaks', 'proxy', 'filmstrip'] as const;
 export type MediaFileVariant = (typeof MEDIA_FILE_VARIANTS)[number];
 

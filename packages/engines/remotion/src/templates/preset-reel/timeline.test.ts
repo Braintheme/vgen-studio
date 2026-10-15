@@ -54,11 +54,12 @@ describe('reelTimeline', () => {
     expect(t.settings.to - t.settings.from).toBe(t.screenFrames);
   });
 
-  it('clicks the shutter before the zoom and centers the swoosh on the wipe', () => {
+  it('clicks the shutter before the zoom and starts the swoosh with the wipe in the card', () => {
     const t = reelTimeline(reference);
     // The zoom starts half a seam (15 frames) before the cut at 749; the click 0.6 s earlier.
     expect(t.shutterAt).toBe(749 - 15 - 36);
     expect(reelTimeline({ ...reference, shutterBeforeSec: 1 }).shutterAt).toBe(749 - 15 - 60);
-    expect(t.swooshAt).toBe(t.reveal.from + 21);
+    expect(t.swooshAt).toBe(t.reveal.from - 2);
+    expect(t.swooshAt).toBeGreaterThanOrEqual(t.card.from);
   });
 });

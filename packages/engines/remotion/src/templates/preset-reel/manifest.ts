@@ -13,6 +13,7 @@ import {
   type VideoRange,
 } from '@vgen/shared';
 import { z } from 'zod';
+import { photoAdjustmentsField } from '../../core/photo-adjust/schema.js';
 import { backgroundField } from '../../core/backgrounds/registry.js';
 import { alignBeforeAfter } from '../../core/pairs/align-pair.js';
 import { checkBeforeAfterMedia } from '../../core/pairs/pair-checks.js';
@@ -42,7 +43,7 @@ const slider = (title: string, min: number, max: number, value: number, step: nu
 export const presetReelTemplate = defineTemplate({
   id: 'preset-reel',
   engine: 'remotion',
-  version: '1.1.0',
+  version: '1.4.0',
   name: 'Preset Reel',
   description:
     'Your clip with a title, a zoom into the camera, the Lightroom settings screenshots, then the before/after on an instant-photo card.',
@@ -59,7 +60,7 @@ export const presetReelTemplate = defineTemplate({
       label: 'Settings screenshots',
       required: true,
       description: 'In the order they are shown',
-      multiple: { min: 1, max: 20 },
+      multiple: { min: 1, max: 25 },
     },
     imageSlot('before', { label: 'Before', required: true, description: 'Original photo' }),
     imageSlot('after', { label: 'After', required: true, description: 'Edited photo, same framing' }),
@@ -91,6 +92,8 @@ export const presetReelTemplate = defineTemplate({
     }),
   },
   params: {
+    // Shared by every before/after template (two columns in the admin).
+    adjust: photoAdjustmentsField(),
     clip: videoRangeField({ label: 'Clip fragment', minSec: 3, maxSec: 30, defaultSec: 12 }),
     framing: z
       .object({
@@ -151,7 +154,7 @@ export const presetReelTemplate = defineTemplate({
     toCard: seamTransitionField({ title: 'Settings → card', allowed: SEAM_OPTIONS, default: 'punch-zoom' }),
     shutterSound: soundEffectField({ label: 'Shutter sound before the settings' }),
     shutterBeforeSec: slider('Shutter before the zoom', 0.2, 1.5, 0.6, 0.05, 's'),
-    // Centered on the wipe whatever its length (short built-in or a long library swoosh).
+    // Starts with the wipe inside the card, whatever its length (short built-in or a long track).
     swooshSound: soundEffectField({ label: 'Swoosh on the before / after', volume: 0.6 }),
   },
   defaults: {
@@ -219,6 +222,7 @@ export const presetReelTemplate = defineTemplate({
           'params.swooshSound',
         ],
       },
+      { id: 'photos', label: 'Photo adjustments', fields: ['params.adjust'] },
     ],
     slotActions: [{ type: 'swap', slots: ['before', 'after'], label: 'Swap before / after' }],
   },

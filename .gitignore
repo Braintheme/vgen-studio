@@ -11,5 +11,8 @@ fixtures/.studio/
 fixtures/generated/
 fixtures/renders/
 
+# Template tracks taken from reference videos (third-party audio: local use only)
+seed/templates/palette-grade/
+
 # Reference videos and their analysis (third-party content: analysis only, never shipped)
 references/

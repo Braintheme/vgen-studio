@@ -21,6 +21,8 @@ export const OTHER_SECTION = { id: 'other', title: 'More options' } as const;
 export const HIDDEN_PATHS: readonly string[] = ['seed'];
 
 /** Debounce between form edits and preview/draft updates. */
+/** Storage scope of the settings form's folded sections (per template id). */
+export const COLLAPSED_SCOPE = 'compose';
 export const PREVIEW_DEBOUNCE_MS = 200;
 export const DRAFT_SAVE_DEBOUNCE_MS = 500;
 

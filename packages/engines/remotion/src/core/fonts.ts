@@ -155,16 +155,20 @@ export const loadFont = (id: FontId): Promise<void> => {
 
 /**
  * Blocks rendering until the given fonts are loaded. In the browser player, later
- * font changes load in the background without blocking.
+ * font changes load in the background without blocking. Returns whether these fonts are
+ * loaded (e.g. before measuring text).
  */
-export const useFonts = (ids: readonly FontId[]): void => {
+export const useFonts = (ids: readonly FontId[]): boolean => {
   const key = [...new Set(ids)].sort().join(',');
   const [initial] = useState(() => ({ handle: delayRender(`Loading fonts: ${key}`), released: false }));
+  // Which font set finished loading: a font switch in the player is "not loaded" until it is.
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
 
   useEffect(() => {
     const fonts = key.split(',') as FontId[];
     Promise.all(fonts.map(loadFont))
       .then(() => {
+        setLoadedKey(key);
         if (!initial.released) {
           initial.released = true;
           continueRender(initial.handle);
@@ -174,4 +178,5 @@ export const useFonts = (ids: readonly FontId[]): void => {
         cancelRender(error);
       });
   }, [key, initial]);
+  return loadedKey === key;
 };

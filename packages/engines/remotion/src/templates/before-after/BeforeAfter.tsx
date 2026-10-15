@@ -8,6 +8,7 @@ import { useFonts } from '../../core/fonts.js';
 import { useLayout } from '../../core/hooks.js';
 import { Grain, Vignette } from '../../core/primitives/Overlays.js';
 import { renderSeamTransition } from '../../core/transitions/SeamTransition.js';
+import { useAdjustedPhoto } from '../../core/photo-adjust/useAdjustedPhoto.js';
 import type { BeforeAfterProps } from './manifest.js';
 import { Intro } from './scenes/Intro.js';
 import { Outro } from './scenes/Outro.js';
@@ -26,8 +27,14 @@ export const BeforeAfter: React.FC<RemotionTemplateProps<BeforeAfterProps>> = ({
     [props.durationSec, fps],
   );
 
-  const before = imageAsset(assets.media, 'before')?.src ?? BEFORE_PLACEHOLDER;
-  const after = imageAsset(assets.media, 'after')?.src ?? AFTER_PLACEHOLDER;
+  const before = useAdjustedPhoto(
+    imageAsset(assets.media, 'before')?.src ?? BEFORE_PLACEHOLDER,
+    props.params.adjust.before,
+  );
+  const after = useAdjustedPhoto(
+    imageAsset(assets.media, 'after')?.src ?? AFTER_PLACEHOLDER,
+    props.params.adjust.after,
+  );
   const { texts, style, params } = props;
 
   return (
