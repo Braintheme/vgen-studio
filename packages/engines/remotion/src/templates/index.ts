@@ -6,6 +6,8 @@ import type { RemotionTemplateProps } from '../core/composition.js';
 import { BeforeAfterCard } from './before-after-card/BeforeAfterCard.js';
 import { beforeAfterCardTemplate } from './before-after-card/manifest.js';
 import { BeforeAfter } from './before-after/BeforeAfter.js';
+import { PaletteGrade } from './palette-grade/PaletteGrade.js';
+import { paletteGradeTemplate } from './palette-grade/manifest.js';
 import { beforeAfterTemplate } from './before-after/manifest.js';
 import { PresetReel } from './preset-reel/PresetReel.js';
 import { presetReelTemplate } from './preset-reel/manifest.js';
@@ -31,6 +33,7 @@ export const REMOTION_TEMPLATES: readonly RemotionTemplateEntry[] = [
   entry(beforeAfterTemplate, BeforeAfter),
   entry(beforeAfterCardTemplate, BeforeAfterCard),
   entry(presetReelTemplate, PresetReel),
+  entry(paletteGradeTemplate, PaletteGrade),
 ];
 
 export const findRemotionTemplate = (templateId: string): RemotionTemplateEntry | undefined =>

@@ -86,7 +86,9 @@ high-priority `preview` job on the engine's queue and waits for it (60 s timeout
 Templates are compositions of shared, data-driven blocks in `packages/engines/remotion/src/core`:
 registries of reveal effects and seam transitions (a template picks allowed ids and a default;
 each reveal declares its natural `durationSec` and `revealedAt`), primitives (`PhotoPlane` with a
-virtual camera, `PhotoCard`, `VideoPlane`, `ScreenshotPanel`, `InstantCard`, labels, overlays),
+virtual camera, `PhotoCard`, `VideoPlane`, `ScreenshotPanel`, `InstantCard`, `PaletteWheel`,
+`ParticleBurst`, `Ripple`, labels, overlays), a photo `palette/` (read in the composition, so the preview and
+the render agree),
 animated backgrounds (`backgrounds/` registry), typography, sound cues, before/after `pairs/`
 helpers, `SeamedSection` (sections whose seams are centered on their boundaries, so cut-style
 transitions lose no content) and a `SceneRenderer` that turns effect descriptions (plain data)

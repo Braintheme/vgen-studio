@@ -38,7 +38,7 @@ describe('PresetsService', () => {
       },
     });
     expect(preset.isDefault).toBe(true);
-    expect(preset.templateVersion).toBe('1.0.0');
+    expect(preset.templateVersion).toBe(createTestCatalog().getTemplate('before-after').version);
     expect(preset.props).not.toHaveProperty('media');
     // A preset captures the complete look: every style field, content texts excluded.
     expect(preset.props['texts']).toEqual({

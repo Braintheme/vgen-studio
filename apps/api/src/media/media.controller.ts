@@ -14,12 +14,15 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { MediaAssetDtoSchema, MediaFileQuerySchema, type MediaAssetDto } from '@vgen/shared';
+import {
+  MAX_UPLOAD_FILES_PER_REQUEST,
+  MediaAssetDtoSchema,
+  MediaFileQuerySchema,
+  type MediaAssetDto,
+} from '@vgen/shared';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { MediaService } from './media.service.js';
-
-const MAX_FILES_PER_REQUEST = 10;
 
 /** The fields of a multer disk-stored file that we use. */
 interface UploadedDiskFile {
@@ -38,7 +41,7 @@ export class MediaController {
   constructor(private readonly media: MediaService) {}
 
   @Post()
-  @UseInterceptors(FilesInterceptor('files', MAX_FILES_PER_REQUEST))
+  @UseInterceptors(FilesInterceptor('files', MAX_UPLOAD_FILES_PER_REQUEST))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {

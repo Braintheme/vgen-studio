@@ -120,7 +120,7 @@ describe('RendersService.create', () => {
       status: 'queued',
       engine: 'remotion',
       templateId: 'before-after',
-      templateVersion: '1.0.0',
+      templateVersion: createTestCatalog().getTemplate('before-after').version,
       format: '1:1',
     });
     expect(job.props).toMatchObject({ durationSec: 13, fps: 30, params: { revealEffect: 'diagonal-wipe' } });

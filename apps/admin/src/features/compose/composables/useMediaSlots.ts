@@ -126,11 +126,21 @@ export const useMediaSlots = (
   const upload = async (slotKey: string, files: readonly File[]): Promise<void> => {
     const slot = template.mediaSlots.find((candidate) => candidate.key === slotKey);
     if (!slot || files.length === 0) return;
+    // Only what fits is uploaded: a list slot keeps up to `max`, a single slot one file.
+    const room = slot.multiple ? Math.max(0, slot.multiple.max - idsOf(media.value[slotKey]).length) : 1;
+    const accepted = files.slice(0, room);
+    if (accepted.length < files.length) {
+      notify.warning(
+        `${slot.label}: ${String(accepted.length)} of ${String(files.length)} files added`,
+        `This slot holds up to ${String(slot.multiple?.max ?? 1)}.`,
+      );
+    }
+    if (accepted.length === 0) return;
     uploads.set(slotKey, 0);
     errors.delete(slotKey);
     try {
       const uploaded = await uploadMutation.mutateAsync({
-        files,
+        files: accepted,
         onProgress: (fraction) => {
           uploads.set(slotKey, fraction);
         },

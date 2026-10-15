@@ -1,5 +1,6 @@
 import { defineTemplate, imageSlot, textField } from '@vgen/shared';
 import { z } from 'zod';
+import { photoAdjustmentsField } from '../../core/photo-adjust/schema.js';
 import { revealEffectField } from '../../core/reveals/registry.js';
 import { seamTransitionField } from '../../core/transitions/registry.js';
 import { checkBeforeAfterMedia } from '../../core/pairs/pair-checks.js';
@@ -12,7 +13,7 @@ export const MOTION_LEVELS = ['subtle', 'balanced', 'dynamic'] as const;
 export const beforeAfterTemplate = defineTemplate({
   id: 'before-after',
   engine: 'remotion',
-  version: '1.0.0',
+  version: '1.1.0',
   name: 'Before / After',
   description: 'Shows a photo before and after editing (e.g. a Lightroom preset) with a cinematic reveal.',
   mediaSlots: [
@@ -28,6 +29,8 @@ export const beforeAfterTemplate = defineTemplate({
     outroText: textField({ label: 'Outro text', default: 'Get the preset — link in bio', maxLength: 64 }),
   },
   params: {
+    // Shared by every before/after template (two columns in the admin).
+    adjust: photoAdjustmentsField(),
     // Pinned: effects added to the registry later are opt-in per template.
     revealEffect: revealEffectField({
       title: 'Reveal effect',
@@ -84,6 +87,7 @@ export const beforeAfterTemplate = defineTemplate({
           'params.outroTransition',
         ],
       },
+      { id: 'photos', label: 'Photo adjustments', fields: ['params.adjust'] },
     ],
     slotActions: [{ type: 'swap', slots: ['before', 'after'], label: 'Swap before / after' }],
   },

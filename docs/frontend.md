@@ -117,6 +117,10 @@ Template settings forms are generated, not hand-written:
 3. Values live in a vee-validate form created by `useSchemaForm` (zod adapter); fields bind
    by dot path through shadcn-vue's `FormField`.
 
+`widget: 'columns'` on an object shows its child objects side by side with their fields lined up
+row by row (`fields/ColumnsField.vue`, e.g. before | after photo adjustments); it stacks on narrow
+screens.
+
 Adding a generic widget: give the schema field `.meta({ widget: '...' })`, map it to a new
 `kind` in `schema-form.ts`, add a `fields/<Kind>Field.vue` and register it in `SchemaField.vue`.
 
@@ -130,6 +134,11 @@ field (its `limits` meta, if any, comes along): the compose screen fills `video-
 trimmer bound to the slot whose `range` points at the field) and `sound-effect` (built-in sound or
 a library track, with volume). `replaceValues(values)` swaps all values at
 once (applying a style preset).
+
+Sections fold (shadcn `Collapsible`; folded fields stay mounted, so their values stay in the
+form). `SchemaForm` takes `v-model:collapsed` (folded section ids); the compose screen keeps them
+per template through `useCollapsedSections('compose:<templateId>')`, persisted by the `ui` store
+in `localStorage`.
 
 ## Engine previews
 

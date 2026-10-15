@@ -34,12 +34,13 @@ Start with [README.md](README.md); details in [docs/](docs/).
 
 ## Current state
 
-| Template                   | Engine   | Notes                                                                                                                                                                 |
-| -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `before-after` v1.0.0      | remotion | 13 s cinematic reveal; reveal effects pinned to the original four                                                                                                     |
-| `before-after-card` v1.1.0 | remotion | from `references/1`: full bleed → 3D card → reveal inside (any shared reveal, default split-slider) → full bleed → soft before/after flash; optional first-photo push |
-| `preset-reel` v1.0.0       | remotion | from `references/2`: video clip fragment + title → punch zoom → settings screenshots on an animated background → punch zoom → before/after on an instant card; sounds |
-| `test-card`                | fake     | dev stub proving engines plug in; hidden by default (`make fake-on` / `make fake-off`)                                                                                |
+| Template                   | Engine   | Notes                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `before-after` v1.1.0      | remotion | 13 s cinematic reveal; reveal effects pinned to the original four                                                                                                                                                                                                                                                                                                                                                   |
+| `before-after-card` v1.2.0 | remotion | from `references/1`: full bleed → 3D card → reveal inside (any shared reveal, default split-slider) → full bleed → soft before/after flash; optional first-photo push                                                                                                                                                                                                                                               |
+| `preset-reel` v1.4.0       | remotion | from `references/2`: video clip fragment + title → punch zoom → settings screenshots on an animated background → punch zoom → before/after on an instant card; sounds                                                                                                                                                                                                                                               |
+| `palette-grade` v1.3.0     | remotion | from `references/3`: one shot; the after photo's palette as a pie → B&W → pie collapses into a dot → particle burst → grade tones → colour + BEFORE→AFTER swap; own default track (seed). Options: holds/speed/label timing, particles (count, size, spread, trail, shape, drift, variation), label (5 swap effects, style, position, size), colour spreading from the dots, ripples; defaults = the reference look |
+| `test-card`                | fake     | dev stub proving engines plug in; hidden by default (`make fake-on` / `make fake-off`)                                                                                                                                                                                                                                                                                                                              |
 
 Shared Remotion building blocks (`packages/engines/remotion/src/core`):
 
@@ -50,10 +51,24 @@ Shared Remotion building blocks (`packages/engines/remotion/src/core`):
   (sections with seams centered on their boundaries);
 - `backgrounds/` registry: `light-streaks`, `aurora`, `soft-gradient`, `bokeh`, `solid`;
 - `primitives/`: `PhotoPlane` (+ camera), `PhotoCard` (full bleed ↔ 3D card), `VideoPlane`
-  (framing + focus zoom), `ScreenshotPanel`, `InstantCard`, `Label`, `BlurredBackdrop`, overlays;
-- `typography/`: `WordReveal`, `TypeOn`, `AccentTitle` (`*accent*` runs);
+  (framing + focus zoom), `ScreenshotPanel`, `InstantCard`, `Label`, `TagLabel`, `BlurredBackdrop`,
+  `PaletteWheel`, `ParticleBurst` (shapes via `@remotion/shapes`, drift via `@remotion/noise`),
+  `Ripple` (`@remotion/paths` `evolvePath`), overlays;
+- `palette/`: photo palette (`usePhotoPalette`: canvas + `delayRender` in the composition, so the
+  preview matches the render; pure `extractPalette`: distinct main colours, an accent found by hue
+  among colourful pixels (a small vivid subject wins), an optional tint; `paletteWedges`).
+  Tune it on Chrome's canvas pixels, not sharp's: the downscales differ enough to flip the accent;
+  `particles/burst.ts`;
+- `typography/`: `WordReveal`, `TypeOn`, `AccentTitle` (`*accent*` runs), `WordSwap` (glitch,
+  decode, flip board, typewriter, fade); `@remotion/layout-utils` `measureText` to fit labels
+  (`useFonts()` returns whether the fonts are in: measure only then);
 - `audio/`: `MusicLayer`, `SoundCue` + built-in `sfx/` (`pnpm --filter @vgen/devtools sfx`);
 - `pairs/`: before/after alignment and media checks;
+- `photo-adjust/`: before/after photo adjustments every before/after template shares
+  (`photoAdjustmentsField()` as `params.adjust`, a "Photo adjustments" group shown as two columns;
+  looks + exposure, contrast, highlights, shadows, clarity, temperature, tint, saturation,
+  vibrance). `useAdjustedPhoto(src, value)` processes the photo on a canvas in the composition
+  (preview = render); neutral values return `src` untouched, so existing renders stay identical;
 - `placement.ts`: `placeAt()` for anything that moves (see gotchas);
 - `scene/` data-driven `SceneRenderer`, `layout.ts` (4 formats + safe zones), `motion.ts`
   (easing, `cubicBezier`, keyframes).
@@ -64,6 +79,9 @@ Video media: uploads get a poster, an H.264 proxy and a filmstrip; a video slot 
 Deferred (agreed "later"): bulk delete, cleanup of orphan files and of the preview-frame cache
 (`previews/`), gallery thumbnails for templates, music beat sync, reading camera settings (EXIF)
 from before/after photos into `preset-reel`'s card.
+A template's own default track: `seed/templates/<templateId>/<track>` → `make seed` adds it to the
+library and puts it into that template's "Default" preset (`palette-grade`'s comes from its
+reference, so it is git-ignored and local only).
 Open questions on `before-after-card`: end-flash softness, more card "float" in holds.
 
 ## Everyday commands

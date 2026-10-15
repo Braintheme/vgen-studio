@@ -42,6 +42,11 @@ export type FieldSpec =
   | (FieldBase & { readonly kind: 'text'; readonly multiline: boolean; readonly maxLength: number | null })
   | (FieldBase & { readonly kind: 'string'; readonly maxLength: number | null })
   /**
+   * An object whose child objects are shown side by side (e.g. before | after adjustments);
+   * their fields line up row by row.
+   */
+  | (FieldBase & { readonly kind: 'columns'; readonly columns: readonly ColumnSpec[] })
+  /**
    * A widget the generic form does not know (e.g. `music-track`); the screen supplies it.
    * Compound values (objects) with such a widget stay one field; `limits` are their bounds.
    */
@@ -52,6 +57,13 @@ export type FieldSpec =
     });
 
 export type FieldKind = FieldSpec['kind'];
+
+export interface ColumnSpec {
+  readonly key: string;
+  readonly label: string;
+  /** Generic fields only (no custom widgets inside columns). */
+  readonly fields: readonly FieldSpec[];
+}
 
 export interface SectionLayout {
   readonly id: string;
@@ -90,6 +102,7 @@ const GENERIC_WIDGETS: ReadonlySet<string> = new Set([
   'segmented',
   'color',
   'font',
+  'columns',
 ]);
 
 const DEFAULT_SLIDER_STEP = 1;
@@ -194,6 +207,14 @@ const expand = (node: Node, path: string, hidden: ReadonlySet<string>): FieldSpe
   const widget = str(node, 'widget');
   if (widget !== null && !GENERIC_WIDGETS.has(widget)) return [customField(node, path, label, widget)];
   const children = properties(node);
+  if (widget === 'columns' && Object.keys(children).length > 0) {
+    const columns = Object.entries(children).map(([key, child]) => ({
+      key,
+      label: str(child, 'title') ?? humanize(key),
+      fields: expand(child, `${path}.${key}`, hidden).filter((field) => field.kind !== 'custom'),
+    }));
+    return [{ kind: 'columns', path, label, columns }];
+  }
   if (str(node, 'type') === 'object' && Object.keys(children).length > 0) {
     return Object.entries(children).flatMap(([key, child]) => expand(child, `${path}.${key}`, hidden));
   }

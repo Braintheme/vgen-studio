@@ -1,5 +1,11 @@
-// `make seed`: default style preset per template + music tracks from the seed directory.
+// `make seed`: music tracks from the seed directory + a default style preset per template.
 // Idempotent: existing presets and tracks (matched by title) are left alone.
+//
+// Layout of the seed directory:
+//   seed/<track>.mp3|wav|m4a|aac                  library tracks (the first one of an empty
+//                                                 library becomes the default track)
+//   seed/templates/<templateId>/<track>.<ext>     a template's own track: added to the library
+//                                                 and used by that template's "Default" preset
 import 'reflect-metadata';
 import { readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -26,34 +32,25 @@ const app = await NestFactory.createApplicationContext(AppModule, { logger: ['er
 
 const catalog = app.get(CatalogService);
 const presets = app.get(PresetsService);
-for (const template of catalog.listTemplates()) {
-  if ((await presets.list(template.id)).length > 0) {
-    logger.log(`presets: "${template.id}" already has presets`);
-    continue;
-  }
-  await presets.create({
-    name: DEFAULT_PRESET_NAME,
-    templateId: template.id,
-    props: resolveTemplateDefaults(template),
-  });
-  logger.log(`presets: created "${DEFAULT_PRESET_NAME}" (default) for "${template.id}"`);
-}
-
 const media = app.get(MediaService);
 const music = app.get(MusicService);
-const files = await readdir(SEED_DIR).catch(() => [] as string[]);
-const audioFiles = files.filter((file) => path.extname(file).toLowerCase() in AUDIO_MIME).sort();
-if (audioFiles.length === 0) {
-  logger.warn(`music: no audio files in ${SEED_DIR}; renders use no music until a track is added`);
-}
-const existingTitles = new Set((await music.list()).map((track) => track.title));
-for (const file of audioFiles) {
+
+const audioFilesIn = async (dir: string): Promise<string[]> =>
+  (await readdir(dir).catch(() => [] as string[]))
+    .filter((file) => path.extname(file).toLowerCase() in AUDIO_MIME)
+    .sort();
+
+const trackIds = new Map((await music.list()).map((track) => [track.title, track.id]));
+
+/** Adds a file to the library (once, matched by title) and returns its track id. */
+const importTrack = async (dir: string, file: string): Promise<string> => {
   const title = path.basename(file, path.extname(file));
-  if (existingTitles.has(title)) {
+  const existing = trackIds.get(title);
+  if (existing) {
     logger.log(`music: "${title}" already in the library`);
-    continue;
+    return existing;
   }
-  const filePath = path.join(SEED_DIR, file);
+  const filePath = path.join(dir, file);
   const asset = await media.importLocalFile({
     path: filePath,
     originalName: file,
@@ -61,7 +58,37 @@ for (const file of audioFiles) {
     size: (await stat(filePath)).size,
   });
   const track = await music.create({ assetId: asset.id, title });
+  trackIds.set(title, track.id);
   logger.log(`music: added "${title}"${track.isDefault ? ' (default)' : ''}`);
+  return track.id;
+};
+
+// Library tracks first, so the library default stays one of them.
+const audioFiles = await audioFilesIn(SEED_DIR);
+if (audioFiles.length === 0) {
+  logger.warn(`music: no audio files in ${SEED_DIR}; renders use no music until a track is added`);
+}
+for (const file of audioFiles) {
+  await importTrack(SEED_DIR, file);
+}
+
+for (const template of catalog.listTemplates()) {
+  const templateDir = path.join(SEED_DIR, 'templates', template.id);
+  const [ownTrack] = await audioFilesIn(templateDir);
+  const trackId = ownTrack ? await importTrack(templateDir, ownTrack) : null;
+  if ((await presets.list(template.id)).length > 0) {
+    logger.log(`presets: "${template.id}" already has presets`);
+    continue;
+  }
+  const defaults = resolveTemplateDefaults(template);
+  await presets.create({
+    name: DEFAULT_PRESET_NAME,
+    templateId: template.id,
+    props: trackId ? { ...defaults, music: { ...defaults.music, trackId } } : defaults,
+  });
+  logger.log(
+    `presets: created "${DEFAULT_PRESET_NAME}" (default) for "${template.id}"${trackId ? ' with its own track' : ''}`,
+  );
 }
 
 await app.close();

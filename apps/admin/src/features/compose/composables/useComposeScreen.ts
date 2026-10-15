@@ -2,13 +2,14 @@ import { watchDebounced } from '@vueuse/core';
 import type { QualityPreset, TemplateDefinition } from '@vgen/shared';
 import { computed, type ComputedRef, type ShallowRef, type WritableComputedRef } from 'vue';
 import { useRoute } from 'vue-router';
+import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useGroupedNotice } from '@/composables/useGroupedNotice';
 import { findTemplateDefinition } from '@/engines/catalog';
 import type { PlayerAdapter } from '@/engines/players';
 import type { FormSectionSpec } from '@/lib/schema-form';
 import { ROUTE_PARAMS } from '@/lib/routes';
 import { cloneJson } from '@/lib/utils';
-import { DRAFT_NOTICE_TITLE, DRAFT_SAVE_DEBOUNCE_MS } from '@/features/compose/constants';
+import { COLLAPSED_SCOPE, DRAFT_NOTICE_TITLE, DRAFT_SAVE_DEBOUNCE_MS } from '@/features/compose/constants';
 import type { OutputSummary, PosterPreviewView, VideoRangeSource } from '@/features/compose/types';
 import { useComposeDraft } from './useComposeDraft';
 import { useComposeForm } from './useComposeForm';
@@ -26,6 +27,8 @@ export interface ComposeScreenReady {
   readonly status: 'ready';
   readonly template: TemplateDefinition;
   readonly sections: readonly FormSectionSpec[];
+  /** Folded form sections, remembered per template. */
+  readonly collapsedSections: WritableComputedRef<readonly string[]>;
   readonly media: Omit<MediaSlotsState, 'validate' | 'assets'>;
   readonly presets: ComposePresetsState;
   readonly music: Omit<ComposeMusicState, 'previewAudio'>;
@@ -127,6 +130,7 @@ export const useComposeScreen = (): ComposeScreen => {
     status: 'ready',
     template,
     sections: form.sections,
+    collapsedSections: useCollapsedSections(`${COLLAPSED_SCOPE}:${template.id}`),
     media,
     presets,
     music,

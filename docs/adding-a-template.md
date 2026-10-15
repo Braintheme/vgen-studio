@@ -81,12 +81,18 @@ from `core/`:
 
 - scenes and effects: `SceneRenderer`, the reveal and transition registries;
 - primitives: `PhotoPlane` (with a camera for Ken Burns moves), `PhotoCard` (full bleed ↔ 3D
-  card), `VideoPlane`, `ScreenshotPanel`, `InstantCard`, `BlurredBackdrop`, `Label`,
-  `Vignette` / `Grain`;
+  card), `VideoPlane`, `ScreenshotPanel`, `InstantCard`, `BlurredBackdrop`, `Label`, `TagLabel`,
+  `PaletteWheel`, `ParticleBurst` (+ seeded `particles/burst.ts`), `Ripple`, `Vignette` / `Grain`;
+- `palette/`: `usePhotoPalette(src)` (a photo's colours, computed in the composition under
+  `delayRender`; `paletteWedges`, `darkestColor`);
 - the backgrounds registry (`BackgroundLayer`, `backgroundField`) and `SeamedSection` for
   sections joined by registered transitions;
-- typography: `WordReveal`, `TypeOn` (typewriter), `AccentTitle` (lines with `*accents*`);
+- typography: `WordReveal`, `TypeOn` (typewriter), `AccentTitle` (lines with `*accents*`),
+  `WordSwap` (one word turning into another: glitch, decode, flip board, typewriter, fade);
 - `pairs/` for before/after alignment (`prepareAssets`) and media checks;
+- `photo-adjust/` for before/after templates: `adjust: photoAdjustmentsField()` in `params`, a
+  `{ id: 'photos', label: 'Photo adjustments', fields: ['params.adjust'] }` group, and
+  `useAdjustedPhoto(src, props.params.adjust.before)` / `.after` where the photos are read;
 - `MusicLayer`, `useLayout()` (the four formats and safe zones), `useFonts()`, `motion.ts`
   (easing, `cubicBezier`, keyframes);
 - `placement.ts` for anything that moves.

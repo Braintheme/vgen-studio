@@ -17,6 +17,8 @@ export type FieldWidget =
   | 'segmented'
   | 'color'
   | 'font'
+  /** An object whose child objects are shown side by side, fields lined up (e.g. before | after). */
+  | 'columns'
   | 'music-track'
   | 'music-region'
   /** `{ startSec, endSec }` of a video slot (see `videoRangeField`). */

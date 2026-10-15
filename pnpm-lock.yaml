@@ -60,13 +60,25 @@ catalogs:
     '@remotion/cli':
       specifier: 4.0.535
       version: 4.0.535
+    '@remotion/layout-utils':
+      specifier: 4.0.535
+      version: 4.0.535
     '@remotion/media':
+      specifier: 4.0.535
+      version: 4.0.535
+    '@remotion/noise':
+      specifier: 4.0.535
+      version: 4.0.535
+    '@remotion/paths':
       specifier: 4.0.535
       version: 4.0.535
     '@remotion/player':
       specifier: 4.0.535
       version: 4.0.535
     '@remotion/renderer':
+      specifier: 4.0.535
+      version: 4.0.535
+    '@remotion/shapes':
       specifier: 4.0.535
       version: 4.0.535
     '@remotion/transitions':
@@ -585,10 +597,22 @@ importers:
       '@fontsource/bebas-neue':
         specifier: 'catalog:'
         version: 5.3.0
+      '@remotion/layout-utils':
+        specifier: 'catalog:'
+        version: 4.0.535
       '@remotion/media':
         specifier: 'catalog:'
         version: 4.0.535(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@remotion/noise':
+        specifier: 'catalog:'
+        version: 4.0.535(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@remotion/paths':
+        specifier: 'catalog:'
+        version: 4.0.535(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/player':
+        specifier: 'catalog:'
+        version: 4.0.535(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@remotion/shapes':
         specifier: 'catalog:'
         version: 4.0.535(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@remotion/transitions':
@@ -1748,6 +1772,9 @@ packages:
   '@remotion/elevenlabs@4.0.535':
     resolution: {integrity: sha512-zlahnfRRtwUKFWzjC3pjgqIFawlYLnoRqJGK58MU/nldz15x3ByIykM9w4AcR4pL/4cBC1J7pnwUFOwPxhl1Jg==}
 
+  '@remotion/layout-utils@4.0.535':
+    resolution: {integrity: sha512-Ddj6hvahG7chU162r/Sxq+xc+05rgaU6Q+d27UZZSejmNUb/WCLZ21SjogJIQxVRnz9FGsTdTMD+ciKyhOr2qA==}
+
   '@remotion/licensing@4.0.535':
     resolution: {integrity: sha512-rLh99jYpCHrJVk0LHA5fvHX0YBGI4TPQnwEVmHAQyxCOGG7jw0cbKC9nYRKyOAbObfHwzwl7Dk1Xg0k0t2yqig==}
 
@@ -1762,6 +1789,9 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
+
+  '@remotion/noise@4.0.535':
+    resolution: {integrity: sha512-XAIi9bDP+6tKiSK/5o7/jBACefp9vrODmUIqEFVABqCS4bg2IR1TETcbu7iA30qFReU9wxTB/KHFdLA9veyGKg==}
 
   '@remotion/openai-whisper@4.0.535':
     resolution: {integrity: sha512-PjofMagv+rvrURK+AUiRGa7GSN/ZXBuRwnPFipKI2Z2mZORhYcpm3iag1hkwp0XAJhgG6peUMQ5wjJ3r6O2mPg==}
@@ -4165,6 +4195,9 @@ packages:
   signal-exit@3.0.7:
     resolution: {integrity: sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==}
 
+  simplex-noise@4.0.1:
+    resolution: {integrity: sha512-zl/+bdSqW7HJOQ0oDbxrNYaF4F5ik0i7M6YOYmEoIJNtg16NpvWaTTM1Y7oV/7T0jFljawLgYPS81Uu2rsfo1A==}
+
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
 
@@ -5654,6 +5687,8 @@ snapshots:
       '@remotion/captions': 4.0.535
       zod: 4.5.4
 
+  '@remotion/layout-utils@4.0.535': {}
+
   '@remotion/licensing@4.0.535': {}
 
   '@remotion/media-utils@4.0.535(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
@@ -5670,6 +5705,14 @@ snapshots:
       react-dom: 19.3.0(react@19.3.0)
       remotion: 4.0.535(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 4.5.4
+
+  '@remotion/noise@4.0.535(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      remotion: 4.0.535(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      simplex-noise: 4.0.1
+    transitivePeerDependencies:
+      - react
+      - react-dom
 
   '@remotion/openai-whisper@4.0.535':
     dependencies:
@@ -8163,6 +8206,8 @@ snapshots:
       side-channel-weakmap: 1.0.2
 
   signal-exit@3.0.7: {}
+
+  simplex-noise@4.0.1: {}
 
   sisteransi@1.0.5: {}
 

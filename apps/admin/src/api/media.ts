@@ -1,4 +1,5 @@
 import {
+  MAX_UPLOAD_FILES_PER_REQUEST,
   MediaAssetDtoSchema,
   WaveformPeaksDtoSchema,
   type MediaAssetDto,
@@ -16,19 +17,45 @@ export interface UploadOptions extends RequestOptions {
 /** Multipart field name expected by `POST /media`. */
 const UPLOAD_FIELD = 'files';
 
+/** One `POST /media` request (at most `MAX_UPLOAD_FILES_PER_REQUEST` files). */
+const uploadBatch = (
+  files: readonly File[],
+  options: UploadOptions,
+  onBatchProgress: (loaded: number) => void,
+): Promise<MediaAssetDto[]> => {
+  const form = new FormData();
+  files.forEach((file) => {
+    form.append(UPLOAD_FIELD, file);
+  });
+  return postJson(z.array(MediaAssetDtoSchema), '/media', form, {
+    signal: options.signal,
+    timeout: UPLOAD_TIMEOUT_MS,
+    onUploadProgress: (event) => {
+      onBatchProgress(event.loaded);
+    },
+  });
+};
+
 export const mediaApi = {
-  upload: (files: readonly File[], options: UploadOptions = {}): Promise<MediaAssetDto[]> => {
-    const form = new FormData();
-    files.forEach((file) => {
-      form.append(UPLOAD_FIELD, file);
-    });
-    return postJson(z.array(MediaAssetDtoSchema), '/media', form, {
-      signal: options.signal,
-      timeout: UPLOAD_TIMEOUT_MS,
-      onUploadProgress: (event) => {
-        options.onProgress?.(event.total ? event.loaded / event.total : 0);
-      },
-    });
+  /**
+   * Uploads any number of files: larger selections go in batches the API accepts, one after
+   * another; progress covers all of them (by bytes) and the assets come back in file order.
+   */
+  upload: async (files: readonly File[], options: UploadOptions = {}): Promise<MediaAssetDto[]> => {
+    const totalBytes = files.reduce((sum, file) => sum + file.size, 0) || 1;
+    const assets: MediaAssetDto[] = [];
+    let doneBytes = 0;
+    for (let start = 0; start < files.length; start += MAX_UPLOAD_FILES_PER_REQUEST) {
+      const batch = files.slice(start, start + MAX_UPLOAD_FILES_PER_REQUEST);
+      const batchBytes = batch.reduce((sum, file) => sum + file.size, 0);
+      assets.push(
+        ...(await uploadBatch(batch, options, (loaded) => {
+          options.onProgress?.(Math.min(1, (doneBytes + Math.min(loaded, batchBytes)) / totalBytes));
+        })),
+      );
+      doneBytes += batchBytes;
+    }
+    return assets;
   },
 
   get: (id: string, options: RequestOptions = {}): Promise<MediaAssetDto> =>

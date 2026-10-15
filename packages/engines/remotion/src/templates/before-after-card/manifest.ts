@@ -1,5 +1,6 @@
 import { defineTemplate, imageSlot, textField } from '@vgen/shared';
 import { z } from 'zod';
+import { photoAdjustmentsField } from '../../core/photo-adjust/schema.js';
 import { alignBeforeAfter } from '../../core/pairs/align-pair.js';
 import { checkBeforeAfterMedia } from '../../core/pairs/pair-checks.js';
 import { REVEAL_EFFECTS, revealEffectField } from '../../core/reveals/registry.js';
@@ -15,7 +16,7 @@ export const CARD_TILTS = ['flat', 'soft', 'strong'] as const;
 export const beforeAfterCardTemplate = defineTemplate({
   id: 'before-after-card',
   engine: 'remotion',
-  version: '1.1.0',
+  version: '1.2.0',
   name: 'Before / After — Card',
   description:
     'The photo shrinks into a floating 3D card, the edit is revealed inside it, and the card opens back up.',
@@ -29,6 +30,8 @@ export const beforeAfterCardTemplate = defineTemplate({
     afterLabel: textField({ label: 'After label', default: 'AFTER', maxLength: 16, scope: 'style' }),
   },
   params: {
+    // Shared by every before/after template (two columns in the admin).
+    adjust: photoAdjustmentsField(),
     // Any of the shared reveal effects it shipped with (new ones are opt-in); each one sets
     // its own pace (its natural length).
     revealEffect: revealEffectField({
@@ -63,6 +66,7 @@ export const beforeAfterCardTemplate = defineTemplate({
         label: 'Card',
         fields: ['params.revealEffect', 'params.tilt', 'params.introMotion', 'params.endFlash'],
       },
+      { id: 'photos', label: 'Photo adjustments', fields: ['params.adjust'] },
     ],
     slotActions: [{ type: 'swap', slots: ['before', 'after'], label: 'Swap before / after' }],
   },

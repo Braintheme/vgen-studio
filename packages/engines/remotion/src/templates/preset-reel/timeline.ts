@@ -56,9 +56,16 @@ export interface ReelTimeline {
   readonly reveal: { readonly from: number; readonly duration: number };
   /** Start of the shutter sound. */
   readonly shutterAt: number;
-  /** Middle of the before/after wipe: the swoosh is centered on it, whatever its length. */
+  /**
+   * Start of the swoosh: with the before/after wipe inside the card (a hair early, so the
+   * sound's attack lands on the first movement). Start-aligned, so a long library swoosh
+   * never spills back into the cut to the card.
+   */
   readonly swooshAt: number;
 }
+
+/** The swoosh starts this many frames before the wipe. */
+const SWOOSH_LEAD_FRAMES = 2;
 
 export const reelTimeline = (input: ReelTimelineInput): ReelTimeline => {
   const frames = (sec: number): number => Math.round(sec * input.fps);
@@ -93,7 +100,7 @@ export const reelTimeline = (input: ReelTimelineInput): ReelTimeline => {
     reveal,
     // Click, then the zoom into the settings (the seam starts half a seam before the cut).
     shutterAt: Math.max(0, clip.to - Math.round(seamFrames / 2) - frames(input.shutterBeforeSec)),
-    swooshAt: reveal.from + Math.round(revealFrames / 2),
+    swooshAt: Math.max(card.from, reveal.from - SWOOSH_LEAD_FRAMES),
   };
 };
 
