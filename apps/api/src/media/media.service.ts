@@ -2,7 +2,15 @@ import { rm } from 'node:fs/promises';
 import type { Readable } from 'node:stream';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { MediaAssetEntity } from '@vgen/db';
-import type { MediaAssetDto, MediaFileVariant, MediaInfo } from '@vgen/shared';
+import type {
+  BulkDeleteMediaResponse,
+  MediaAssetDto,
+  MediaCleanupResponse,
+  MediaFileVariant,
+  MediaInfo,
+  MediaLibraryPage,
+  MediaLibraryQuery,
+} from '@vgen/shared';
 import type { StorageService } from '@vgen/storage';
 import { QueryFailedError } from 'typeorm';
 import { AppError, ConflictError, NotFoundError, ValidationFailedError } from '../common/errors.js';
@@ -157,6 +165,56 @@ export class MediaService {
       throw error;
     }
     await this.removeFiles(asset);
+  }
+
+  /** The library page: uploaded photos and videos, with how many renders use each. */
+  async listLibrary(query: MediaLibraryQuery): Promise<MediaLibraryPage> {
+    const { items, total, totalBytes } = await this.repository.listLibrary(query);
+    const counts = await this.repository.renderCounts(items.map((asset) => asset.id));
+    return {
+      items: items.map((asset) => ({ ...toMediaDto(asset), renderCount: counts.get(asset.id) ?? 0 })),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+      totalBytes,
+    };
+  }
+
+  /** Deletes several uploads; each one that cannot go (e.g. a music track's) is reported. */
+  async deleteUploads(ids: readonly string[]): Promise<BulkDeleteMediaResponse> {
+    const deleted: string[] = [];
+    const failed: { id: string; message: string }[] = [];
+    let freedBytes = 0;
+    for (const id of new Set(ids)) {
+      try {
+        const asset = await this.require(id);
+        await this.deleteUpload(id);
+        deleted.push(id);
+        freedBytes += asset.size;
+      } catch (error) {
+        if (!(error instanceof AppError)) throw error;
+        failed.push({ id, message: error.message });
+      }
+    }
+    return { deleted, failed, freedBytes };
+  }
+
+  /**
+   * Unused photos and videos older than `olderThanDays` (no render uses them, not in `keepIds`):
+   * counted, or deleted unless `dryRun`.
+   */
+  async cleanup(input: {
+    readonly olderThanDays: number;
+    readonly keepIds: readonly string[];
+    readonly dryRun: boolean;
+  }): Promise<MediaCleanupResponse> {
+    const before = new Date(Date.now() - input.olderThanDays * 24 * 60 * 60 * 1000);
+    const unused = await this.repository.findUnused(before, input.keepIds);
+    const bytes = unused.reduce((sum, asset) => sum + asset.size, 0);
+    if (input.dryRun) return { count: unused.length, bytes, deleted: false };
+    const result = await this.deleteUploads(unused.map((asset) => asset.id));
+    this.logger.log(`cleanup: ${String(result.deleted.length)} unused uploads deleted`);
+    return { count: result.deleted.length, bytes: result.freedBytes, deleted: true };
   }
 
   /** Deletes generated assets (render output, thumbnail) and their files; for the renders module. */

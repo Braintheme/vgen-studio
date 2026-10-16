@@ -25,6 +25,11 @@ export interface SeamedSectionProps {
   readonly enter?: Seam;
   readonly exit?: Seam;
   readonly layout: Layout;
+  /**
+   * CSS `transform-origin` of the transition's transforms (e.g. a zoom into a point of the
+   * frame); the centre when omitted.
+   */
+  readonly origin?: string;
   /** Renders the section at its local frame (may be < 0 or past its length inside the seams). */
   readonly children: (localFrame: number) => React.ReactNode;
 }
@@ -42,7 +47,15 @@ const transitionFrame = (
  * `TransitionSeries` no content is lost: a cut-style transition switches exactly at the
  * nominal boundary. Later sections must be rendered after earlier ones (entering on top).
  */
-export const SeamedSection: React.FC<SeamedSectionProps> = ({ from, to, enter, exit, layout, children }) => {
+export const SeamedSection: React.FC<SeamedSectionProps> = ({
+  from,
+  to,
+  enter,
+  exit,
+  layout,
+  origin,
+  children,
+}) => {
   const frame = useCurrentFrame();
   const start = enter ? enter.at - enter.frames / 2 : from;
   const end = exit ? exit.at + exit.frames / 2 : to;
@@ -57,7 +70,7 @@ export const SeamedSection: React.FC<SeamedSectionProps> = ({ from, to, enter, e
         ? transitionFrame(exit, exitProgress, 'exiting', layout)
         : null;
   return (
-    <AbsoluteFill style={look?.style}>
+    <AbsoluteFill style={origin && look?.style ? { ...look.style, transformOrigin: origin } : look?.style}>
       {children(frame - from)}
       {look?.overlay ? (
         <AbsoluteFill style={{ pointerEvents: 'none', ...(look.overlay as React.CSSProperties) }} />

@@ -40,6 +40,12 @@ export const router = createRouter({
           meta: { title: 'Style presets' },
           component: () => import('@/features/presets/views/PresetsView.vue'),
         },
+        {
+          name: ROUTE_NAMES.media,
+          path: ROUTE_PATHS.media,
+          meta: { title: 'Media' },
+          component: () => import('@/features/media/views/MediaView.vue'),
+        },
       ],
     },
   ],

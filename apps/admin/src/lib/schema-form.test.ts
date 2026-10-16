@@ -1,7 +1,7 @@
 import { defineTemplate, imageSlot, soundEffectField, textField, videoRangeField } from '@vgen/shared';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { buildFormSections, childPaths, type FieldSpec } from './schema-form';
+import { buildFormSections, childPaths, visibleSections, type FieldSpec } from './schema-form';
 
 const template = defineTemplate({
   id: 'form-test',
@@ -55,6 +55,7 @@ describe('buildFormSections', () => {
       max: 20,
       step: 0.5,
       unit: 's',
+      defaultValue: 10,
     });
     expect(field(base?.fields ?? [], 'fps')).toMatchObject({
       kind: 'segmented',
@@ -72,7 +73,7 @@ describe('buildFormSections', () => {
       options: [{ value: 'a', label: 'Alpha' }, { value: 'b', label: 'b' }, {}, {}],
     });
     expect(field(fields, 'params.mode')).toMatchObject({ kind: 'segmented', label: 'Mode' });
-    expect(field(fields, 'params.strength')).toMatchObject({ kind: 'slider', step: 0.1 });
+    expect(field(fields, 'params.strength')).toMatchObject({ kind: 'slider', step: 0.1, defaultValue: 1 });
     expect(field(fields, 'params.count')).toMatchObject({ kind: 'number', min: 1, max: null });
   });
 
@@ -121,11 +122,13 @@ describe('buildFormSections', () => {
       label: 'Clip',
       widget: 'video-range',
       limits: { min: 3, max: 30 },
+      defaults: { startSec: 0, endSec: 10 },
     });
     expect(field(params?.fields ?? [], 'params.shutter')).toMatchObject({
       kind: 'custom',
       widget: 'sound-effect',
       limits: null,
+      defaults: { enabled: true, trackId: null, volume: 0.8 },
     });
     expect(params?.fields.some((f) => f.path.startsWith('params.clip.'))).toBe(false);
   });
@@ -166,5 +169,26 @@ describe('columns', () => {
       'adjust.after.look',
       'adjust.after.exposure',
     ]);
+  });
+});
+
+describe('visibleSections', () => {
+  const sections = buildFormSections(schema, [
+    { id: 'always', title: 'Always', paths: ['params.mode'] },
+    {
+      id: 'when-y',
+      title: 'Y only',
+      paths: ['params.strength'],
+      visibleWhen: { field: 'params.mode', equals: ['y'] },
+    },
+  ]);
+
+  it('shows a conditional group only while its field holds a listed value', () => {
+    expect(visibleSections(sections, { params: { mode: 'x' } }).map((s) => s.id)).toEqual(['always']);
+    expect(visibleSections(sections, { params: { mode: 'y' } }).map((s) => s.id)).toEqual([
+      'always',
+      'when-y',
+    ]);
+    expect(visibleSections(sections, {}).map((s) => s.id)).toEqual(['always']);
   });
 });

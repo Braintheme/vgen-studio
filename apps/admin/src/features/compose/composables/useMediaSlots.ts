@@ -14,6 +14,8 @@ export interface MediaSlotsState {
   /** Assets of all slots, for the preview. */
   readonly assets: ComputedRef<ReadonlyMap<string, MediaAssetDto>>;
   readonly upload: (slotKey: string, files: readonly File[]) => Promise<void>;
+  /** Puts already uploaded files (from the library) into a slot: appended to a list, else replaced. */
+  readonly pick: (slotKey: string, ids: readonly string[]) => void;
   readonly clear: (slotKey: string) => void;
   /** List slots: removes one item / moves an item to another position. */
   readonly removeAt: (slotKey: string, index: number) => void;
@@ -158,12 +160,24 @@ export const useMediaSlots = (
     }
   };
 
+  const pick = (slotKey: string, ids: readonly string[]): void => {
+    const slot = template.mediaSlots.find((candidate) => candidate.key === slotKey);
+    if (!slot || ids.length === 0) return;
+    const current = idsOf(media.value[slotKey]);
+    const next = slot.multiple
+      ? [...current, ...ids.filter((id) => !current.includes(id))].slice(0, slot.multiple.max)
+      : (ids[0] ?? null);
+    errors.delete(slotKey);
+    setMedia({ ...media.value, [slotKey]: next });
+  };
+
   return {
     slots,
     actions,
     warnings,
     assets,
     upload,
+    pick,
     clear: (slotKey) => {
       setMedia({
         ...media.value,

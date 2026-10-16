@@ -66,3 +66,11 @@ export interface VideoRangeSource {
   readonly durationSec: number;
   readonly filmstrip: FilmstripDto | null;
 }
+
+export interface MediaPickerSlot {
+  readonly key: string;
+  readonly label: string;
+  readonly kind: 'image' | 'video';
+  /** How many files can still go in (1 for a single slot: it is replaced). */
+  readonly room: number;
+}

@@ -52,6 +52,8 @@ export type SlideshowProps = z.output<typeof slideshowTemplate.schema>;
 
 Rules that keep everything else automatic:
 
+- `ui.groups` may carry `visibleWhen: { field, equals }`: the group shows only while that field
+  holds one of the values (e.g. the options of the chosen finale in `preset-reel`).
 - Field metadata drives the admin form: `title`, `widget` (`select`, `segmented`, `slider`,
   `switch`, `color`, `font`, `text`, `textarea`, or a custom id), `optionLabels`, `unit`, `step`.
 - `scope: 'content'` marks per-video data (it is never saved in presets). Everything else is style.
@@ -61,6 +63,9 @@ Rules that keep everything else automatic:
   their list so a new effect never changes them. Each reveal effect declares `durationSec`
   (natural length) and `revealedAt` (progress from which "after" dominates) for templates that
   let the effect set the pace (see `before-after-card`).
+- Video colour grading: `clipGrade: videoGradeField()` in `params`, a `{ id: 'clip-grade', label:
+'Clip color grading', fields: ['params.clipGrade'] }` group and `grade={params.clipGrade}` on
+  `VideoPlane`.
 - Video: `videoSlot('clip', { label, required, range: 'params.clip' })` plus
   `clip: videoRangeField({ label, minSec, maxSec, defaultSec })` in `params`. The admin shows a
   trimmer next to the video; the worker cuts that fragment. Draw it with `VideoPlane`.
@@ -88,11 +93,15 @@ from `core/`:
 - the backgrounds registry (`BackgroundLayer`, `backgroundField`) and `SeamedSection` for
   sections joined by registered transitions;
 - typography: `WordReveal`, `TypeOn` (typewriter), `AccentTitle` (lines with `*accents*`),
-  `WordSwap` (one word turning into another: glitch, decode, flip board, typewriter, fade);
-- `pairs/` for before/after alignment (`prepareAssets`) and media checks;
+  `WordSwap` (one word turning into another: glitch, decode, flip board, typewriter, fade),
+  `SlicedText` (a word over a copy of itself in another colour, cut on a slant by a mask);
+- `pairs/` for before/after alignment (`prepareAssets`) and media checks; `alignSetTo(anchor,
+list)` and `checkPhotoSetMedia(anchor, list)` for a before photo plus a list of edits (see
+  `templates/preset-flip`);
 - `photo-adjust/` for before/after templates: `adjust: photoAdjustmentsField()` in `params`, a
   `{ id: 'photos', label: 'Photo adjustments', fields: ['params.adjust'] }` group, and
-  `useAdjustedPhoto(src, props.params.adjust.before)` / `.after` where the photos are read;
+  `useAdjustedPhoto(src, props.params.adjust.before)` / `.after` where the photos are read
+  (`beforeAdjustmentsField()` when the "after" photos are finished edits);
 - `MusicLayer`, `useLayout()` (the four formats and safe zones), `useFonts()`, `motion.ts`
   (easing, `cubicBezier`, keyframes);
 - `placement.ts` for anything that moves.
@@ -112,6 +121,10 @@ different Chrome tabs then differ). `make check-jitter` guards the placement rul
 - `packages/engines/remotion/src/manifest/index.ts`: add the template to `templates`.
 - `packages/engines/remotion/src/templates/index.ts`: add `entry(slideshowTemplate, Slideshow)`
   to `REMOTION_TEMPLATES` (Studio, bundle and the browser player use this list).
+
+Gallery card: `thumbnailUrl: '/template-previews/<id>.jpg'` in the manifest, a 1280×720 JPEG in
+`apps/admin/public/template-previews/` (three key frames of a fixture render, `make demo
+--frames=a,b,c`, side by side as rounded phones over a blur of the middle one).
 
 That's it: the API lists it, the admin shows it in the gallery and builds its screen, the worker
 renders it (the dev worker rebuilds its bundle on save). Then:

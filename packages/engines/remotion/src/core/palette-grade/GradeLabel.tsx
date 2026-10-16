@@ -1,13 +1,14 @@
 import { measureText } from '@remotion/layout-utils';
 import type React from 'react';
 import { useMemo } from 'react';
-import type { Layout } from '../../core/layout.js';
-import { ease, progress } from '../../core/motion.js';
-import { TagLabel } from '../../core/primitives/TagLabel.js';
-import { graphemes } from '../../core/typography/glitch-swap.js';
-import { WordSwap } from '../../core/typography/WordSwap.js';
-import { SWAP_SNAP } from '../../core/typography/word-swap.js';
-import type { PaletteGradeProps } from './manifest.js';
+import type { Layout } from '../layout.js';
+import { ease, progress } from '../motion.js';
+import { TagLabel } from '../primitives/TagLabel.js';
+import { graphemes } from '../typography/glitch-swap.js';
+import { WordSwap } from '../typography/WordSwap.js';
+import { SWAP_SNAP } from '../typography/word-swap.js';
+import type { TextField } from '@vgen/shared';
+import type { PaletteGradeOptions } from './fields.js';
 import type { Span } from './timeline.js';
 
 /** Design font size (at 1080 px on the short side) and the plate's padding, in ems. */
@@ -24,8 +25,8 @@ export interface GradeLabelProps {
   readonly layout: Layout;
   /** The BEFORE -> AFTER swap. */
   readonly swap: Span;
-  readonly texts: PaletteGradeProps['texts'];
-  readonly params: PaletteGradeProps['params'];
+  readonly texts: { readonly beforeLabel: TextField; readonly afterLabel: TextField };
+  readonly params: PaletteGradeOptions;
   readonly fontFamily: string;
   readonly textColor: string;
   readonly seed: number;

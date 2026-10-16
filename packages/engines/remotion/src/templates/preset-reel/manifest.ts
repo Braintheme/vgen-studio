@@ -13,16 +13,25 @@ import {
   type VideoRange,
 } from '@vgen/shared';
 import { z } from 'zod';
+import { paletteGradeFields, paletteGradeGroups } from '../../core/palette-grade/fields.js';
+import {
+  gradeTimeline,
+  HOLD_SEC,
+  PROCESS_SEC,
+  type GradeTimeline,
+} from '../../core/palette-grade/timeline.js';
 import { photoAdjustmentsField } from '../../core/photo-adjust/schema.js';
 import { backgroundField } from '../../core/backgrounds/registry.js';
 import { alignBeforeAfter } from '../../core/pairs/align-pair.js';
 import { checkBeforeAfterMedia } from '../../core/pairs/pair-checks.js';
 import { REVEAL_EFFECTS, revealEffectField, type RevealEffectId } from '../../core/reveals/registry.js';
 import { seamTransitionField } from '../../core/transitions/registry.js';
+import { videoGradeField } from '../../core/video-grade/schema.js';
 import { reelTimeline, type ReelTimeline } from './timeline.js';
 
 export const TITLE_SIZES = ['s', 'm', 'l'] as const;
 export const TITLE_ANIMATIONS = ['rise', 'none'] as const;
+export const FINALES = ['card', 'palette'] as const;
 
 /** Transitions that suit a zoom between sections. */
 const SEAM_OPTIONS = ['punch-zoom', 'zoom-through', 'fade', 'soft-focus', 'none'] as const;
@@ -43,8 +52,10 @@ const slider = (title: string, min: number, max: number, value: number, step: nu
 export const presetReelTemplate = defineTemplate({
   id: 'preset-reel',
   engine: 'remotion',
-  version: '1.4.0',
+  version: '1.6.0',
   name: 'Preset Reel',
+  // Gallery card (admin static file; regenerate from fixture renders when the look changes).
+  thumbnailUrl: '/template-previews/preset-reel.jpg',
   description:
     'Your clip with a title, a zoom into the camera, the Lightroom settings screenshots, then the before/after on an instant-photo card.',
   mediaSlots: [
@@ -90,11 +101,16 @@ export const presetReelTemplate = defineTemplate({
       maxLength: 60,
       scope: 'style',
     }),
+    // Palette finale.
+    beforeLabel: textField({ label: 'Before label', default: 'BEFORE', maxLength: 16, scope: 'style' }),
+    afterLabel: textField({ label: 'After label', default: 'AFTER', maxLength: 16, scope: 'style' }),
   },
   params: {
     // Shared by every before/after template (two columns in the admin).
     adjust: photoAdjustmentsField(),
     clip: videoRangeField({ label: 'Clip fragment', minSec: 3, maxSec: 30, defaultSec: 12 }),
+    // Colour grading of the clip (preview = render; neutral by default).
+    clipGrade: videoGradeField(),
     framing: z
       .object({
         zoom: slider('Zoom', 1, 3, 1, 0.05, '×'),
@@ -142,7 +158,27 @@ export const presetReelTemplate = defineTemplate({
       })
       .prefault({}),
     panelFloat: z.boolean().default(true).meta({ title: 'Screenshots float gently', widget: 'switch' }),
-    revealEffect: revealEffectField({ title: 'Before / after transition', default: 'line-wipe' }),
+    // Pinned to the effects it shipped with: effects added to the registry later are opt-in.
+    // The last scene: the instant card (the reference), or palette-grade's process full screen.
+    finale: z
+      .enum(FINALES)
+      .default('card')
+      .meta({
+        title: 'Finale',
+        widget: 'segmented',
+        optionLabels: { card: 'Instant card', palette: 'Palette grade' },
+      }),
+    palette: z
+      .object({
+        ...paletteGradeFields(),
+        afterHoldSec: slider('After photo holds', HOLD_SEC.minOutro, 6, 2.3, 0.1, 's'),
+      })
+      .prefault({}),
+    revealEffect: revealEffectField({
+      title: 'Before / after transition',
+      allowed: ['diagonal-wipe', 'circle-reveal', 'blinds', 'split-slider', 'slide-over', 'line-wipe'],
+      default: 'line-wipe',
+    }),
     beforeHoldSec: slider('Before shows for', 0.4, 3, 0.8, 0.1, 's'),
     afterHoldSec: slider('After shows for', 0.5, 5, 1.5, 0.1, 's'),
     backdropDim: slider('Card background dim', 0, 0.9, 0.55, 0.05),
@@ -174,6 +210,7 @@ export const presetReelTemplate = defineTemplate({
         label: 'Clip',
         fields: ['params.clip', 'params.framing', 'params.punchIn', 'params.clipAudio'],
       },
+      { id: 'clip-grade', label: 'Clip color grading', fields: ['params.clipGrade'] },
       {
         id: 'title',
         label: 'Title',
@@ -197,9 +234,11 @@ export const presetReelTemplate = defineTemplate({
           'params.panelFloat',
         ],
       },
+      { id: 'finale', label: 'Finale', fields: ['params.finale'] },
       {
         id: 'card',
         label: 'Before / after card',
+        visibleWhen: { field: 'params.finale', equals: ['card'] },
         fields: [
           'texts.cardTitle',
           'texts.cardLens',
@@ -211,6 +250,13 @@ export const presetReelTemplate = defineTemplate({
           'params.backdropDim',
         ],
       },
+      ...paletteGradeGroups('params.palette.', ['texts.beforeLabel', 'texts.afterLabel'], 'palette-', [
+        'params.palette.afterHoldSec',
+      ]).map((group) => ({
+        ...group,
+        label: `Palette: ${group.label.toLowerCase()}`,
+        visibleWhen: { field: 'params.finale', equals: ['palette'] },
+      })),
       {
         id: 'seams',
         label: 'Transitions & sounds',
@@ -234,7 +280,10 @@ export const presetReelTemplate = defineTemplate({
   // The card with the after photo, just after the wipe.
   posterFrame: (props) => {
     const timeline = timelineOf(props);
-    return Math.min(timeline.totalFrames - 1, timeline.reveal.from + timeline.reveal.duration + 2);
+    const palette = paletteTimelineOf(props);
+    return palette
+      ? Math.min(timeline.totalFrames - 1, timeline.card.from + palette.end + Math.round(0.3 * props.fps))
+      : Math.min(timeline.totalFrames - 1, timeline.reveal.from + timeline.reveal.duration + 2);
   },
   checkMedia: checkBeforeAfterMedia,
   prepareAssets: alignBeforeAfter,
@@ -256,11 +305,31 @@ interface TimelineProps {
     readonly revealEffect: RevealEffectId;
     readonly punchIn: { readonly enabled: boolean; readonly atSec: number };
     readonly shutterBeforeSec: number;
+    readonly finale: (typeof FINALES)[number];
+    readonly palette: {
+      readonly introHoldSec: number;
+      readonly processSpeed: number;
+      readonly afterHoldSec: number;
+    };
   };
+}
+
+/** The palette finale's own timeline (local frames), or null for the card. */
+export function paletteTimelineOf(props: TimelineProps): GradeTimeline | null {
+  const { params } = props;
+  if (params.finale !== 'palette') return null;
+  const { introHoldSec, processSpeed, afterHoldSec } = params.palette;
+  return gradeTimeline({
+    durationSec: introHoldSec + PROCESS_SEC.end / processSpeed + afterHoldSec,
+    fps: props.fps,
+    introHoldSec,
+    speed: processSpeed,
+  });
 }
 
 /** The timeline of given props (screens = uploaded screenshots; at least one is shown). */
 export function timelineOf(props: TimelineProps): ReelTimeline {
+  const palette = paletteTimelineOf(props);
   const { params } = props;
   const screens = props.media['settings'];
   return reelTimeline({
@@ -273,5 +342,6 @@ export function timelineOf(props: TimelineProps): ReelTimeline {
     afterHoldSec: params.afterHoldSec,
     punchInAtSec: params.punchIn.enabled ? params.punchIn.atSec : null,
     shutterBeforeSec: params.shutterBeforeSec,
+    finaleSec: palette ? palette.totalFrames / props.fps : null,
   });
 }

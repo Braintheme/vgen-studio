@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import ResettableSlider from '@/components/common/ResettableSlider.vue';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Slider } from '@/components/ui/slider';
 import type { FieldOf } from '@/components/schema-form/types';
 
 const props = defineProps<{
@@ -20,12 +20,13 @@ const display = (value: unknown): string =>
         <span class="text-xs tabular-nums text-muted-foreground">{{ display(value) }}</span>
       </div>
       <FormControl>
-        <Slider
-          :model-value="[typeof value === 'number' ? value : field.min]"
+        <ResettableSlider
+          :model-value="typeof value === 'number' ? value : field.min"
           :min="field.min"
           :max="field.max"
           :step="field.step"
-          @update:model-value="(next) => next && handleChange(next[0])"
+          :reset-value="field.defaultValue"
+          @update:model-value="handleChange"
         />
       </FormControl>
       <FormMessage />

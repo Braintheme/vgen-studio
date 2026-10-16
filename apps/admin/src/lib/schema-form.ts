@@ -1,7 +1,8 @@
 // Pure JSON Schema -> form description. Turns the props JSON Schema of a template
 // (with vgen field metadata: title, widget, optionLabels, unit, step) into typed field
 // specs that the schema-form components render. No Vue here: fully unit-testable.
-import { FONTS } from '@vgen/shared';
+import { FONTS, type UiVisibleWhen } from '@vgen/shared';
+import { valueAtPath } from './utils';
 
 export interface FieldOption {
   readonly value: string | number;
@@ -31,6 +32,8 @@ export type FieldSpec =
       readonly max: number;
       readonly step: number;
       readonly unit: string | null;
+      /** The schema default (double-click resets to it), or null when there is none. */
+      readonly defaultValue: number | null;
     })
   | (FieldBase & {
       readonly kind: 'number';
@@ -54,6 +57,8 @@ export type FieldSpec =
       readonly kind: 'custom';
       readonly widget: string;
       readonly limits: { readonly min: number; readonly max: number } | null;
+      /** Schema defaults of a compound value's parts (e.g. a sound cue's `volume`). */
+      readonly defaults: Readonly<Record<string, unknown>>;
     });
 
 export type FieldKind = FieldSpec['kind'];
@@ -70,12 +75,15 @@ export interface SectionLayout {
   readonly title: string;
   /** Field or object paths; objects expand into all their (visible) fields. */
   readonly paths: readonly string[];
+  /** Shown only while another field holds one of the values (see `visibleSections`). */
+  readonly visibleWhen?: UiVisibleWhen;
 }
 
 export interface FormSectionSpec {
   readonly id: string;
   readonly title: string;
   readonly fields: readonly FieldSpec[];
+  readonly visibleWhen?: UiVisibleWhen;
 }
 
 type Node = Readonly<Record<string, unknown>>;
@@ -155,7 +163,19 @@ const customField = (node: Node, path: string, label: string, widget: string): F
   const limits = isNode(node['limits']) ? node['limits'] : null;
   const min = limits ? num(limits, 'min') : null;
   const max = limits ? num(limits, 'max') : null;
-  return { kind: 'custom', path, label, widget, limits: min !== null && max !== null ? { min, max } : null };
+  const defaults = Object.fromEntries(
+    Object.entries(properties(node)).flatMap(([key, child]) =>
+      'default' in child ? [[key, child['default']]] : [],
+    ),
+  );
+  return {
+    kind: 'custom',
+    path,
+    label,
+    widget,
+    limits: min !== null && max !== null ? { min, max } : null,
+    defaults,
+  };
 };
 
 /** One leaf field, or null when no widget fits it. */
@@ -186,7 +206,16 @@ const describeLeaf = (node: Node, path: string, label: string): FieldSpec | null
     (widget === null || widget === 'slider' || widget === 'number')
   ) {
     if (widget !== 'number' && min !== null && max !== null) {
-      return { kind: 'slider', path, label, min, max, step: num(node, 'step') ?? DEFAULT_SLIDER_STEP, unit };
+      return {
+        kind: 'slider',
+        path,
+        label,
+        min,
+        max,
+        step: num(node, 'step') ?? DEFAULT_SLIDER_STEP,
+        unit,
+        defaultValue: num(node, 'default'),
+      };
     }
     return { kind: 'number', path, label, min, max, unit };
   }
@@ -247,6 +276,7 @@ export const buildFormSections = (
     .map((section) => ({
       id: section.id,
       title: section.title,
+      ...(section.visibleWhen ? { visibleWhen: section.visibleWhen } : {}),
       fields: section.paths.flatMap((path) => {
         const node = nodeAt(schema, path);
         return node ? expand(node, path, hidden) : [];
@@ -254,3 +284,12 @@ export const buildFormSections = (
     }))
     .filter((section) => section.fields.length > 0);
 };
+
+/** The sections to show for the current values (conditional groups follow their field). */
+export const visibleSections = (sections: readonly FormSectionSpec[], values: unknown): FormSectionSpec[] =>
+  sections.filter((section) => {
+    const when = section.visibleWhen;
+    if (!when) return true;
+    const value = valueAtPath(values, when.field);
+    return when.equals.some((expected) => expected === value);
+  });

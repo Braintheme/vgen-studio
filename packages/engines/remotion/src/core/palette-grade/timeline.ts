@@ -1,4 +1,5 @@
-// Pure timeline of the palette grade template (no React): composition + manifest + tests.
+// Pure timeline of the palette grade process (no React), shared by the `palette-grade` template
+// and other templates' palette finales.
 // Timings come from the reference (references/3, 30 fps, see breakdown.md). The grading
 // "process" keeps its reference timing (it is cut to the music) unless its speed is changed;
 // the opening hold has a chosen length and the final hold on the after photo takes the rest.

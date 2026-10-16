@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -15,10 +16,19 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
+  BulkDeleteMediaRequestSchema,
+  BulkDeleteMediaResponseSchema,
   MAX_UPLOAD_FILES_PER_REQUEST,
   MediaAssetDtoSchema,
+  MediaCleanupRequestSchema,
+  MediaCleanupResponseSchema,
   MediaFileQuerySchema,
+  MediaLibraryPageSchema,
+  MediaLibraryQuerySchema,
+  type BulkDeleteMediaResponse,
   type MediaAssetDto,
+  type MediaCleanupResponse,
+  type MediaLibraryPage,
 } from '@vgen/shared';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
@@ -60,6 +70,35 @@ export class MediaController {
         size: file.size,
       })),
     );
+  }
+
+  /** The library: uploaded photos and videos (newest first by default), with their use. */
+  @Get()
+  @ApiOkResponse({ standardSchema: MediaLibraryPageSchema })
+  list(
+    @Query({ schema: MediaLibraryQuerySchema }) query: z.output<typeof MediaLibraryQuerySchema>,
+  ): Promise<MediaLibraryPage> {
+    return this.media.listLibrary(query);
+  }
+
+  /** Deletes several uploads at once; the ones that cannot go are listed in `failed`. */
+  @Post('bulk-delete')
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: BulkDeleteMediaResponseSchema })
+  bulkDelete(
+    @Body({ schema: BulkDeleteMediaRequestSchema }) body: z.output<typeof BulkDeleteMediaRequestSchema>,
+  ): Promise<BulkDeleteMediaResponse> {
+    return this.media.deleteUploads(body.ids);
+  }
+
+  /** Counts (dry run) or deletes the unused photos and videos older than N days. */
+  @Post('cleanup')
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: MediaCleanupResponseSchema })
+  cleanup(
+    @Body({ schema: MediaCleanupRequestSchema }) body: z.output<typeof MediaCleanupRequestSchema>,
+  ): Promise<MediaCleanupResponse> {
+    return this.media.cleanup(body);
   }
 
   @Get(':id')

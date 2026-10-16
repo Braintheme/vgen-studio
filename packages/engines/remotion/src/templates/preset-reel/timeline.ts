@@ -39,6 +39,8 @@ export interface ReelTimelineInput {
   readonly punchInAtSec: number | null;
   /** The shutter clicks this long before the zoom into the settings starts. */
   readonly shutterBeforeSec: number;
+  /** Another finale's own length (the palette process), replacing the card's holds and reveal. */
+  readonly finaleSec?: number | null;
 }
 
 export interface ReelTimeline {
@@ -77,8 +79,13 @@ export const reelTimeline = (input: ReelTimelineInput): ReelTimeline => {
   const settings = { from: clip.to, to: clip.to + screens * screenFrames };
   const before = frames(input.beforeHoldSec);
   const revealFrames = Math.max(1, frames(input.revealSec));
-  const card = { from: settings.to, to: settings.to + before + revealFrames + frames(input.afterHoldSec) };
-  const reveal = { from: card.from + before, duration: revealFrames };
+  const finale = input.finaleSec ?? null;
+  const card =
+    finale === null
+      ? { from: settings.to, to: settings.to + before + revealFrames + frames(input.afterHoldSec) }
+      : { from: settings.to, to: settings.to + Math.max(1, frames(finale)) };
+  const reveal =
+    finale === null ? { from: card.from + before, duration: revealFrames } : { from: card.from, duration: 1 };
 
   const punchFrames = frames(TIMING.punchIn);
   const punchFrom = input.punchInAtSec === null ? null : frames(input.punchInAtSec);

@@ -18,6 +18,8 @@ export const beforeAfterCardTemplate = defineTemplate({
   engine: 'remotion',
   version: '1.2.0',
   name: 'Before / After — Card',
+  // Gallery card (admin static file; regenerate from fixture renders when the look changes).
+  thumbnailUrl: '/template-previews/before-after-card.jpg',
   description:
     'The photo shrinks into a floating 3D card, the edit is revealed inside it, and the card opens back up.',
   mediaSlots: [

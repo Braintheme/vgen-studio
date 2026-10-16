@@ -6,6 +6,7 @@ export const ROUTE_NAMES = {
   renders: 'renders',
   music: 'music',
   presets: 'presets',
+  media: 'media',
 } as const;
 
 export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES];
@@ -16,6 +17,7 @@ export const ROUTE_PATHS: Record<RouteName, string> = {
   renders: '/renders',
   music: '/music',
   presets: '/presets',
+  media: '/media',
 };
 
 /** Route parameter names. */

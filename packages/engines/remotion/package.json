@@ -31,17 +31,21 @@
     "fixtures": "node --conditions=@vgen/source --import @swc-node/register/esm-register scripts/fixtures.ts",
     "demo": "node --conditions=@vgen/source --import @swc-node/register/esm-register scripts/render-demo.ts",
     "bundle": "node --conditions=@vgen/source --import @swc-node/register/esm-register scripts/bundle.ts",
-    "check-jitter": "node --conditions=@vgen/source --import @swc-node/register/esm-register scripts/check-jitter.ts"
+    "check-jitter": "node --conditions=@vgen/source --import @swc-node/register/esm-register scripts/check-jitter.ts",
+    "admin-check": "node --conditions=@vgen/source --import @swc-node/register/esm-register scripts/admin-check.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "catalog:",
     "@fontsource-variable/jetbrains-mono": "catalog:",
+    "@fontsource-variable/league-gothic": "catalog:",
     "@fontsource-variable/manrope": "catalog:",
     "@fontsource-variable/montserrat": "catalog:",
     "@fontsource-variable/oswald": "catalog:",
     "@fontsource-variable/playfair-display": "catalog:",
     "@fontsource-variable/unbounded": "catalog:",
+    "@fontsource/anton": "catalog:",
     "@fontsource/bebas-neue": "catalog:",
+    "@fontsource/courgette": "catalog:",
     "@remotion/layout-utils": "catalog:",
     "@remotion/media": "catalog:",
     "@remotion/noise": "catalog:",

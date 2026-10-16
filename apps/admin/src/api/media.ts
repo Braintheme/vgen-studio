@@ -1,6 +1,14 @@
 import {
+  BulkDeleteMediaResponseSchema,
   MAX_UPLOAD_FILES_PER_REQUEST,
   MediaAssetDtoSchema,
+  MediaCleanupResponseSchema,
+  MediaLibraryPageSchema,
+  type BulkDeleteMediaResponse,
+  type MediaCleanupRequest,
+  type MediaCleanupResponse,
+  type MediaLibraryPage,
+  type MediaLibraryQuery,
   WaveformPeaksDtoSchema,
   type MediaAssetDto,
   type WaveformPeaksDto,
@@ -62,6 +70,17 @@ export const mediaApi = {
     getJson(MediaAssetDtoSchema, `/media/${id}`, { signal: options.signal }),
 
   remove: (id: string): Promise<void> => deleteResource(`/media/${id}`),
+
+  /** The library: uploaded photos and videos with how many renders use each. */
+  list: (query: MediaLibraryQuery, options: RequestOptions = {}): Promise<MediaLibraryPage> =>
+    getJson(MediaLibraryPageSchema, '/media', { params: query, signal: options.signal }),
+
+  removeMany: (ids: readonly string[]): Promise<BulkDeleteMediaResponse> =>
+    postJson(BulkDeleteMediaResponseSchema, '/media/bulk-delete', { ids }),
+
+  /** Counts (`dryRun`) or deletes the unused photos and videos older than N days. */
+  cleanup: (request: MediaCleanupRequest): Promise<MediaCleanupResponse> =>
+    postJson(MediaCleanupResponseSchema, '/media/cleanup', request),
 
   /** `peaksUrl` from a DTO is already an absolute path, so the base URL is not prepended. */
   peaks: (peaksUrl: string, options: RequestOptions = {}): Promise<WaveformPeaksDto> =>

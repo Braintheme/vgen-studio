@@ -118,6 +118,16 @@ place videos with `VideoPlane` (zoom/pan framing, punch-ins by transforms).
 Templates may derive their length from content (`resolveMetadata`, e.g. clip + screenshots +
 card) and hide `durationSec`; the admin then sizes the music fragment by the derived length.
 
+## Media library
+
+The admin's **Media** page lists uploaded photos and videos (`GET /media`: type filter, sort,
+pages, total size; each item with how many renders use it, found in the renders' props
+snapshots). Files can be deleted in bulk (`POST /media/bulk-delete`) or with "unused older than
+N days" (`POST /media/cleanup`, counted first with `dryRun`). Drafts live in the browser, so the
+admin sends the files its drafts hold as `keepIds`: they are never cleaned up. Deleting a file a
+render uses keeps that render's video; only re-rendering it fails. Media slots can also pick
+already uploaded files ("From library") instead of uploading them again. No automatic cleanup.
+
 ## Sound cues
 
 `soundEffectField()` is a cue (`{ enabled, trackId, volume }`): `trackId: null` plays the engine's

@@ -25,6 +25,8 @@ export type FieldWidget =
   | 'video-range'
   /** `{ enabled, trackId, volume }`: a built-in sound or a library track (see `soundEffectField`). */
   | 'sound-effect'
+  /** `{ shadows, midtones, highlights }` of `{ hue, amount }`: Final Cut-like colour wheels. */
+  | 'color-wheels'
   /** Engine/template specific widgets. */
   | `custom:${string}`;
 

@@ -148,6 +148,10 @@ test: ## Run unit tests
 test-e2e: ## End-to-end smoke on the running stack (make up first): upload, render, ffprobe checks
 	$(COMPOSE) exec -T $(TOOLS) pnpm --filter @vgen/devtools e2e
 
+.PHONY: admin-check
+admin-check: ## Admin pages in headless Chrome, fail on runtime errors: make admin-check [args="--path=/media --click='Clean up unused'"]
+	$(COMPOSE) exec -T worker-remotion pnpm --filter @vgen/engine-remotion admin-check $(args)
+
 .PHONY: check-jitter
 check-jitter: ## Render check: slowly moving overlays must not snap to the pixel grid (run after Remotion/Chromium upgrades)
 	$(COMPOSE) run --rm --no-deps worker-remotion pnpm --filter @vgen/engine-remotion check-jitter $(args)

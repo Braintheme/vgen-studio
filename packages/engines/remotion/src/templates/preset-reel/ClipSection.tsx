@@ -106,6 +106,7 @@ export const ClipSection: React.FC<ClipSectionProps> = ({ frame, fps, layout, pr
         focusZoom={{ scale: mix(1, params.punchIn.scale, punch), x: params.punchIn.x, y: params.punchIn.y }}
         durationInFrames={clipFrames}
         volume={volume}
+        grade={params.clipGrade}
       />
       <AccentTitle
         lines={lines}

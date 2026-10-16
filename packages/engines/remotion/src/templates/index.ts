@@ -9,6 +9,8 @@ import { BeforeAfter } from './before-after/BeforeAfter.js';
 import { PaletteGrade } from './palette-grade/PaletteGrade.js';
 import { paletteGradeTemplate } from './palette-grade/manifest.js';
 import { beforeAfterTemplate } from './before-after/manifest.js';
+import { presetFlipTemplate } from './preset-flip/manifest.js';
+import { PresetFlip } from './preset-flip/PresetFlip.js';
 import { PresetReel } from './preset-reel/PresetReel.js';
 import { presetReelTemplate } from './preset-reel/manifest.js';
 
@@ -34,6 +36,7 @@ export const REMOTION_TEMPLATES: readonly RemotionTemplateEntry[] = [
   entry(beforeAfterCardTemplate, BeforeAfterCard),
   entry(presetReelTemplate, PresetReel),
   entry(paletteGradeTemplate, PaletteGrade),
+  entry(presetFlipTemplate, PresetFlip),
 ];
 
 export const findRemotionTemplate = (templateId: string): RemotionTemplateEntry | undefined =>
