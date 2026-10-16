@@ -64,3 +64,32 @@ describe('MediaService deletion', () => {
     expect(repository.delete).not.toHaveBeenCalled();
   });
 });
+
+describe('MediaService library cleanup', () => {
+  it('deletes several uploads and reports the ones that cannot go', async () => {
+    const { service, repository } = setup(asset({ size: 1000 }));
+    repository.findById
+      .mockResolvedValueOnce(asset({ id: 'a1', size: 1000 }))
+      .mockResolvedValueOnce(asset({ id: 'a1', size: 1000 }))
+      .mockResolvedValueOnce(asset({ id: 'r1', role: 'render_output', size: 5 }))
+      .mockResolvedValueOnce(asset({ id: 'r1', role: 'render_output', size: 5 }));
+    const result = await service.deleteUploads(['a1', 'r1', 'a1']);
+    expect(result.deleted).toEqual(['a1']);
+    expect(result.failed.map((failure) => failure.id)).toEqual(['r1']);
+    expect(result.freedBytes).toBe(1000);
+  });
+
+  it('only counts on a dry run, and passes the protected ids and the cut-off date on', async () => {
+    const { service, repository } = setup(asset());
+    const findUnused = vi.fn((_before: Date, _keep: readonly string[]) =>
+      Promise.resolve([asset({ id: 'a1', size: 300 }), asset({ id: 'a2', size: 200 })]),
+    );
+    Object.assign(repository, { findUnused });
+    const result = await service.cleanup({ olderThanDays: 14, keepIds: ['k1'], dryRun: true });
+    expect(result).toEqual({ count: 2, bytes: 500, deleted: false });
+    expect(repository.delete).not.toHaveBeenCalled();
+    const [before, keep] = findUnused.mock.calls[0] ?? [];
+    expect(keep).toEqual(['k1']);
+    expect(Date.now() - (before?.getTime() ?? 0)).toBeGreaterThanOrEqual(14 * 24 * 3600 * 1000 - 1000);
+  });
+});

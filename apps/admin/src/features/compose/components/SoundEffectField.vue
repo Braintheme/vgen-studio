@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import type { MusicTrackDto } from '@vgen/shared';
+import ResettableSlider from '@/components/common/ResettableSlider.vue';
 import type { CustomFieldSpec } from '@/components/schema-form/types';
 import { FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { formatDuration } from '@/lib/format';
 import { BUILT_IN_SOUND_VALUE } from '@/features/compose/constants';
 
 /** A sound cue: on/off, the built-in sound or a library track, and its volume. */
-defineProps<{
+const props = defineProps<{
   field: CustomFieldSpec;
   tracks: readonly MusicTrackDto[];
 }>();
+
+/** The cue's default volume (double-click on the handle resets to it). */
+const defaultVolume =
+  typeof props.field.defaults['volume'] === 'number' ? props.field.defaults['volume'] : 0.8;
 
 /** `null` = the built-in sound. */
 const toTrackId = (raw: unknown): string | null =>
@@ -48,13 +52,14 @@ const toSelectValue = (value: unknown): string => (typeof value === 'string' ? v
         </Select>
       </FormField>
       <FormField v-slot="{ value, handleChange }" :name="`${field.path}.volume`">
-        <Slider
-          :model-value="[typeof value === 'number' ? value : 0.8]"
+        <ResettableSlider
+          :model-value="typeof value === 'number' ? value : defaultVolume"
           :min="0"
           :max="1"
           :step="0.05"
+          :reset-value="defaultVolume"
           :aria-label="`${field.label}: volume`"
-          @update:model-value="(next) => next && handleChange(next[0])"
+          @update:model-value="handleChange"
         />
       </FormField>
     </div>

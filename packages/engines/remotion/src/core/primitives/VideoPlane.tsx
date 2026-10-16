@@ -2,6 +2,8 @@ import type React from 'react';
 import { Video } from '@remotion/media';
 import type { ResolvedVideo } from '@vgen/shared';
 import { AbsoluteFill, Freeze, Img, useCurrentFrame, useVideoConfig } from 'remotion';
+import { useGradeFilter } from '../video-grade/GradeFilter.js';
+import type { VideoGrade } from '../video-grade/schema.js';
 
 /** Reframing of a video inside the frame: zoom >= 1 and a pan of -1..1 per axis (0 = centered). */
 export interface VideoFraming {
@@ -27,6 +29,8 @@ export interface VideoPlaneProps {
   readonly durationInFrames: number;
   /** 0 mutes the clip. Either a constant or a per-frame curve. */
   readonly volume: number | ((frame: number) => number);
+  /** Colour grading of the clip (none when omitted or neutral). */
+  readonly grade?: VideoGrade;
 }
 
 /** Pan offsets (px) of a cover-fitted media of `size` zoomed by `zoom` inside `frame`. */
@@ -58,7 +62,9 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({
   focusZoom,
   durationInFrames,
   volume,
+  grade,
 }) => {
+  const graded = useGradeFilter(grade);
   const frame = useCurrentFrame();
   const { width, height, fps } = useVideoConfig();
   const size = video ?? { width, height };
@@ -79,7 +85,10 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({
   };
   const silent = typeof volume === 'number' && volume <= 0;
   return (
-    <AbsoluteFill style={{ overflow: 'hidden' }}>
+    <AbsoluteFill
+      style={graded.filter ? { overflow: 'hidden', filter: graded.filter } : { overflow: 'hidden' }}
+    >
+      {graded.defs}
       <AbsoluteFill style={{ transform: outer, transformOrigin: '50% 50%' }}>
         <AbsoluteFill style={{ transform: inner, transformOrigin: '50% 50%' }}>
           {video ? (

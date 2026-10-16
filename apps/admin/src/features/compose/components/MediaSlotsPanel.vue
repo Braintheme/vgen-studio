@@ -19,6 +19,7 @@ const emit = defineEmits<{
   remove: [slotKey: string, index: number];
   move: [slotKey: string, from: number, to: number];
   action: [action: SlotActionView];
+  browse: [slotKey: string];
 }>();
 </script>
 
@@ -47,12 +48,14 @@ const emit = defineEmits<{
             @upload="emit('upload', slot.key, $event)"
             @remove="(index) => emit('remove', slot.key, index)"
             @move="(from, to) => emit('move', slot.key, from, to)"
+            @browse="emit('browse', slot.key)"
           />
           <MediaSlotCard
             v-else
             :media-slot="slot"
             @upload="emit('upload', slot.key, $event)"
             @clear="emit('clear', slot.key)"
+            @browse="emit('browse', slot.key)"
           />
         </template>
       </div>

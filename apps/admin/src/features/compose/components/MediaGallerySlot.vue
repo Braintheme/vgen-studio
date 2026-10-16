@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronLeft, ChevronRight, Plus, X } from '@lucide/vue';
+import { Images, ChevronLeft, ChevronRight, Plus, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import FileDropzone from '@/components/common/FileDropzone.vue';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ const emit = defineEmits<{
   upload: [files: File[]];
   remove: [index: number];
   move: [from: number, to: number];
+  browse: [];
 }>();
 
 const uploading = computed(() => props.mediaSlot.uploadProgress !== null);
@@ -107,6 +108,16 @@ const onDrop = (index: number): void => {
         </div>
       </FileDropzone>
     </div>
+    <Button
+      v-if="mediaSlot.kind === 'image' || mediaSlot.kind === 'video'"
+      variant="link"
+      size="sm"
+      class="h-auto justify-self-start p-0 text-xs"
+      :disabled="uploading"
+      @click="emit('browse')"
+    >
+      <Images class="size-3.5" /> From library
+    </Button>
     <Progress v-if="uploading" :model-value="(mediaSlot.uploadProgress ?? 0) * 100" class="h-1.5" />
     <p v-if="mediaSlot.error" class="text-xs text-destructive">{{ mediaSlot.error }}</p>
   </div>

@@ -15,6 +15,9 @@ catalogs:
     '@fontsource-variable/jetbrains-mono':
       specifier: 5.3.0
       version: 5.3.0
+    '@fontsource-variable/league-gothic':
+      specifier: 5.3.0
+      version: 5.3.0
     '@fontsource-variable/manrope':
       specifier: 5.3.0
       version: 5.3.0
@@ -30,7 +33,13 @@ catalogs:
     '@fontsource-variable/unbounded':
       specifier: 5.3.0
       version: 5.3.0
+    '@fontsource/anton':
+      specifier: 5.3.0
+      version: 5.3.0
     '@fontsource/bebas-neue':
+      specifier: 5.3.0
+      version: 5.3.0
+    '@fontsource/courgette':
       specifier: 5.3.0
       version: 5.3.0
     '@lucide/vue':
@@ -579,6 +588,9 @@ importers:
       '@fontsource-variable/jetbrains-mono':
         specifier: 'catalog:'
         version: 5.3.0
+      '@fontsource-variable/league-gothic':
+        specifier: 'catalog:'
+        version: 5.3.0
       '@fontsource-variable/manrope':
         specifier: 'catalog:'
         version: 5.3.0
@@ -594,7 +606,13 @@ importers:
       '@fontsource-variable/unbounded':
         specifier: 'catalog:'
         version: 5.3.0
+      '@fontsource/anton':
+        specifier: 'catalog:'
+        version: 5.3.0
       '@fontsource/bebas-neue':
+        specifier: 'catalog:'
+        version: 5.3.0
+      '@fontsource/courgette':
         specifier: 'catalog:'
         version: 5.3.0
       '@remotion/layout-utils':
@@ -1141,6 +1159,9 @@ packages:
   '@fontsource-variable/jetbrains-mono@5.3.0':
     resolution: {integrity: sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw==}
 
+  '@fontsource-variable/league-gothic@5.3.0':
+    resolution: {integrity: sha512-M6jy6u+IOa7FcxikicKhwGkHk7dUimbLQPoaaLopPy0A0oIHhLJ3+hhxV0DreSyXzI7hd+qK/lv8Yjon5kdf5Q==}
+
   '@fontsource-variable/manrope@5.3.0':
     resolution: {integrity: sha512-6D5dgokHsWDDMtmXHznKa0hK229NN+1a4BLPmUCLqcO1Pw5EEhWY5RFt0AcXnVRAljFFPfRtLkJePQj6LSsV6g==}
 
@@ -1156,8 +1177,14 @@ packages:
   '@fontsource-variable/unbounded@5.3.0':
     resolution: {integrity: sha512-ea565Ncn4r7gPdBEHcmaF31V11hDfkL7b/JCklLobQbMfbu2ZZQrVWNgdeEFWFLqNh36yhieZWOgxdAnMTzrLg==}
 
+  '@fontsource/anton@5.3.0':
+    resolution: {integrity: sha512-OR1D5n124n2XRs66SbX7IjcOSptljEJE8FcDNnlni2y1/M6KpTx7cU2PIWzTSsBj4WFkHPw24On8qw3qkQZuTw==}
+
   '@fontsource/bebas-neue@5.3.0':
     resolution: {integrity: sha512-nCxMEb9Bg9sjNWm9TIOsvHKDMLRUfEZPWpLgYu6m9KavZZVSA/WoHzI5wROwqA+eNwEi/PNBAcB5Co7HA3S0Cw==}
+
+  '@fontsource/courgette@5.3.0':
+    resolution: {integrity: sha512-WIJoNC4W4ur9pvqknO8SJUld0L7U0YDjgv23f8pE+Ec/nMDCVQ6NUNc3xdPSDIKTsXxVJ8lMOkk2UrkIrcc9VQ==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -5089,6 +5116,8 @@ snapshots:
 
   '@fontsource-variable/jetbrains-mono@5.3.0': {}
 
+  '@fontsource-variable/league-gothic@5.3.0': {}
+
   '@fontsource-variable/manrope@5.3.0': {}
 
   '@fontsource-variable/montserrat@5.3.0': {}
@@ -5099,7 +5128,11 @@ snapshots:
 
   '@fontsource-variable/unbounded@5.3.0': {}
 
+  '@fontsource/anton@5.3.0': {}
+
   '@fontsource/bebas-neue@5.3.0': {}
+
+  '@fontsource/courgette@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

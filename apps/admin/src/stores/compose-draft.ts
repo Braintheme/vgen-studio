@@ -40,5 +40,8 @@ export const useComposeDraftStore = defineStore('compose-draft', () => {
     drafts.value = rest;
   };
 
-  return { draftOf, update, clear };
+  /** Every template's draft (e.g. which uploads are still in use). */
+  const all = (): Readonly<Record<string, ComposeDraft>> => drafts.value;
+
+  return { draftOf, update, clear, all };
 });

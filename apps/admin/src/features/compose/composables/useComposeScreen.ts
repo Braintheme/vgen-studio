@@ -6,7 +6,7 @@ import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useGroupedNotice } from '@/composables/useGroupedNotice';
 import { findTemplateDefinition } from '@/engines/catalog';
 import type { PlayerAdapter } from '@/engines/players';
-import type { FormSectionSpec } from '@/lib/schema-form';
+import { visibleSections, type FormSectionSpec } from '@/lib/schema-form';
 import { ROUTE_PARAMS } from '@/lib/routes';
 import { cloneJson } from '@/lib/utils';
 import { COLLAPSED_SCOPE, DRAFT_NOTICE_TITLE, DRAFT_SAVE_DEBOUNCE_MS } from '@/features/compose/constants';
@@ -18,6 +18,7 @@ import { useComposePresets, type ComposePresetsState } from './useComposePresets
 import { useComposePreview } from './useComposePreview';
 import { useComposeVideoRanges } from './useComposeVideoRanges';
 import { useGenerateRender } from './useGenerateRender';
+import { useMediaPicker, type MediaPickerState } from './useMediaPicker';
 import { useMediaSlots, type MediaSlotsState } from './useMediaSlots';
 import { usePlayerAdapter } from './usePlayerAdapter';
 import { usePosterPreview } from './usePosterPreview';
@@ -26,10 +27,13 @@ import { useValidSettings } from './useValidSettings';
 export interface ComposeScreenReady {
   readonly status: 'ready';
   readonly template: TemplateDefinition;
-  readonly sections: readonly FormSectionSpec[];
+  /** Form sections for the current values (groups of unused options are hidden). */
+  readonly sections: ComputedRef<readonly FormSectionSpec[]>;
   /** Folded form sections, remembered per template. */
   readonly collapsedSections: WritableComputedRef<readonly string[]>;
   readonly media: Omit<MediaSlotsState, 'validate' | 'assets'>;
+  /** "From library" for photo / video slots. */
+  readonly picker: MediaPickerState;
   readonly presets: ComposePresetsState;
   readonly music: Omit<ComposeMusicState, 'previewAudio'>;
   /** The video each `video-range` field trims, by field path. */
@@ -99,6 +103,7 @@ export const useComposeScreen = (): ComposeScreen => {
     assets,
     ...media
   } = useMediaSlots(template, draft.media, draft.setMedia, reportDraftFix);
+  const picker = useMediaPicker(template, draft.media, media.pick);
   const videoRanges = useComposeVideoRanges({
     template,
     sections: form.sections,
@@ -129,9 +134,10 @@ export const useComposeScreen = (): ComposeScreen => {
   return {
     status: 'ready',
     template,
-    sections: form.sections,
+    sections: computed(() => visibleSections(form.sections, form.values)),
     collapsedSections: useCollapsedSections(`${COLLAPSED_SCOPE}:${template.id}`),
     media,
+    picker,
     presets,
     music,
     videoSources: videoRanges.sources,

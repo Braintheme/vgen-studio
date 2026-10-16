@@ -1,5 +1,5 @@
 // Synthesizes the Remotion engine's built-in sound effects (our own, license-free sounds):
-// a camera shutter and a swoosh. Deterministic: the same files on every run.
+// a camera shutter, a swoosh and a tick. Deterministic: the same files on every run.
 // Usage: pnpm --filter @vgen/devtools sfx [--out=packages/engines/remotion/src/core/audio/sfx]
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -129,8 +129,27 @@ const swoosh = (): Float32Array => {
   );
 };
 
+/**
+ * Tick: a short, soft wooden click (a bright transient over a quick low body), for rhythmic
+ * changes such as the next preset coming in.
+ */
+const tick = (): Float32Array => {
+  const random = noise(41);
+  const click = bandPass(2.5);
+  return finish(
+    render(0.14, (t) => {
+      const transient = click(random(), 3200) * Math.exp(-t / 0.004) * 1.4;
+      const body = Math.sin(2 * Math.PI * 820 * t) * Math.exp(-t / 0.018) * 0.7;
+      const low = Math.sin(2 * Math.PI * 210 * t) * Math.exp(-t / 0.03) * 0.35;
+      return transient + body + low;
+    }),
+    -6,
+  );
+};
+
 const outDir = path.resolve(ROOT, values.out);
 await mkdir(outDir, { recursive: true });
 await writeFile(path.join(outDir, 'shutter.wav'), wav(shutter()));
 await writeFile(path.join(outDir, 'swoosh.wav'), wav(swoosh()));
-console.log(`sfx: shutter.wav, swoosh.wav -> ${path.relative(ROOT, outDir)}`);
+await writeFile(path.join(outDir, 'tick.wav'), wav(tick()));
+console.log(`sfx: shutter.wav, swoosh.wav, tick.wav -> ${path.relative(ROOT, outDir)}`);

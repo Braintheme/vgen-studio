@@ -63,3 +63,15 @@ describe('reelTimeline', () => {
     expect(t.swooshAt).toBeGreaterThanOrEqual(t.card.from);
   });
 });
+
+describe('reelTimeline with the palette finale', () => {
+  it('gives the last section the finale length, the rest unchanged', () => {
+    const card = reelTimeline(reference);
+    const palette = reelTimeline({ ...reference, finaleSec: 7 });
+    expect(palette.clip).toEqual(card.clip);
+    expect(palette.settings).toEqual(card.settings);
+    expect(palette.card).toEqual({ from: card.card.from, to: card.card.from + 420 });
+    expect(palette.totalFrames).toBe(card.card.from + 420);
+    expect(reelTimeline({ ...reference, finaleSec: null })).toEqual(card);
+  });
+});

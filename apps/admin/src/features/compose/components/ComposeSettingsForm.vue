@@ -2,6 +2,7 @@
 import SchemaForm from '@/components/schema-form/SchemaForm.vue';
 import type { FormSectionSpec } from '@/lib/schema-form';
 import type { MusicWidgetsView, VideoRangeSource } from '@/features/compose/types';
+import ColorWheelsField from './ColorWheelsField.vue';
 import MusicNoticeAlert from './MusicNoticeAlert.vue';
 import MusicRegionField from './MusicRegionField.vue';
 import MusicTrackField from './MusicTrackField.vue';
@@ -36,6 +37,9 @@ const collapsed = defineModel<readonly string[]>('collapsed', { required: true }
     </template>
     <template #widget:video-range="{ field }">
       <VideoRangeField :field="field" :source="videoSources[field.path] ?? null" />
+    </template>
+    <template #widget:color-wheels="{ field }">
+      <ColorWheelsField :field="field" />
     </template>
     <template #widget:sound-effect="{ field }">
       <SoundEffectField :field="field" :tracks="music.tracks" />

@@ -1,11 +1,19 @@
 /** Dot-separated path into template props, e.g. `texts.title` or `params.revealEffect`. */
 export type PropPath = string;
 
+/** Shows a group only while another field holds one of the given values. */
+export interface UiVisibleWhen {
+  readonly field: PropPath;
+  readonly equals: readonly (string | number | boolean)[];
+}
+
 export interface UiFieldGroup {
   readonly id: string;
   readonly label: string;
   readonly fields: readonly PropPath[];
   readonly collapsed?: boolean;
+  /** Hidden (its fields have no effect) unless the condition holds, e.g. another finale. */
+  readonly visibleWhen?: UiVisibleWhen;
 }
 
 export type UiSlotAction = {

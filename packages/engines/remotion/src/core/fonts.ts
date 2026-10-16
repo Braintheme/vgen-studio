@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { cancelRender, continueRender, delayRender } from 'remotion';
 import type { FontId } from '@vgen/shared';
+import antonLatin from '@fontsource/anton/files/anton-latin-400-normal.woff2';
+import antonLatinExt from '@fontsource/anton/files/anton-latin-ext-400-normal.woff2';
 import bebasLatin from '@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff2';
 import bebasLatinExt from '@fontsource/bebas-neue/files/bebas-neue-latin-ext-400-normal.woff2';
+import courgetteLatin from '@fontsource/courgette/files/courgette-latin-400-normal.woff2';
+import courgetteLatinExt from '@fontsource/courgette/files/courgette-latin-ext-400-normal.woff2';
 import interLatinItalic from '@fontsource-variable/inter/files/inter-latin-wght-italic.woff2';
 import interLatin from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2';
 import interLatinExtItalic from '@fontsource-variable/inter/files/inter-latin-ext-wght-italic.woff2';
@@ -11,6 +15,9 @@ import jetbrainsLatinItalic from '@fontsource-variable/jetbrains-mono/files/jetb
 import jetbrainsLatin from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2';
 import jetbrainsLatinExtItalic from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-ext-wght-italic.woff2';
 import jetbrainsLatinExt from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-ext-wght-normal.woff2';
+// Variable width (wdth 75-100): narrow it with `font-variation-settings: 'wdth' <n>`.
+import leagueGothicLatin from '@fontsource-variable/league-gothic/files/league-gothic-latin-wdth-normal.woff2';
+import leagueGothicLatinExt from '@fontsource-variable/league-gothic/files/league-gothic-latin-ext-wdth-normal.woff2';
 import manropeLatin from '@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2';
 import manropeLatinExt from '@fontsource-variable/manrope/files/manrope-latin-ext-wght-normal.woff2';
 import montserratLatinItalic from '@fontsource-variable/montserrat/files/montserrat-latin-wght-italic.woff2';
@@ -67,6 +74,17 @@ const variable = (
   ],
 });
 
+/** A font with one regular face (latin + latin-ext). */
+const single = (family: string, latin: string, latinExt: string, fallback = 'sans-serif'): FontSource => ({
+  family,
+  weight: '400',
+  fallback,
+  files: [
+    { url: latin, unicodeRange: LATIN },
+    { url: latinExt, unicodeRange: LATIN_EXT },
+  ],
+});
+
 const FONT_SOURCES: Record<FontId, FontSource> = {
   inter: variable('vgen-inter', interLatin, interLatinExt, 'sans-serif', {
     latin: interLatinItalic,
@@ -89,6 +107,17 @@ const FONT_SOURCES: Record<FontId, FontSource> = {
       { url: bebasLatinExt, unicodeRange: LATIN_EXT },
     ],
   },
+  anton: single('vgen-anton', antonLatin, antonLatinExt),
+  'league-gothic': single('vgen-league-gothic', leagueGothicLatin, leagueGothicLatinExt),
+  courgette: {
+    family: 'vgen-courgette',
+    weight: '400',
+    fallback: 'cursive',
+    files: [
+      { url: courgetteLatin, unicodeRange: LATIN },
+      { url: courgetteLatinExt, unicodeRange: LATIN_EXT },
+    ],
+  },
   'jetbrains-mono': variable('vgen-jetbrains-mono', jetbrainsLatin, jetbrainsLatinExt, 'monospace', {
     latin: jetbrainsLatinItalic,
     latinExt: jetbrainsLatinExtItalic,
@@ -104,6 +133,9 @@ const WIDTH_FACTORS: Record<FontId, number> = {
   unbounded: 0.84,
   oswald: 0.47,
   'bebas-neue': 0.42,
+  courgette: 0.52,
+  anton: 0.5,
+  'league-gothic': 0.36,
   'jetbrains-mono': 0.6,
 };
 

@@ -3,6 +3,7 @@ import { LayoutTemplate } from '@lucide/vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import PageHeader from '@/components/common/PageHeader.vue';
 import ComposeSettingsForm from '@/features/compose/components/ComposeSettingsForm.vue';
+import MediaPickerDialog from '@/features/compose/components/MediaPickerDialog.vue';
 import MediaSlotsPanel from '@/features/compose/components/MediaSlotsPanel.vue';
 import PresetBar from '@/features/compose/components/PresetBar.vue';
 import PreviewPanel from '@/features/compose/components/PreviewPanel.vue';
@@ -28,6 +29,7 @@ const screen = useComposeScreen();
           :warnings="screen.media.warnings.value"
           @upload="screen.media.upload"
           @clear="screen.media.clear"
+          @browse="screen.picker.openFor"
           @remove="screen.media.removeAt"
           @move="screen.media.move"
           @action="screen.media.runAction"
@@ -45,7 +47,7 @@ const screen = useComposeScreen();
           v-model:track-id="screen.music.trackId.value"
           v-model:start-sec="screen.music.startSec.value"
           v-model:collapsed="screen.collapsedSections.value"
-          :sections="screen.sections"
+          :sections="screen.sections.value"
           :music="screen.music.view.value"
           :video-sources="screen.videoSources.value"
         />
@@ -63,5 +65,17 @@ const screen = useComposeScreen();
         />
       </div>
     </div>
+    <MediaPickerDialog
+      v-model:open="screen.picker.open.value"
+      v-model:page="screen.picker.page.value"
+      :target="screen.picker.slot.value"
+      :tiles="screen.picker.tiles.value"
+      :total="screen.picker.total.value"
+      :page-size="screen.picker.pageSize"
+      :loading="screen.picker.isLoading.value"
+      :selected-count="screen.picker.selectedCount.value"
+      @toggle="screen.picker.toggle"
+      @confirm="screen.picker.confirm"
+    />
   </template>
 </template>

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MEDIA_KINDS } from '../template/media-slots.js';
 import { MEDIA_ROLES } from '../render/status.js';
+import { PageQuerySchema, paginated } from './pagination.js';
 
 /** Upload whitelist (by detected type, not by file extension). */
 export const UPLOAD_MIME_TYPES = {
@@ -72,3 +73,56 @@ export const WaveformPeaksDtoSchema = z.object({
   durationSec: z.number(),
 });
 export type WaveformPeaksDto = z.infer<typeof WaveformPeaksDtoSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// Media library (the admin's "Media" page): uploaded photos and videos, their use, cleanup.
+
+/** Kinds the library lists (music has its own page). */
+export const LIBRARY_MEDIA_KINDS = ['image', 'video'] as const;
+export const MEDIA_LIBRARY_SORTS = ['newest', 'oldest', 'largest'] as const;
+
+export const MediaLibraryQuerySchema = PageQuerySchema.extend({
+  kind: z.enum(LIBRARY_MEDIA_KINDS).optional(),
+  sort: z.enum(MEDIA_LIBRARY_SORTS).default('newest'),
+});
+export type MediaLibraryQuery = z.infer<typeof MediaLibraryQuerySchema>;
+
+export const MediaLibraryItemDtoSchema = MediaAssetDtoSchema.extend({
+  /** Renders whose settings use this file (they keep their video; re-rendering them needs it). */
+  renderCount: z.number().int().min(0),
+});
+export type MediaLibraryItemDto = z.infer<typeof MediaLibraryItemDtoSchema>;
+
+export const MediaLibraryPageSchema = paginated(MediaLibraryItemDtoSchema).extend({
+  /** Size of every listed file (all pages), bytes. */
+  totalBytes: z.number().int().min(0),
+});
+export type MediaLibraryPage = z.infer<typeof MediaLibraryPageSchema>;
+
+export const BulkDeleteMediaRequestSchema = z.object({ ids: z.array(z.uuid()).min(1).max(500) });
+export type BulkDeleteMediaRequest = z.infer<typeof BulkDeleteMediaRequestSchema>;
+
+export const BulkDeleteMediaResponseSchema = z.object({
+  deleted: z.array(z.uuid()),
+  failed: z.array(z.object({ id: z.uuid(), message: z.string() })),
+  freedBytes: z.number().int().min(0),
+});
+export type BulkDeleteMediaResponse = z.infer<typeof BulkDeleteMediaResponseSchema>;
+
+/**
+ * "Delete unused files older than N days": photos and videos no render uses and no draft holds
+ * (drafts live in the admin, which sends their files as `keepIds`). `dryRun` only counts.
+ */
+export const MediaCleanupRequestSchema = z.object({
+  olderThanDays: z.number().int().min(0).max(3650),
+  keepIds: z.array(z.uuid()).max(5000).default([]),
+  dryRun: z.boolean().default(true),
+});
+export type MediaCleanupRequest = z.input<typeof MediaCleanupRequestSchema>;
+
+export const MediaCleanupResponseSchema = z.object({
+  count: z.number().int().min(0),
+  bytes: z.number().int().min(0),
+  deleted: z.boolean(),
+});
+export type MediaCleanupResponse = z.infer<typeof MediaCleanupResponseSchema>;

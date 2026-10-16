@@ -1,4 +1,5 @@
-// Shared by before/after templates (moved from templates/before-after; behaviour unchanged).
+// Shared by before/after templates (moved from templates/before-after; behaviour unchanged)
+// and by templates showing one shot in several edits (`checkPhotoSetMedia`).
 import type { MediaInfo, MediaInfoMap, MediaWarning } from '@vgen/shared';
 
 /** Relative aspect-ratio difference treated as "same proportions". */
@@ -56,3 +57,46 @@ export const checkBeforeAfterMedia = (media: MediaInfoMap): MediaWarning[] => {
 
   return warnings;
 };
+
+/**
+ * One shot in several edits: a before photo (`anchorKey`) and a list of afters (`listKey`)
+ * that should share its proportions (they are cropped to match, see `alignSetTo`).
+ */
+export const checkPhotoSetMedia =
+  (anchorKey: string, listKey: string) =>
+  (media: MediaInfoMap): MediaWarning[] => {
+    const warnings: MediaWarning[] = [];
+    const anchor = single(media[anchorKey]);
+    const value = media[listKey];
+    const items: readonly MediaInfo[] = Array.isArray(value) ? (value as readonly MediaInfo[]) : [];
+
+    const low = [anchor, ...items].filter(
+      (info): info is MediaInfo =>
+        info !== null && !!info.width && !!info.height && Math.min(info.width, info.height) < MIN_SHORT_SIDE,
+    );
+    if (low.length > 0) {
+      warnings.push({
+        code: 'LOW_RESOLUTION',
+        severity: 'warning',
+        slots: [...new Set(low.map((info) => (info === anchor ? anchorKey : listKey)))],
+        message: `${low.map(ratioLabel).join(', ')}: at least ${MIN_SHORT_SIDE}px on the short side is recommended.`,
+      });
+    }
+
+    if (anchor?.width && anchor.height) {
+      const ratio = anchor.width / anchor.height;
+      const mismatched = items.filter(
+        (info) =>
+          info.width && info.height && Math.abs(info.width / info.height - ratio) / ratio > ASPECT_TOLERANCE,
+      );
+      if (mismatched.length > 0) {
+        warnings.push({
+          code: 'ASPECT_MISMATCH',
+          severity: 'warning',
+          slots: [anchorKey, listKey],
+          message: `${mismatched.length} of the ${listKey} photos have other proportions than the ${anchorKey} photo (${ratioLabel(anchor)}). They will be cropped to match; check that the framing still lines up.`,
+        });
+      }
+    }
+    return warnings;
+  };

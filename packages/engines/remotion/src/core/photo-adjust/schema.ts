@@ -79,6 +79,16 @@ export const photoAdjustmentsField = () =>
     .prefault({})
     .meta({ title: 'Photo adjustments', widget: 'columns' });
 
+/**
+ * `params.adjust` of templates whose "after" photos are finished edits (e.g. one per preset):
+ * only the before photo is adjustable (one column in the admin).
+ */
+export const beforeAdjustmentsField = () =>
+  z
+    .object({ before: photoAdjustments('Before') })
+    .prefault({})
+    .meta({ title: 'Photo adjustments', widget: 'columns' });
+
 export type PhotoAdjustments = z.output<ReturnType<typeof photoAdjustments>>;
 
 /** The look plus the sliders, clamped: what actually gets applied. */

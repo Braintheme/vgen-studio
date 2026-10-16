@@ -10,14 +10,15 @@ import {
   videoAsset,
   type RemotionTemplateProps,
 } from '../../core/composition.js';
-import { useFonts } from '../../core/fonts.js';
+import { fontFamily, useFonts } from '../../core/fonts.js';
 import { useLayout } from '../../core/hooks.js';
 import { Grain, Vignette } from '../../core/primitives/Overlays.js';
 import { SeamedSection, type Seam } from '../../core/transitions/SeamedSection.js';
+import { PaletteGradeScene } from '../../core/palette-grade/PaletteGradeScene.js';
 import { useAdjustedPhoto } from '../../core/photo-adjust/useAdjustedPhoto.js';
 import { CardSection } from './CardSection.js';
 import { ClipSection } from './ClipSection.js';
-import { timelineOf, type PresetReelProps } from './manifest.js';
+import { paletteTimelineOf, timelineOf, type PresetReelProps } from './manifest.js';
 import { SettingsSection } from './SettingsSection.js';
 
 const BEFORE_PLACEHOLDER = placeholderImage('BEFORE');
@@ -27,8 +28,9 @@ export const PresetReel: React.FC<RemotionTemplateProps<PresetReelProps>> = ({ p
   const { fps } = useVideoConfig();
   const layout = useLayout();
   const { params, style } = props;
-  useFonts([style.fonts.heading, style.fonts.body, params.titleAccentFont]);
+  const fontsLoaded = useFonts([style.fonts.heading, style.fonts.body, params.titleAccentFont]);
   const timeline = useMemo(() => timelineOf(props), [props]);
+  const palette = useMemo(() => paletteTimelineOf(props), [props]);
 
   const toSettings: Seam = {
     at: timeline.settings.from,
@@ -78,17 +80,37 @@ export const PresetReel: React.FC<RemotionTemplateProps<PresetReelProps>> = ({ p
         )}
       </SeamedSection>
       <SeamedSection from={timeline.card.from} to={timeline.card.to} enter={toCard} layout={layout}>
-        {(local) => (
-          <CardSection
-            frame={local}
-            fps={fps}
-            layout={layout}
-            props={props}
-            before={before}
-            after={after}
-            timeline={timeline}
-          />
-        )}
+        {(local) =>
+          palette ? (
+            // palette-grade's process, full screen, instead of the card.
+            <AbsoluteFill style={{ backgroundColor: '#000000' }}>
+              <PaletteGradeScene
+                frame={local}
+                fps={fps}
+                layout={layout}
+                timeline={palette}
+                before={before}
+                after={after}
+                params={params.palette}
+                texts={{ beforeLabel: props.texts.beforeLabel, afterLabel: props.texts.afterLabel }}
+                fontFamily={fontFamily(style.fonts.heading)}
+                textColor={style.colors.text}
+                seed={props.seed}
+                fontsLoaded={fontsLoaded}
+              />
+            </AbsoluteFill>
+          ) : (
+            <CardSection
+              frame={local}
+              fps={fps}
+              layout={layout}
+              props={props}
+              before={before}
+              after={after}
+              timeline={timeline}
+            />
+          )
+        }
       </SeamedSection>
       <Vignette strength={style.vignette} />
       <Grain strength={style.grain} seed={props.seed} />
@@ -101,7 +123,8 @@ export const PresetReel: React.FC<RemotionTemplateProps<PresetReelProps>> = ({ p
         fps={fps}
       />
       <SoundCue
-        at={timeline.swooshAt}
+        // With the palette finale: on the burst of the dot.
+        at={palette ? timeline.card.from + palette.burst.from : timeline.swooshAt}
         cue={params.swooshSound}
         track={assets.sounds?.['swoosh']}
         builtIn="swoosh"

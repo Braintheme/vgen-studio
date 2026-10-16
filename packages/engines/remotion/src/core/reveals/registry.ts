@@ -2,6 +2,7 @@
 import { defineBlockRegistry, registryField, type RegistryFieldOptions } from '../registry.js';
 import { blinds } from './blinds.js';
 import { circleReveal } from './circle-reveal.js';
+import { crossfade } from './crossfade.js';
 import { diagonalWipe } from './diagonal-wipe.js';
 import { lineWipe } from './line-wipe.js';
 import { slideOver } from './slide-over.js';
@@ -14,6 +15,7 @@ export const REVEAL_EFFECTS = defineBlockRegistry('Reveal effect', [
   splitSlider,
   slideOver,
   lineWipe,
+  crossfade,
 ]);
 
 export type RevealEffectId = (typeof REVEAL_EFFECTS.items)[number]['id'];

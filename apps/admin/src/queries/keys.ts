@@ -1,4 +1,4 @@
-import type { CreatePreviewRequest, RenderListQuery } from '@vgen/shared';
+import type { CreatePreviewRequest, MediaLibraryQuery, RenderListQuery } from '@vgen/shared';
 
 /** Query key factory: the only place cache keys are spelled out. */
 export const queryKeys = {
@@ -19,6 +19,8 @@ export const queryKeys = {
   media: {
     all: ['media'] as const,
     detail: (id: string) => [...queryKeys.media.all, 'detail', id] as const,
+    libraryAll: ['media', 'library'] as const,
+    library: (query: MediaLibraryQuery) => [...queryKeys.media.libraryAll, query] as const,
     peaks: (peaksUrl: string) => [...queryKeys.media.all, 'peaks', peaksUrl] as const,
   },
   music: {

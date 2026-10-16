@@ -76,6 +76,9 @@ catalog:
   '@fontsource-variable/unbounded': 5.3.0
   '@fontsource-variable/oswald': 5.3.0
   '@fontsource/bebas-neue': 5.3.0
+  '@fontsource/courgette': 5.3.0
+  '@fontsource/anton': 5.3.0
+  '@fontsource-variable/league-gothic': 5.3.0
   '@fontsource-variable/jetbrains-mono': 5.3.0
 
   # Admin

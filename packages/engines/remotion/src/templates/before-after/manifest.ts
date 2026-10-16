@@ -15,6 +15,8 @@ export const beforeAfterTemplate = defineTemplate({
   engine: 'remotion',
   version: '1.1.0',
   name: 'Before / After',
+  // Gallery card (admin static file; regenerate from fixture renders when the look changes).
+  thumbnailUrl: '/template-previews/before-after.jpg',
   description: 'Shows a photo before and after editing (e.g. a Lightroom preset) with a cinematic reveal.',
   mediaSlots: [
     imageSlot('before', { label: 'Before', required: true, description: 'Original photo' }),

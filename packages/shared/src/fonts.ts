@@ -12,6 +12,9 @@ export const FONTS = [
   { id: 'unbounded', family: 'Unbounded', category: 'display', cyrillic: true },
   { id: 'oswald', family: 'Oswald', category: 'condensed', cyrillic: true },
   { id: 'bebas-neue', family: 'Bebas Neue', category: 'display', cyrillic: false },
+  { id: 'courgette', family: 'Courgette', category: 'script', cyrillic: false },
+  { id: 'anton', family: 'Anton', category: 'condensed', cyrillic: false },
+  { id: 'league-gothic', family: 'League Gothic', category: 'condensed', cyrillic: false },
   { id: 'jetbrains-mono', family: 'JetBrains Mono', category: 'mono', cyrillic: true },
 ] as const;
 

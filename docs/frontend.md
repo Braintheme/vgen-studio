@@ -46,7 +46,8 @@ src/
   components/
     ui/           shadcn-vue (generated)
     common/       DataTable, DataTablePagination, ConfirmDialog, PromptDialog, EmptyState, ErrorState, FilterSelect,
-                  FileDropzone, PageHeader, LiveIndicator, PlayerHost, WaveformRegion, FilmstripRange
+                  FileDropzone, PageHeader, LiveIndicator, PlayerHost, WaveformRegion, FilmstripRange,
+                  ResettableSlider (double-click the handle: back to the schema default), ColorWheel
     layout/       AppSidebar, AppSidebarNav, AppBrand, AppHeader, ThemeToggle
   features/<feature>/
     constants.ts  types.ts
