@@ -69,12 +69,15 @@ const asList = (value: string | readonly string[] | null | undefined): string[] 
 
 /**
  * Generic asset preparation shared by all engines and templates:
- * originals -> normalized photos (EXIF, sRGB, sized for the frame, sharpened) and cut video
+ * originals -> normalized photos (EXIF, sRGB, sized for the frame, sharpened unless the
+ * template renders images: those sharpen at their final size in `prepareAssets`) and cut video
  * fragments (the chosen range, output fps) ->
  * template hook -> URLs on the local asset server. Music is used as is.
  */
 export const prepareJobAssets = async (deps: PrepareDeps, input: PrepareInput): Promise<ResolvedAssets> => {
   const { template, props, workDir, signal, jobId } = input;
+  // Image outputs have no audio.
+  const stills = template.output === 'stills';
   const sourcesDir = path.join(workDir, 'sources');
   await mkdir(sourcesDir, { recursive: true });
 
@@ -108,7 +111,8 @@ export const prepareJobAssets = async (deps: PrepareDeps, input: PrepareInput): 
       items.push(
         await normalizePhoto(source, path.join(workDir, `${slot.key}-${index}.jpg`), {
           frame: input.frame,
-          sharpen: props.imageProcessing.sharpen,
+          // Image outputs sharpen once, at the size the photo is drawn (template hook).
+          sharpen: stills ? 'off' : props.imageProcessing.sharpen,
         }),
       );
     }
@@ -158,7 +162,7 @@ export const prepareJobAssets = async (deps: PrepareDeps, input: PrepareInput): 
   }
 
   let music: ResolvedAssets['music'] = null;
-  if (props.music.enabled) {
+  if (props.music.enabled && !stills) {
     const track = await deps.music.resolve(props.music.trackId);
     if (track) {
       const file = path.join(workDir, `music${extensionOf(track.asset)}`);
@@ -172,7 +176,7 @@ export const prepareJobAssets = async (deps: PrepareDeps, input: PrepareInput): 
   }
 
   const sounds: Record<string, ResolvedAudio> = {};
-  for (const [cue, trackId] of Object.entries(template.soundTracks?.(props) ?? {})) {
+  for (const [cue, trackId] of Object.entries(stills ? {} : (template.soundTracks?.(props) ?? {}))) {
     const track = await deps.music.resolve(trackId);
     if (!track) {
       deps.logger.warn('sound track not found; the built-in sound plays instead', { cue, trackId });

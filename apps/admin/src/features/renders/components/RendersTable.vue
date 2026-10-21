@@ -21,6 +21,7 @@ const emit = defineEmits<{
   remove: [render: RenderJobDto];
   duplicate: [render: RenderJobDto];
   showError: [render: RenderJobDto];
+  showSlides: [render: RenderJobDto];
   resetFilters: [];
 }>();
 
@@ -39,6 +40,9 @@ const columns = computed(() =>
     },
     onShowError: (render) => {
       emit('showError', render);
+    },
+    onShowSlides: (render) => {
+      emit('showSlides', render);
     },
   }),
 );
@@ -61,7 +65,7 @@ const columns = computed(() =>
         v-else
         :icon="Film"
         title="No renders yet"
-        description="Videos you generate from templates will appear here."
+        description="Videos and slides you generate from templates will appear here."
       />
     </template>
   </DataTable>

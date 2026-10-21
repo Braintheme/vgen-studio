@@ -53,6 +53,10 @@ export class RenderJobEntity {
   @Column({ type: 'varchar', length: 16, default: 'social' })
   quality: string;
 
+  /** Pixel density of image outputs (1 = the format's size, 2 = twice as large); 1 for video. */
+  @Column({ type: 'smallint', default: 1 })
+  scale: number;
+
   @Column({ type: 'uuid', nullable: true })
   presetId: string | null;
 
@@ -70,6 +74,10 @@ export class RenderJobEntity {
   @ManyToOne(() => MediaAssetEntity, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'output_asset_id' })
   outputAsset?: Relation<MediaAssetEntity> | null;
+
+  /** Image outputs (templates with `output: 'stills'`), in slide order; empty for video. */
+  @Column({ type: 'uuid', array: true, default: () => "'{}'" })
+  slideAssetIds: string[];
 
   @Column({ type: 'uuid', nullable: true })
   thumbnailAssetId: string | null;

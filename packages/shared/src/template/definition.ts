@@ -7,6 +7,14 @@ import type { PrepareAssetsContext, PreparedMediaMap } from './prepare.js';
 import type { UiHints } from './ui-hints.js';
 
 /**
+ * What a template produces: one video, or a set of images where every frame of the
+ * metadata is one image (e.g. the slides of a carousel). Image templates have no music
+ * and no timing; the admin hides those fields.
+ */
+export const TEMPLATE_OUTPUTS = ['video', 'stills'] as const;
+export type TemplateOutput = (typeof TEMPLATE_OUTPUTS)[number];
+
+/**
  * Engine-independent description of a template. Lives in the engine package's
  * isomorphic "manifest" entry, so the API and the admin can import it safely.
  */
@@ -17,6 +25,7 @@ export interface TemplateDefinition<P extends BaseProps = BaseProps> {
   readonly name: string;
   readonly description: string;
   readonly thumbnailUrl?: string;
+  readonly output: TemplateOutput;
   /** Full props schema: base schema + template texts/params + media slots. */
   readonly schema: z.ZodType<P>;
   /** Same as `schema` without `media`; used for defaults and presets. */
@@ -93,6 +102,8 @@ export interface TemplateSpec<
   readonly name: string;
   readonly description: string;
   readonly thumbnailUrl?: string;
+  /** `video` by default. */
+  readonly output?: TemplateOutput;
   readonly mediaSlots: Slots;
   readonly duration: DurationSpec;
   /** Text fields, built with `textField()`. */
@@ -131,6 +142,7 @@ export const defineTemplate = <
     name: spec.name,
     description: spec.description,
     ...(spec.thumbnailUrl === undefined ? {} : { thumbnailUrl: spec.thumbnailUrl }),
+    output: spec.output ?? 'video',
     schema,
     settingsSchema,
     defaults: spec.defaults ?? {},

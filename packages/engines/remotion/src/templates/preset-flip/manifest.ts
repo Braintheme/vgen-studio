@@ -68,7 +68,7 @@ const segmented = <const T extends readonly [string, ...string[]]>(
 export const presetFlipTemplate = defineTemplate({
   id: 'preset-flip',
   engine: 'remotion',
-  version: '1.3.0',
+  version: '1.4.0',
   name: 'Preset Flip',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/preset-flip.jpg',

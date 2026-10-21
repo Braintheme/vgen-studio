@@ -100,7 +100,14 @@ export const useComposePreview = ({
 
   const summary = computed<OutputSummary>(() => {
     const { width, height, fps, durationInFrames } = input.value.metadata;
-    return { width, height, fps, durationSec: durationInFrames / fps };
+    return {
+      output: template.output,
+      width,
+      height,
+      fps,
+      durationSec: durationInFrames / fps,
+      slides: durationInFrames,
+    };
   });
 
   return { input, summary };

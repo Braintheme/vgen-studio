@@ -4,6 +4,7 @@ import ErrorState from '@/components/common/ErrorState.vue';
 import LiveIndicator from '@/components/common/LiveIndicator.vue';
 import PageHeader from '@/components/common/PageHeader.vue';
 import RenderErrorDialog from '@/features/renders/components/RenderErrorDialog.vue';
+import RenderSlidesDialog from '@/features/renders/components/RenderSlidesDialog.vue';
 import RendersFilters from '@/features/renders/components/RendersFilters.vue';
 import RendersTable from '@/features/renders/components/RendersTable.vue';
 import { useRenderActions } from '@/features/renders/composables/useRenderActions';
@@ -25,11 +26,12 @@ const {
   retry,
   resetFilters,
 } = useRendersTable();
-const { cancel, remove, duplicate, showError, errorRender, busyIds } = useRenderActions();
+const { cancel, remove, duplicate, showError, showSlides, errorRender, slidesRender, busyIds } =
+  useRenderActions();
 </script>
 
 <template>
-  <PageHeader title="Renders" description="Every generated video, with live progress.">
+  <PageHeader title="Renders" description="Every generated video and set of slides, with live progress.">
     <template #actions>
       <LiveIndicator :connected="liveConnected" />
     </template>
@@ -55,10 +57,12 @@ const { cancel, remove, duplicate, showError, errorRender, busyIds } = useRender
     @remove="remove"
     @duplicate="duplicate"
     @show-error="showError"
+    @show-slides="showSlides"
     @reset-filters="resetFilters"
   />
 
   <DataTablePagination v-if="total > pageSize" v-model:page="page" :page-size="pageSize" :total="total" />
 
   <RenderErrorDialog v-model:render="errorRender" />
+  <RenderSlidesDialog v-model:render="slidesRender" />
 </template>

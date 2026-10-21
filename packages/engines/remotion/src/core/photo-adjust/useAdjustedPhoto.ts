@@ -68,11 +68,17 @@ const process = (src: string, adjustments: Adjustments, maxSide: number): Promis
  * A photo with before/after adjustments applied, processed in the composition itself so the
  * browser preview and the render agree. Neutral adjustments return `src` untouched (no
  * processing at all). Rendering waits for the result (`delayRender`).
- * Photos are processed at up to 1.5x the frame's long side (room for camera pushes).
+ * Photos are processed at up to 1.5x the frame's long side (room for camera pushes), or at
+ * most `options.maxSide` pixels (`Infinity`: the photo's own size, e.g. photos prepared at the
+ * exact size they are drawn at).
  */
-export const useAdjustedPhoto = (src: string, value: PhotoAdjustments): string => {
+export const useAdjustedPhoto = (
+  src: string,
+  value: PhotoAdjustments,
+  options: { readonly maxSide?: number } = {},
+): string => {
   const { width, height } = useVideoConfig();
-  const maxSide = Math.round(PROCESS_SCALE * Math.max(width, height));
+  const maxSide = options.maxSide ?? Math.round(PROCESS_SCALE * Math.max(width, height));
   const adjustments = effectiveAdjustments(value);
   const neutral = isNeutral(adjustments);
   const key = neutral ? '' : `${src}|${maxSide}|${JSON.stringify(adjustments)}`;

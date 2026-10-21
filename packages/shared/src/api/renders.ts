@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { FormatSchema } from '../formats.js';
-import { QualityPresetSchema } from '../render/quality.js';
+import { DEFAULT_STILL_SCALE, QualityPresetSchema, StillScaleSchema } from '../render/quality.js';
 import { RenderStatusSchema } from '../render/status.js';
 import { PageQuerySchema } from './pagination.js';
 
@@ -9,6 +9,8 @@ export const CreateRenderRequestSchema = z.object({
   /** Props input; missing values are filled from the template defaults. */
   props: z.record(z.string(), z.unknown()),
   quality: QualityPresetSchema.default('social'),
+  /** Image outputs only: 2 renders the images at twice the format's size. */
+  scale: StillScaleSchema.default(DEFAULT_STILL_SCALE),
   /** Style preset the props were based on (used for the output file name). */
   presetId: z.uuid().nullable().default(null),
 });
@@ -38,12 +40,27 @@ export const RenderJobDtoSchema = z.object({
   props: z.record(z.string(), z.unknown()),
   format: FormatSchema,
   quality: QualityPresetSchema,
+  scale: StillScaleSchema,
   presetId: z.uuid().nullable(),
   outputName: z.string(),
   output: RenderFileDtoSchema.extend({
     downloadUrl: z.string(),
     durationSec: z.number().nullable(),
   }).nullable(),
+  /** Image outputs (templates with `output: 'stills'`): the slides in order, plus a ZIP of all. */
+  stills: z
+    .object({
+      slides: z.array(
+        RenderFileDtoSchema.extend({
+          name: z.string(),
+          downloadUrl: z.string(),
+          width: z.number().int().nullable(),
+          height: z.number().int().nullable(),
+        }),
+      ),
+      archiveUrl: z.string(),
+    })
+    .nullable(),
   thumbnail: RenderFileDtoSchema.nullable(),
   error: z.string().nullable(),
   attempts: z.number().int(),

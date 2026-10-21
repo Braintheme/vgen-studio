@@ -52,6 +52,7 @@ export class TemplatesService {
       name: template.name,
       description: template.description,
       thumbnailUrl: template.thumbnailUrl ?? null,
+      output: template.output,
       formats: [...template.formats],
       mediaSlots: template.mediaSlots.map((slot) => ({
         key: slot.key,
@@ -60,6 +61,7 @@ export class TemplatesService {
         required: slot.required,
         ...(slot.description ? { description: slot.description } : {}),
         ...(slot.multiple ? { multiple: { ...slot.multiple } } : {}),
+        ...(slot.group ? { group: { size: slot.group.size, labels: [...slot.group.labels] } } : {}),
       })),
     };
   }

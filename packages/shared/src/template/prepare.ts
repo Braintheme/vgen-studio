@@ -1,4 +1,5 @@
 import type { Size } from '../formats.js';
+import type { SharpenLevel } from '../schema/base.js';
 import type { MediaWarning } from './media-slots.js';
 
 /** A normalized image file in the worker's job directory. */
@@ -21,14 +22,23 @@ export type PreparedMediaMap = Readonly<Record<string, PreparedMedia>>;
 
 export type ResizeFit = 'cover' | 'contain' | 'fill';
 
+export interface ResizeOptions {
+  readonly fit?: ResizeFit;
+  /** Output sharpening after the resize (`off` by default), e.g. `props.imageProcessing.sharpen`. */
+  readonly sharpen?: SharpenLevel;
+}
+
 /** Image operations available to template hooks (implemented by the worker, e.g. with sharp). */
 export interface ImageToolkit {
-  resize(image: PreparedImage, size: Size, options?: { readonly fit?: ResizeFit }): Promise<PreparedImage>;
+  resize(image: PreparedImage, size: Size, options?: ResizeOptions): Promise<PreparedImage>;
 }
 
 export interface PrepareAssetsContext<P> {
   readonly props: P;
-  /** Output frame size of the render. */
+  /**
+   * Output frame size of the render, in pixels: the format's size, times the scale for
+   * image outputs (2× renders photos for a twice larger frame).
+   */
   readonly frame: Size;
   /** Media after the generic normalization (photos: EXIF, sRGB, resize, sharpen; videos: the cut fragment). */
   readonly media: PreparedMediaMap;

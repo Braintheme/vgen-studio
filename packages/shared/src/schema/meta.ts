@@ -19,6 +19,8 @@ export type FieldWidget =
   | 'font'
   /** An object whose child objects are shown side by side, fields lined up (e.g. before | after). */
   | 'columns'
+  /** An object shown as one compact row whose fields open in a popover (e.g. typography). */
+  | 'popover'
   | 'music-track'
   | 'music-region'
   /** `{ startSec, endSec }` of a video slot (see `videoRangeField`). */
@@ -36,6 +38,12 @@ declare module 'zod' {
     widget?: FieldWidget;
     /** Human-readable labels for enum options, keyed by option value. */
     optionLabels?: Record<string, string>;
+    /**
+     * Icons for enum options (segmented controls then show icon buttons), keyed by option value.
+     * Generic ids the admin maps to its icon set: `layout-rows`, `layout-columns`, `align-top`,
+     * `align-middle`, `align-bottom`.
+     */
+    optionIcons?: Record<string, string>;
     /** Step for numeric widgets. */
     step?: number;
     /** Unit suffix shown next to numeric widgets (e.g. `s`, `%`). */

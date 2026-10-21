@@ -1,4 +1,4 @@
-import type { QualityPreset, TemplateDefinition } from '@vgen/shared';
+import type { QualityPreset, StillScale, TemplateDefinition } from '@vgen/shared';
 import { computed, type ComputedRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotify } from '@/composables/useNotify';
@@ -13,6 +13,7 @@ export interface GenerateDeps {
   readonly validateMedia: () => boolean;
   readonly media: ComputedRef<DraftMedia>;
   readonly quality: ComputedRef<QualityPreset>;
+  readonly scale: ComputedRef<StillScale>;
   /** Style preset the settings came from (names the output file). */
   readonly presetId: ComputedRef<string | null>;
 }
@@ -40,6 +41,7 @@ export const useGenerateRender = (deps: GenerateDeps): GenerateState => {
         templateId: deps.template.id,
         props: { ...settings, media: deps.media.value },
         quality: deps.quality.value,
+        scale: deps.scale.value,
         presetId: deps.presetId.value,
       });
       const warnings = render.warnings.map((warning) => warning.message).join(' ');

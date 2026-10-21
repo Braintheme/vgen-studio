@@ -14,8 +14,11 @@ export interface RenderActions {
   readonly remove: (render: RenderJobDto) => Promise<void>;
   readonly duplicate: (render: RenderJobDto) => Promise<void>;
   readonly showError: (render: RenderJobDto) => void;
+  readonly showSlides: (render: RenderJobDto) => void;
   /** Render whose error is shown in the error dialog; `null` closes it. */
   readonly errorRender: Ref<RenderJobDto | null>;
+  /** Image render whose slides are shown; `null` closes the dialog. */
+  readonly slidesRender: Ref<RenderJobDto | null>;
   /** Renders with an action in flight (their row actions are disabled). */
   readonly busyIds: ComputedRef<ReadonlySet<string>>;
 }
@@ -28,6 +31,7 @@ export const useRenderActions = (): RenderActions => {
   const deleteMutation = useDeleteRenderMutation();
   const duplicateMutation = useDuplicateRenderMutation();
   const errorRender = ref<RenderJobDto | null>(null);
+  const slidesRender = ref<RenderJobDto | null>(null);
 
   const busyIds = usePendingIds(cancelMutation, deleteMutation, duplicateMutation);
 
@@ -51,7 +55,7 @@ export const useRenderActions = (): RenderActions => {
   const remove = async (render: RenderJobDto): Promise<void> => {
     const confirmed = await confirm({
       title: 'Delete this render?',
-      description: `"${render.outputName}" and its video file will be deleted permanently.`,
+      description: `"${render.outputName}" and its files will be deleted permanently.`,
       confirmLabel: 'Delete',
       tone: 'destructive',
     });
@@ -87,7 +91,11 @@ export const useRenderActions = (): RenderActions => {
     showError: (render) => {
       errorRender.value = render;
     },
+    showSlides: (render) => {
+      slidesRender.value = render;
+    },
     errorRender,
+    slidesRender,
     busyIds,
   };
 };

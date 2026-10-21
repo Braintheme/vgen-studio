@@ -140,6 +140,7 @@ const job = await jobs.save(
       presetName: null,
       format: parsed.data.format,
       date: new Date(),
+      extension: template.output === 'stills' ? 'zip' : 'mp4',
     }),
   }),
 );

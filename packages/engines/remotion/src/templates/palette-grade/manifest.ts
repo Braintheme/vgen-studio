@@ -17,7 +17,7 @@ export { COLOR_RETURNS, LABEL_POSITIONS, PARTICLE_TRAILS } from '../../core/pale
 export const paletteGradeTemplate = defineTemplate({
   id: 'palette-grade',
   engine: 'remotion',
-  version: '1.3.0',
+  version: '1.4.0',
   name: 'Before / After — Palette Grade',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/palette-grade.jpg',

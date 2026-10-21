@@ -1,6 +1,7 @@
 // Test-only template fixtures (excluded from builds).
 import { z } from 'zod';
 import type { EngineManifest } from '../engine/engine.js';
+import { FORMAT_IDS } from '../formats.js';
 import { imageSlot, type MediaSlot } from '../template/media-slots.js';
 import { defineTemplate } from '../template/definition.js';
 import { textField } from '../schema/base.js';
@@ -47,12 +48,13 @@ export const fixtureEngine = (overrides: Partial<EngineManifest> = {}): EngineMa
   name: 'Fixture',
   version: '0.0.1',
   capabilities: {
-    formats: ['9:16', '16:9', '1:1', '4:5'],
+    formats: FORMAT_IDS,
     fps: [30, 60],
     codecs: ['h264'],
     audio: true,
     maxDurationSec: 60,
     browserPreview: false,
+    stills: false,
   },
   templates: [fixtureTemplate],
   ...overrides,

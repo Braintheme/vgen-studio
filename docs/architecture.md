@@ -49,6 +49,12 @@ image processing) extended with the template's text fields and `params`. One zod
 Renders keep a full props snapshot plus the template version, so a duplicate re-renders the same
 video (the admin warns when the template version changed since).
 
+Formats: 9:16 (1080×1920), 16:9 (1920×1080), 1:1 (1080×1080), 4:5 (1080×1350) and 3:4
+(1080×1440); every template offers all of them unless it pins `formats`.
+
+A template's `output` is `video` (one MP4, the default) or `stills` (one image per frame, e.g.
+carousel slides; see "Render flow").
+
 ## Render flow
 
 1. `POST /renders` → props validated, media checked (existence, kind; template `checkMedia`
@@ -64,6 +70,13 @@ video (the admin warns when the template version changed since).
      AAC track when there is no music;
    - extracts the poster frame (`template.posterFrame`), stores output + thumbnail as media
      assets, marks the job `done`.
+     Image outputs (`output: 'stills'`) take another branch after asset preparation (photos are
+     prepared for the format's size times the job's `scale`, 1 or 2): `engine.renderStills` writes
+     one lossless PNG per frame, each is encoded once into the delivery JPEG (sRGB with an sRGB
+     profile, quality 90, mozjpeg, 4:4:4, no EXIF / XMP / GPS) and stored as an output of its own
+     (`render_job.slide_asset_ids`, in order); the thumbnail is a smaller copy of the first. No
+     music, no sound cues. `GET /renders/:id/archive` streams a ZIP of the slides (stored, built on
+     the fly; nothing extra on disk).
 3. Progress is throttled (500 ms) into the DB and Redis pub/sub; each API instance relays events
    to SSE clients (`/renders/events`, `/renders/:id/events`). The admin falls back to polling
    while the stream is down.

@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { OPTION_ICONS } from '@/components/schema-form/option-icons';
 import type { FieldOf } from '@/components/schema-form/types';
 
 const props = defineProps<{
@@ -9,6 +11,9 @@ const props = defineProps<{
 
 const toValue = (raw: unknown): string | number | undefined =>
   props.field.options.find((option) => String(option.value) === String(raw))?.value;
+
+/** Options with icons render as tiles: a large icon above the label. */
+const withIcons = computed(() => props.field.options.some((option) => option.icon !== null));
 </script>
 
 <template>
@@ -21,6 +26,7 @@ const toValue = (raw: unknown): string | number | undefined =>
           type="single"
           variant="outline"
           class="w-full"
+          :spacing="withIcons ? 2 : 0"
           :model-value="String(value)"
           @update:model-value="(raw) => raw && handleChange(toValue(raw))"
         >
@@ -29,7 +35,17 @@ const toValue = (raw: unknown): string | number | undefined =>
             :key="String(option.value)"
             :value="String(option.value)"
             class="flex-1"
+            :class="
+              withIcons &&
+              'h-auto flex-col gap-1.5 rounded-md py-3 data-[state=on]:border-primary data-[state=on]:text-foreground'
+            "
           >
+            <component
+              :is="OPTION_ICONS[option.icon]"
+              v-if="option.icon && OPTION_ICONS[option.icon]"
+              class="size-6"
+              :stroke-width="1.5"
+            />
             {{ option.label }}
           </ToggleGroupItem>
         </ToggleGroup>

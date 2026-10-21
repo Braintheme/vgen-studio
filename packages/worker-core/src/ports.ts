@@ -9,7 +9,16 @@ export interface RenderJobRecord {
   readonly templateVersion: string;
   readonly props: unknown;
   readonly quality: string;
+  /** Pixel density of image outputs (templates with `output: 'stills'`). */
+  readonly scale: number;
   readonly outputName: string;
+}
+
+/** What a finished job produced: a video, or slides (image outputs, in order). */
+export interface RenderJobResult {
+  readonly outputAssetId: string | null;
+  readonly slideAssetIds: readonly string[];
+  readonly thumbnailAssetId: string | null;
 }
 
 /** Persistence of job state. Transitions are conditional so cancels and retries cannot race. */
@@ -18,7 +27,7 @@ export interface RenderJobStore {
   /** queued (or rendering, for a retry/stalled job) -> rendering. False if the job is no longer runnable. */
   markRendering(id: string, engineVersion: string): Promise<boolean>;
   updateProgress(id: string, progress: number): Promise<void>;
-  markDone(id: string, result: { outputAssetId: string; thumbnailAssetId: string | null }): Promise<boolean>;
+  markDone(id: string, result: RenderJobResult): Promise<boolean>;
   markFailed(id: string, error: string): Promise<boolean>;
   /** A failed attempt that will be retried goes back to the queue. */
   markRetrying(id: string, error: string): Promise<boolean>;

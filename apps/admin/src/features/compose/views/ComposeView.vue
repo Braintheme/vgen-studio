@@ -32,6 +32,8 @@ const screen = useComposeScreen();
           @browse="screen.picker.openFor"
           @remove="screen.media.removeAt"
           @move="screen.media.move"
+          @sort="screen.media.sortByName"
+          @swap="screen.media.swapInGroup"
           @action="screen.media.runAction"
         />
         <PresetBar
@@ -55,6 +57,7 @@ const screen = useComposeScreen();
       <div class="lg:sticky lg:top-4">
         <PreviewPanel
           v-model:quality="screen.quality.value"
+          v-model:scale="screen.scale.value"
           :adapter="screen.player.value"
           :player-unavailable="screen.playerUnavailable.value"
           :input="screen.preview.value"

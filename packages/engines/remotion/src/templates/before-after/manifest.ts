@@ -13,7 +13,7 @@ export const MOTION_LEVELS = ['subtle', 'balanced', 'dynamic'] as const;
 export const beforeAfterTemplate = defineTemplate({
   id: 'before-after',
   engine: 'remotion',
-  version: '1.1.0',
+  version: '1.2.0',
   name: 'Before / After',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/before-after.jpg',

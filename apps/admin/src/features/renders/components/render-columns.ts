@@ -15,6 +15,7 @@ export interface RenderColumnHandlers {
   readonly onRemove: (render: RenderJobDto) => void;
   readonly onDuplicate: (render: RenderJobDto) => void;
   readonly onShowError: (render: RenderJobDto) => void;
+  readonly onShowSlides: (render: RenderJobDto) => void;
 }
 
 /** Column definitions of the renders table; cells are small presentational components. */
@@ -31,8 +32,8 @@ export const createRenderColumns = (handlers: RenderColumnHandlers): ColumnDef<R
       }),
   },
   {
-    id: 'video',
-    header: 'Video',
+    id: 'output',
+    header: 'Output',
     cell: ({ row }) =>
       h(RenderSummary, {
         render: row.original,
@@ -72,6 +73,7 @@ export const createRenderColumns = (handlers: RenderColumnHandlers): ColumnDef<R
         onRemove: handlers.onRemove,
         onDuplicate: handlers.onDuplicate,
         onShowError: handlers.onShowError,
+        onShowSlides: handlers.onShowSlides,
       }),
   },
 ];

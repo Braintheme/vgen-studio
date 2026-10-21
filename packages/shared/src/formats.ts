@@ -6,9 +6,10 @@ export const FORMATS = {
   '16:9': { width: 1920, height: 1080 },
   '1:1': { width: 1080, height: 1080 },
   '4:5': { width: 1080, height: 1350 },
+  '3:4': { width: 1080, height: 1440 },
 } as const;
 
-export const FORMAT_IDS = ['9:16', '16:9', '1:1', '4:5'] as const;
+export const FORMAT_IDS = ['9:16', '16:9', '1:1', '4:5', '3:4'] as const;
 export const FormatSchema = z.enum(FORMAT_IDS);
 export type Format = z.infer<typeof FormatSchema>;
 

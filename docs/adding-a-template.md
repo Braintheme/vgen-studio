@@ -40,7 +40,8 @@ export const slideshowTemplate = defineTemplate({
   ui: { groups: [{ id: 'look', label: 'Look', fields: ['params.reveal', 'params.pace'] }] },
   posterFrame: (props) => Math.round(props.durationSec * props.fps * 0.6),
   // Optional:
-  // formats: ['9:16', '1:1'],                 all four by default
+  // formats: ['9:16', '1:1'],                 all five by default (9:16, 16:9, 1:1, 4:5, 3:4)
+  // output: 'stills',                         images instead of a video (see "Image templates")
   // checkMedia: (media) => [...warnings],     non-blocking warnings shown in the admin and API
   // prepareAssets: async (ctx) => {...},      pixel work on prepared photos (never reframing)
   // resolveMetadata: (props) => ({...}),      a length derived from content (hide `durationSec`)
@@ -54,6 +55,14 @@ Rules that keep everything else automatic:
 
 - `ui.groups` may carry `visibleWhen: { field, equals }`: the group shows only while that field
   holds one of the values (e.g. the options of the chosen finale in `preset-reel`).
+- Compact groups: an object with `.meta({ widget: 'popover' })` shows as one row (label, a summary
+  of its values, colour swatches) that opens its fields in a popover. `typographyField(title,
+defaults, extra)` from `core/typography/typography-field.ts` builds one for typography (font,
+  weight, size, letter spacing, line height + the template's colours / gaps).
+- Enum options can carry icons: `optionIcons: { rows: 'layout-rows', columns: 'layout-columns' }`
+  turns a segmented control into icon tiles (generic ids such as `layout-rows`, `layout-columns`, `align-top` / `align-middle` /
+  `align-bottom`, mapped in
+  `apps/admin/src/components/schema-form/option-icons.ts`; add new ids there).
 - Field metadata drives the admin form: `title`, `widget` (`select`, `segmented`, `slider`,
   `switch`, `color`, `font`, `text`, `textarea`, or a custom id), `optionLabels`, `unit`, `step`.
 - `scope: 'content'` marks per-video data (it is never saved in presets). Everything else is style.
@@ -70,7 +79,11 @@ Rules that keep everything else automatic:
   `clip: videoRangeField({ label, minSec, maxSec, defaultSec })` in `params`. The admin shows a
   trimmer next to the video; the worker cuts that fragment. Draw it with `VideoPlane`.
 - List slots (`multiple: { min, max }`) get a sortable gallery in the admin; read them with
-  `imageAssets(assets.media, key)`.
+  `imageAssets(assets.media, key)`. A list read in groups (before/after pairs) adds
+  `group: { size: 2, labels: ['Before', 'After'] }`: the list must hold whole groups (`min` and
+  `max` are multiples of the size), the admin labels items `3 · After`, keeps pairs on one row,
+  sorts each upload by file name (`IMG_1.jpg` before `IMG_1-2.jpg`), offers "Sort by name" and a
+  ⇄ button that swaps the items of a group.
 - Sounds: `soundEffectField({ label })` per cue and `soundTracks: (props) =>
 soundEffectTracks({ cue: props.params.cue })`; play them with `SoundCue` (built-in sound when
   no track is chosen). See `templates/preset-reel`.
@@ -78,6 +91,26 @@ soundEffectTracks({ cue: props.params.cue })`; play them with `SoundCue` (built-
   another version are re-validated and the owner gets a notice.
 - Manifests are isomorphic: no React, `remotion`, `sharp` or `node:*` imports (lint-enforced).
 - Deterministic: no `Math.random` / `Date.now` (lint-enforced); use the seeded random of the engine.
+
+### Image templates (`output: 'stills'`)
+
+A template can produce images instead of a video (`before-after-carousel`): every frame of
+its metadata is one image (`resolveMetadata` returns `durationInFrames` = the number of
+slides, `posterFrame` the one for the thumbnail). The rest stays the same contract:
+
+- the admin hides timing (`durationSec`, `fps`) and music, previews with a slide pager instead
+  of a timeline, and offers 1× / 2× size instead of the video quality;
+- the worker prepares photos for the frame times the scale (`context.frame`), calls the
+  engine's `renderStills` (lossless PNG per frame), encodes each image once into the delivery
+  JPEG (sRGB, quality 90, no EXIF / XMP / GPS, 4:4:4) and stores the slides; the API zips them
+  on download (`GET /renders/:id/archive`);
+- the generic normalization does **not** sharpen photos of image templates: resize them in
+  `prepareAssets` to the exact pixel size they are drawn at (times the scale) with
+  `images.resize(image, size, { fit: 'cover', sharpen: props.imageProcessing.sharpen })`, so the
+  renderer draws them 1:1 and the sharpening happens once, after the last resize. Compute the
+  geometry with the same pure functions in the hook and the composition (see
+  `templates/before-after-carousel/layout.ts`);
+- the engine must declare `capabilities.stills` (Remotion does).
 
 ## 2. The composition (`templates/<id>/Slideshow.tsx`)
 
@@ -102,7 +135,7 @@ list)` and `checkPhotoSetMedia(anchor, list)` for a before photo plus a list of 
   `{ id: 'photos', label: 'Photo adjustments', fields: ['params.adjust'] }` group, and
   `useAdjustedPhoto(src, props.params.adjust.before)` / `.after` where the photos are read
   (`beforeAdjustmentsField()` when the "after" photos are finished edits);
-- `MusicLayer`, `useLayout()` (the four formats and safe zones), `useFonts()`, `motion.ts`
+- `MusicLayer`, `useLayout()` (the five formats and safe zones), `useFonts()`, `motion.ts`
   (easing, `cubicBezier`, keyframes);
 - `placement.ts` for anything that moves.
 

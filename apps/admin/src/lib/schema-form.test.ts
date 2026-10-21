@@ -1,7 +1,21 @@
-import { defineTemplate, imageSlot, soundEffectField, textField, videoRangeField } from '@vgen/shared';
+import {
+  ColorSchema,
+  defineTemplate,
+  FontIdSchema,
+  imageSlot,
+  soundEffectField,
+  textField,
+  videoRangeField,
+} from '@vgen/shared';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { buildFormSections, childPaths, visibleSections, type FieldSpec } from './schema-form';
+import {
+  buildFormSections,
+  childPaths,
+  summarizeFields,
+  visibleSections,
+  type FieldSpec,
+} from './schema-form';
 
 const template = defineTemplate({
   id: 'form-test',
@@ -20,7 +34,10 @@ const template = defineTemplate({
       .enum(['a', 'b', 'c', 'd'])
       .default('a')
       .meta({ title: 'Effect', optionLabels: { a: 'Alpha' } }),
-    mode: z.enum(['x', 'y']).default('x'),
+    mode: z
+      .enum(['x', 'y'])
+      .default('x')
+      .meta({ optionIcons: { y: 'layout-columns' } }),
     strength: z.number().min(0).max(2).default(1).meta({ step: 0.1 }),
     count: z.number().int().min(1).default(3),
     clip: videoRangeField({ label: 'Clip', minSec: 3, maxSec: 30, defaultSec: 10 }),
@@ -72,7 +89,14 @@ describe('buildFormSections', () => {
       kind: 'select',
       options: [{ value: 'a', label: 'Alpha' }, { value: 'b', label: 'b' }, {}, {}],
     });
-    expect(field(fields, 'params.mode')).toMatchObject({ kind: 'segmented', label: 'Mode' });
+    expect(field(fields, 'params.mode')).toMatchObject({
+      kind: 'segmented',
+      label: 'Mode',
+      options: [
+        { value: 'x', icon: null },
+        { value: 'y', icon: 'layout-columns' },
+      ],
+    });
     expect(field(fields, 'params.strength')).toMatchObject({ kind: 'slider', step: 0.1, defaultValue: 1 });
     expect(field(fields, 'params.count')).toMatchObject({ kind: 'number', min: 1, max: null });
   });
@@ -190,5 +214,67 @@ describe('visibleSections', () => {
       'when-y',
     ]);
     expect(visibleSections(sections, {}).map((s) => s.id)).toEqual(['always']);
+  });
+});
+
+describe('popover', () => {
+  const popoverTemplate = defineTemplate({
+    id: 'popover-test',
+    engine: 'fixture',
+    version: '1.0.0',
+    name: 'Popover test',
+    description: '',
+    mediaSlots: [],
+    duration: { default: 10, min: 5, max: 20 },
+    texts: {},
+    params: {
+      type: z
+        .object({
+          font: FontIdSchema.default('inter').meta({ title: 'Font', widget: 'font' }),
+          size: z.number().min(10).max(200).default(40).meta({ title: 'Size', unit: 'px' }),
+          color: ColorSchema.default('#ffffff').meta({ title: 'Colour' }),
+        })
+        .prefault({})
+        .meta({ title: 'Typography', widget: 'popover' }),
+      shadow: z
+        .object({
+          enabled: z.boolean().default(false).meta({ title: 'Shadow', widget: 'switch' }),
+          blur: z.number().min(0).max(10).default(2),
+        })
+        .prefault({})
+        .meta({ title: 'Shadow', widget: 'popover' }),
+    },
+    posterFrame: () => 0,
+  });
+  const popoverSchema = z.toJSONSchema(popoverTemplate.settingsSchema, { io: 'input' }) as Record<
+    string,
+    unknown
+  >;
+  const [section] = buildFormSections(popoverSchema, [{ id: 'p', title: 'P', paths: ['params'] }]);
+
+  it('keeps an object with the popover widget as one field with its children', () => {
+    expect(section?.fields.map((field) => [field.kind, field.path])).toEqual([
+      ['popover', 'params.type'],
+      ['popover', 'params.shadow'],
+    ]);
+    const type = section?.fields[0];
+    expect(type?.kind === 'popover' && type.fields.map((field) => field.kind)).toEqual([
+      'font',
+      'slider',
+      'color',
+    ]);
+  });
+
+  it('summarizes values in one line, colours as swatches, a group that is off as Off', () => {
+    const [type, shadow] = section?.fields ?? [];
+    if (type?.kind !== 'popover' || shadow?.kind !== 'popover') throw new Error('expected popovers');
+    const values = {
+      params: { type: { font: 'montserrat', size: 110, color: '#ff0000' }, shadow: { enabled: false } },
+    };
+    expect(summarizeFields(type.fields, values)).toEqual({
+      text: 'Montserrat · 110 px',
+      colors: ['#ff0000'],
+    });
+    expect(summarizeFields(shadow.fields, values)).toEqual({ text: 'Off', colors: [] });
   });
 });

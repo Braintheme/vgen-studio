@@ -18,6 +18,8 @@ const emit = defineEmits<{
   clear: [slotKey: string];
   remove: [slotKey: string, index: number];
   move: [slotKey: string, from: number, to: number];
+  sort: [slotKey: string];
+  swap: [slotKey: string, index: number];
   action: [action: SlotActionView];
   browse: [slotKey: string];
 }>();
@@ -49,6 +51,8 @@ const emit = defineEmits<{
             @remove="(index) => emit('remove', slot.key, index)"
             @move="(from, to) => emit('move', slot.key, from, to)"
             @browse="emit('browse', slot.key)"
+            @sort="emit('sort', slot.key)"
+            @swap="(index) => emit('swap', slot.key, index)"
           />
           <MediaSlotCard
             v-else

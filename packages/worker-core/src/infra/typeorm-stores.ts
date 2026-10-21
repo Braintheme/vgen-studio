@@ -8,6 +8,7 @@ import type {
   MusicTrackRecord,
   NewMediaAsset,
   RenderJobRecord,
+  RenderJobResult,
   RenderJobStore,
 } from '../ports.js';
 
@@ -40,6 +41,7 @@ export class TypeOrmRenderJobStore implements RenderJobStore {
         | 'error'
         | 'engineVersion'
         | 'outputAssetId'
+        | 'slideAssetIds'
         | 'thumbnailAssetId'
         | 'startedAt'
         | 'finishedAt'
@@ -68,6 +70,7 @@ export class TypeOrmRenderJobStore implements RenderJobStore {
           templateVersion: job.templateVersion,
           props: job.props,
           quality: job.quality,
+          scale: job.scale,
           outputName: job.outputName,
         }
       : null;
@@ -86,11 +89,12 @@ export class TypeOrmRenderJobStore implements RenderJobStore {
     await this.transition(id, ['rendering'], { progress });
   }
 
-  markDone(id: string, result: { outputAssetId: string; thumbnailAssetId: string | null }): Promise<boolean> {
+  markDone(id: string, result: RenderJobResult): Promise<boolean> {
     return this.transition(id, ['rendering'], {
       status: 'done',
       progress: 100,
       outputAssetId: result.outputAssetId,
+      slideAssetIds: [...result.slideAssetIds],
       thumbnailAssetId: result.thumbnailAssetId,
       finishedAt: new Date(),
     });

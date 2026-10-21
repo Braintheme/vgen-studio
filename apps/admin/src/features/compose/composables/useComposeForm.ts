@@ -5,6 +5,7 @@ import { buildFormSections, childPaths, type FormSectionSpec, type SectionLayout
 import {
   HIDDEN_PATHS,
   LEADING_SECTIONS,
+  STILLS_HIDDEN_PATHS,
   OTHER_SECTION,
   TEMPLATE_ROOTS,
   TRAILING_SECTIONS,
@@ -42,7 +43,11 @@ export const useComposeForm = (
     string,
     unknown
   >;
-  const hidden = [...HIDDEN_PATHS, ...(template.ui?.hiddenFields ?? [])];
+  const hidden = [
+    ...HIDDEN_PATHS,
+    ...(template.output === 'stills' ? STILLS_HIDDEN_PATHS : []),
+    ...(template.ui?.hiddenFields ?? []),
+  ];
   const form = useSchemaForm(template.settingsSchema, { ...initialSettings });
   return { ...form, sections: buildFormSections(schema, layoutFor(template, schema), hidden) };
 };

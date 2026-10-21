@@ -47,5 +47,9 @@ onBeforeUnmount(destroy);
 </script>
 
 <template>
-  <div ref="container" class="w-full overflow-hidden rounded-lg bg-black" />
+  <!-- The renderer has no CSS reset: media wider than their box must not be capped here either. -->
+  <div
+    ref="container"
+    class="w-full overflow-hidden rounded-lg bg-black [&_img]:max-w-none [&_video]:max-w-none"
+  />
 </template>

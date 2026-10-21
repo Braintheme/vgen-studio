@@ -36,9 +36,11 @@ const jobEntity = (overrides: Partial<RenderJobEntity> = {}): RenderJobEntity =>
   props: {},
   format: '9:16',
   quality: 'social',
+  scale: 1,
   presetId: null,
   outputName: 'x.mp4',
   outputAssetId: null,
+  slideAssetIds: [],
   thumbnailAssetId: null,
   error: null,
   attempts: 0,
@@ -104,6 +106,7 @@ const request = (props: Record<string, unknown>, extra: { presetId?: string | nu
   templateId: 'before-after',
   props,
   quality: 'social' as const,
+  scale: 1 as const,
   presetId: extra.presetId ?? null,
 });
 

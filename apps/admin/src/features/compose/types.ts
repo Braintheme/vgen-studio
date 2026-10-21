@@ -1,4 +1,12 @@
-import type { FilmstripDto, MediaAssetDto, MediaWarning, MusicTrackDto, SlotMediaKind } from '@vgen/shared';
+import type {
+  FilmstripDto,
+  MediaAssetDto,
+  MediaSlotGroup,
+  MediaWarning,
+  MusicTrackDto,
+  SlotMediaKind,
+  TemplateOutput,
+} from '@vgen/shared';
 import type { WaveformSource } from '@/lib/waveform-region';
 
 /** Everything a media slot card shows. */
@@ -11,6 +19,8 @@ export interface MediaSlotView {
   readonly multiple: boolean;
   /** Most items a list slot takes. */
   readonly maxItems: number;
+  /** List slots read in groups (e.g. before/after pairs); items are labelled by position. */
+  readonly group: MediaSlotGroup | null;
   readonly accept: string;
   readonly assets: readonly MediaAssetDto[];
   /** Upload in progress (0..1), or null. */
@@ -26,10 +36,13 @@ export interface SlotActionView {
 }
 
 export interface OutputSummary {
+  readonly output: TemplateOutput;
   readonly width: number;
   readonly height: number;
   readonly fps: number;
   readonly durationSec: number;
+  /** Image outputs: how many slides (one per frame). */
+  readonly slides: number;
 }
 
 export type { MediaWarning };

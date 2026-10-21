@@ -49,6 +49,8 @@ catalog:
   '@types/multer': 2.3.0
   ioredis: 6.0.0
   sharp: 0.35.5
+  # ZIP archives of image outputs (streamed, stored without compression)
+  fflate: 0.8.3
 
   # Render engine: Remotion (exact, identical versions)
   remotion: 4.0.535

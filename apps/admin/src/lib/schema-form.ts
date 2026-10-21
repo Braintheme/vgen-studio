@@ -7,6 +7,8 @@ import { valueAtPath } from './utils';
 export interface FieldOption {
   readonly value: string | number;
   readonly label: string;
+  /** Generic icon id from the schema's `optionIcons` (e.g. `layout-rows`), or null. */
+  readonly icon: string | null;
 }
 
 interface FieldBase {
@@ -49,6 +51,11 @@ export type FieldSpec =
    * their fields line up row by row.
    */
   | (FieldBase & { readonly kind: 'columns'; readonly columns: readonly ColumnSpec[] })
+  /**
+   * An object shown as one compact row (its label, a summary of its values) whose fields open in
+   * a popover, e.g. typography: font, weight, size, spacing, colours.
+   */
+  | (FieldBase & { readonly kind: 'popover'; readonly fields: readonly FieldSpec[] })
   /**
    * A widget the generic form does not know (e.g. `music-track`); the screen supplies it.
    * Compound values (objects) with such a widget stay one field; `limits` are their bounds.
@@ -111,6 +118,7 @@ const GENERIC_WIDGETS: ReadonlySet<string> = new Set([
   'color',
   'font',
   'columns',
+  'popover',
 ]);
 
 const DEFAULT_SLIDER_STEP = 1;
@@ -148,9 +156,13 @@ const optionsOf = (
   const optionLabels = isNode(node['optionLabels'])
     ? (node['optionLabels'] as Readonly<Record<string, string>>)
     : {};
+  const optionIcons = isNode(node['optionIcons'])
+    ? (node['optionIcons'] as Readonly<Record<string, string>>)
+    : {};
   return values.map((value) => ({
     value,
     label: optionLabels[String(value)] ?? labels[String(value)] ?? String(value),
+    icon: optionIcons[String(value)] ?? null,
   }));
 };
 
@@ -244,6 +256,12 @@ const expand = (node: Node, path: string, hidden: ReadonlySet<string>): FieldSpe
     }));
     return [{ kind: 'columns', path, label, columns }];
   }
+  if (widget === 'popover' && Object.keys(children).length > 0) {
+    const fields = Object.entries(children)
+      .flatMap(([key, child]) => expand(child, `${path}.${key}`, hidden))
+      .filter((field) => field.kind !== 'custom' && field.kind !== 'columns' && field.kind !== 'popover');
+    return fields.length > 0 ? [{ kind: 'popover', path, label, fields }] : [];
+  }
   if (str(node, 'type') === 'object' && Object.keys(children).length > 0) {
     return Object.entries(children).flatMap(([key, child]) => expand(child, `${path}.${key}`, hidden));
   }
@@ -293,3 +311,32 @@ export const visibleSections = (sections: readonly FormSectionSpec[], values: un
     const value = valueAtPath(values, when.field);
     return when.equals.some((expected) => expected === value);
   });
+
+export interface FieldsSummary {
+  /** e.g. `Montserrat · 900 · 110 px`, or `Off` when the group's first switch is off. */
+  readonly text: string;
+  /** The colours among the fields, shown as swatches. */
+  readonly colors: readonly string[];
+}
+
+/** Most values a summary lists before it is cut. */
+const SUMMARY_PARTS = 3;
+
+/** A one-line summary of a group of fields (the compact row of a `popover` field). */
+export const summarizeFields = (fields: readonly FieldSpec[], values: unknown): FieldsSummary => {
+  const parts: string[] = [];
+  const colors: string[] = [];
+  for (const [index, field] of fields.entries()) {
+    const value = valueAtPath(values, field.path);
+    // A group led by a switch (e.g. a shadow) is just "Off" while it is off.
+    if (field.kind === 'switch' && index === 0 && value === false) return { text: 'Off', colors: [] };
+    if (field.kind === 'color' && typeof value === 'string') colors.push(value);
+    else if (field.kind === 'select' || field.kind === 'segmented' || field.kind === 'font') {
+      const option = field.options.find((candidate) => String(candidate.value) === String(value));
+      if (option) parts.push(option.label);
+    } else if ((field.kind === 'slider' || field.kind === 'number') && typeof value === 'number') {
+      parts.push(field.unit ? `${String(value)} ${field.unit}` : String(value));
+    }
+  }
+  return { text: parts.slice(0, SUMMARY_PARTS).join(' · '), colors };
+};

@@ -3,6 +3,7 @@
 //        [--frames=60,150 | --frames=40-80] [--png] [--range=40-120] [--crf=0]
 //        [--duration=13] [--out=dir] [--set=params.finale=rereveal]
 //        [--clip=<video>] [--screens=<dir of images>]   (templates with a video / list slot)
+//        [--scale=2]   (image templates: every slide is a still; 2 = twice the format's size)
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,6 +46,8 @@ const { values } = parseArgs({
     clip: { type: 'string' },
     /** Folder of images (sorted by name) for a template's list slot. */
     screens: { type: 'string' },
+    /** Pixel density of stills (image templates render every slide when `--frames` is omitted). */
+    scale: { type: 'string', default: '1' },
   },
 });
 
@@ -90,6 +93,7 @@ const formats = (values.formats === 'all' ? FORMAT_IDS.join(',') : values.format
   .split(',')
   .map((format) => FormatSchema.parse(format));
 const frames = values.frames ? parseFrames(values.frames) : undefined;
+const scale = Number(values.scale);
 const range = values.range?.split('-').map(Number) as [number, number] | undefined;
 
 /** `--set=params.finale=rereveal` style overrides for quick experiments. */
@@ -216,8 +220,14 @@ for (const format of formats) {
     });
     const name = `${effect ?? template.id}_${format.replace(':', 'x')}`;
     const started = performance.now();
-    if (frames) {
-      for (const frame of frames) {
+    // Image templates: one still per slide.
+    const stills =
+      frames ??
+      (template.output === 'stills'
+        ? Array.from({ length: composition.durationInFrames }, (_, index) => index)
+        : undefined);
+    if (stills) {
+      for (const frame of stills) {
         await renderStill({
           serveUrl,
           composition,
@@ -226,6 +236,7 @@ for (const format of formats) {
           ...(values.png
             ? { imageFormat: 'png' as const }
             : { imageFormat: 'jpeg' as const, jpegQuality: 85 }),
+          scale,
           browserExecutable,
           output: path.join(
             values.out,
@@ -233,7 +244,7 @@ for (const format of formats) {
           ),
         });
       }
-      console.log(`${name}: ${frames.length} stills in ${Math.round(performance.now() - started)} ms`);
+      console.log(`${name}: ${stills.length} stills in ${Math.round(performance.now() - started)} ms`);
     } else {
       await renderMedia({
         serveUrl,

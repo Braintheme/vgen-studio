@@ -1,10 +1,12 @@
 // Server-side Remotion adapter of the RenderEngine contract. Only workers import this.
 import { existsSync } from 'node:fs';
+import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bundle } from '@remotion/bundler';
 import {
   makeCancelSignal,
+  renderFrames,
   renderMedia,
   renderStill,
   selectComposition,
@@ -130,6 +132,37 @@ export const createRemotionEngine = (options: RemotionEngineOptions): RenderEngi
           browserExecutable,
           cancelSignal: linkSignal(signal),
         });
+      }),
+
+    // Image outputs: frame i is slide i, written as lossless PNG (the worker encodes the JPEGs).
+    renderStills: (input, { outputDir, scale, onProgress, signal }) =>
+      bundles.use(async (url) => {
+        const inputProps = inputPropsOf(input);
+        const composition = await selectComposition({
+          serveUrl: url,
+          id: input.template.id,
+          inputProps,
+          browserExecutable,
+        });
+        await renderFrames({
+          serveUrl: url,
+          composition,
+          inputProps,
+          outputDir,
+          imageFormat: 'png',
+          imageSequencePattern: 'slide-[frame].[ext]',
+          scale,
+          concurrency: options.concurrency,
+          browserExecutable,
+          cancelSignal: linkSignal(signal),
+          onStart: () => undefined,
+          onFrameUpdate: (rendered) => {
+            onProgress(rendered / Math.max(1, composition.durationInFrames));
+          },
+        });
+        // Zero-padded frame numbers: name order is frame order.
+        const files = (await readdir(outputDir)).filter((file) => file.endsWith('.png')).sort();
+        return files.map((file) => path.join(outputDir, file));
       }),
 
     dispose() {
