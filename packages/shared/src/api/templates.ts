@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FormatSchema } from '../formats.js';
+import { TEMPLATE_OUTPUTS } from '../template/definition.js';
 
 export const MediaSlotDtoSchema = z.object({
   key: z.string(),
@@ -8,6 +9,7 @@ export const MediaSlotDtoSchema = z.object({
   description: z.string().optional(),
   required: z.boolean(),
   multiple: z.object({ min: z.number().int(), max: z.number().int() }).optional(),
+  group: z.object({ size: z.number().int(), labels: z.array(z.string()) }).optional(),
 });
 
 export const UiHintsDtoSchema = z.object({
@@ -34,6 +36,8 @@ export const TemplateSummaryDtoSchema = z.object({
   name: z.string(),
   description: z.string(),
   thumbnailUrl: z.string().nullable(),
+  /** `video`: one MP4; `stills`: one JPEG per slide, downloaded as a ZIP. */
+  output: z.enum(TEMPLATE_OUTPUTS),
   formats: z.array(FormatSchema),
   mediaSlots: z.array(MediaSlotDtoSchema),
 });

@@ -5,6 +5,8 @@ import type React from 'react';
 import type { RemotionTemplateProps } from '../core/composition.js';
 import { BeforeAfterCard } from './before-after-card/BeforeAfterCard.js';
 import { beforeAfterCardTemplate } from './before-after-card/manifest.js';
+import { BeforeAfterCarousel } from './before-after-carousel/BeforeAfterCarousel.js';
+import { beforeAfterCarouselTemplate } from './before-after-carousel/manifest.js';
 import { BeforeAfter } from './before-after/BeforeAfter.js';
 import { PaletteGrade } from './palette-grade/PaletteGrade.js';
 import { paletteGradeTemplate } from './palette-grade/manifest.js';
@@ -37,6 +39,7 @@ export const REMOTION_TEMPLATES: readonly RemotionTemplateEntry[] = [
   entry(presetReelTemplate, PresetReel),
   entry(paletteGradeTemplate, PaletteGrade),
   entry(presetFlipTemplate, PresetFlip),
+  entry(beforeAfterCarouselTemplate, BeforeAfterCarousel),
 ];
 
 export const findRemotionTemplate = (templateId: string): RemotionTemplateEntry | undefined =>

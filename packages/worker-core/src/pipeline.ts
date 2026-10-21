@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { ensureDeliverySpec, extractFrame } from '@vgen/media';
+import { encodeDeliveryJpeg, ensureDeliverySpec, extractFrame, shrinkJpeg } from '@vgen/media';
 import {
   DEFAULT_QUALITY_PRESET,
+  slideFileName,
+  STILL_JPEG_QUALITY,
   type BaseProps,
   type PreviewJobPayload,
   type RenderEngine,
@@ -16,7 +18,14 @@ import type { AssetServer } from './assets/asset-server.js';
 import { prepareJobAssets } from './assets/prepare-assets.js';
 import { PermanentJobError } from './errors.js';
 import type { Logger } from './logger.js';
-import type { MediaAssetStore, MusicLibrary, RenderEventPublisher, RenderJobStore } from './ports.js';
+import type {
+  MediaAssetStore,
+  MusicLibrary,
+  RenderEventPublisher,
+  RenderJobRecord,
+  RenderJobResult,
+  RenderJobStore,
+} from './ports.js';
 import { ProgressReporter } from './progress.js';
 import { encodingFor } from './quality.js';
 
@@ -37,6 +46,9 @@ export interface PipelineDeps {
 const PREPARED = 8;
 const RENDERED = 92;
 const DELIVERED = 96;
+
+/** Long side of an image output's thumbnail. */
+const SLIDE_THUMBNAIL_SIDE = 1080;
 
 /**
  * Engine-agnostic render pipeline: job state, asset preparation, engine render,
@@ -103,16 +115,19 @@ export class RenderPipeline {
     const startedAt = Date.now();
     try {
       await mkdir(workDir, { recursive: true });
-      const result = await this.render(
-        template,
-        parsed.data,
-        job.quality,
-        job.outputName,
-        workDir,
-        progress,
-        signal,
-        jobId,
-      );
+      const result =
+        template.output === 'stills'
+          ? await this.renderSlides(template, parsed.data, job, workDir, progress, signal)
+          : await this.render(
+              template,
+              parsed.data,
+              job.quality,
+              job.outputName,
+              workDir,
+              progress,
+              signal,
+              jobId,
+            );
       await progress.flush();
       if (await jobs.markDone(jobId, result)) {
         await this.publishStatus(jobId, 'done', 100, null);
@@ -133,7 +148,7 @@ export class RenderPipeline {
     progress: ProgressReporter,
     signal: AbortSignal,
     jobId: string,
-  ): Promise<{ outputAssetId: string; thumbnailAssetId: string | null }> {
+  ): Promise<RenderJobResult> {
     const { engine, logger } = this.deps;
     const metadata = template.resolveMetadata(props);
     const encoding = encodingFor(quality);
@@ -172,28 +187,10 @@ export class RenderPipeline {
     }
     progress.report(DELIVERED);
 
-    let thumbnailAssetId: string | null = null;
-    const thumbnailPath = path.join(workDir, 'thumbnail.jpg');
-    try {
+    const thumbnailAssetId = await this.storeThumbnail(jobId, async (thumbnailPath) => {
       await extractFrame(outputPath, template.posterFrame(props) / metadata.fps, thumbnailPath);
-      const stored = await this.deps.storage.putFile(storageKeys.renderThumbnail(jobId), thumbnailPath);
-      thumbnailAssetId = (
-        await this.deps.media.create({
-          kind: 'image',
-          role: 'thumbnail',
-          originalName: 'thumbnail.jpg',
-          mime: 'image/jpeg',
-          size: stored.size,
-          storageKey: stored.key,
-          width: metadata.width,
-          height: metadata.height,
-          durationSec: null,
-        })
-      ).id;
-    } catch (error) {
-      // A missing thumbnail must not fail an otherwise good render.
-      logger.warn('thumbnail extraction failed', { error });
-    }
+      return metadata;
+    });
 
     throwIfCancelled(signal, jobId);
     const stored = await this.deps.storage.putFile(storageKeys.renderOutput(jobId, outputName), outputPath);
@@ -208,7 +205,117 @@ export class RenderPipeline {
       height: delivery.report.height,
       durationSec: delivery.report.durationSec,
     });
-    return { outputAssetId: output.id, thumbnailAssetId };
+    return { outputAssetId: output.id, slideAssetIds: [], thumbnailAssetId };
+  }
+
+  /**
+   * Image outputs (`output: 'stills'`): every frame is one slide. Photos are prepared for the
+   * scaled frame, the engine writes lossless images, each is encoded once into the delivery
+   * JPEG and stored as an output of its own; the API zips them on download.
+   */
+  private async renderSlides(
+    template: TemplateDefinition,
+    props: BaseProps,
+    job: RenderJobRecord,
+    workDir: string,
+    progress: ProgressReporter,
+    signal: AbortSignal,
+  ): Promise<RenderJobResult> {
+    const { engine } = this.deps;
+    const jobId = job.id;
+    if (!engine.renderStills) {
+      throw new PermanentJobError(`Engine "${engine.id}" does not render image outputs`);
+    }
+    const metadata = template.resolveMetadata(props);
+    const assets = await prepareJobAssets(this.deps, {
+      jobId,
+      template,
+      props,
+      frame: { width: metadata.width * job.scale, height: metadata.height * job.scale },
+      workDir,
+      signal,
+    });
+    progress.report(PREPARED);
+
+    throwIfCancelled(signal, jobId);
+    const framesDir = path.join(workDir, 'frames');
+    await mkdir(framesDir, { recursive: true });
+    const frames = await engine.renderStills(
+      { jobId, template, props, assets, metadata, encoding: encodingFor(job.quality) },
+      {
+        outputDir: framesDir,
+        scale: job.scale,
+        signal,
+        onProgress: (value) => {
+          progress.report(PREPARED + value * (RENDERED - PREPARED));
+        },
+      },
+    );
+    if (frames.length === 0) {
+      throw new PermanentJobError('The engine rendered no images');
+    }
+
+    const slideAssetIds: string[] = [];
+    let first: string | null = null;
+    for (const [index, frame] of frames.entries()) {
+      throwIfCancelled(signal, jobId);
+      const name = slideFileName(job.outputName, index, frames.length);
+      const image = await encodeDeliveryJpeg(frame, path.join(workDir, name), {
+        quality: STILL_JPEG_QUALITY,
+      });
+      first ??= image.path;
+      const stored = await this.deps.storage.putFile(storageKeys.renderOutput(jobId, name), image.path);
+      const asset = await this.deps.media.create({
+        kind: 'image',
+        role: 'render_output',
+        originalName: name,
+        mime: 'image/jpeg',
+        size: image.size,
+        storageKey: stored.key,
+        width: image.width,
+        height: image.height,
+        durationSec: null,
+      });
+      slideAssetIds.push(asset.id);
+      progress.report(RENDERED + ((index + 1) / frames.length) * (DELIVERED - RENDERED));
+    }
+
+    const firstSlide = first;
+    const thumbnailAssetId = firstSlide
+      ? await this.storeThumbnail(jobId, (thumbnailPath) =>
+          shrinkJpeg(firstSlide, thumbnailPath, SLIDE_THUMBNAIL_SIDE),
+        )
+      : null;
+    return { outputAssetId: null, slideAssetIds, thumbnailAssetId };
+  }
+
+  /** Writes and stores the job's thumbnail; a failure is logged, never fatal. */
+  private async storeThumbnail(
+    jobId: string,
+    write: (thumbnailPath: string) => Promise<{ readonly width: number; readonly height: number }>,
+  ): Promise<string | null> {
+    const thumbnailPath = path.join(this.deps.workRoot, jobId, 'thumbnail.jpg');
+    try {
+      const size = await write(thumbnailPath);
+      const stored = await this.deps.storage.putFile(storageKeys.renderThumbnail(jobId), thumbnailPath);
+      return (
+        await this.deps.media.create({
+          kind: 'image',
+          role: 'thumbnail',
+          originalName: 'thumbnail.jpg',
+          mime: 'image/jpeg',
+          size: stored.size,
+          storageKey: stored.key,
+          width: size.width,
+          height: size.height,
+          durationSec: null,
+        })
+      ).id;
+    } catch (error) {
+      // A missing thumbnail must not fail an otherwise good render.
+      this.deps.logger.warn('thumbnail extraction failed', { error, jobId });
+      return null;
+    }
   }
 
   /**

@@ -32,6 +32,7 @@ import {
 } from '@vgen/shared';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
+import { contentDisposition } from '../common/content-disposition.js';
 import { MediaService } from './media.service.js';
 
 /** The fields of a multer disk-stored file that we use. */
@@ -41,9 +42,6 @@ interface UploadedDiskFile {
   readonly mimetype: string;
   readonly size: number;
 }
-
-const contentDisposition = (type: 'inline' | 'attachment', fileName: string): string =>
-  `${type}; filename="${fileName.replace(/[^\x20-\x7e]|["\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 
 @ApiTags('media')
 @Controller('media')

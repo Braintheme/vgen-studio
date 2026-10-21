@@ -1,6 +1,7 @@
 import type { MediaAssetDto, MediaInfo, MediaWarning, TemplateDefinition } from '@vgen/shared';
 import { computed, reactive, watch, type ComputedRef } from 'vue';
 import { useNotify } from '@/composables/useNotify';
+import { compareFileNames } from '@/lib/file-names';
 import { useMediaAssets, useUploadMediaMutation } from '@/queries/media';
 import type { DraftMedia } from '@/stores/compose-draft';
 import { ACCEPT_BY_SLOT_KIND } from '@/features/compose/constants';
@@ -20,6 +21,10 @@ export interface MediaSlotsState {
   /** List slots: removes one item / moves an item to another position. */
   readonly removeAt: (slotKey: string, index: number) => void;
   readonly move: (slotKey: string, from: number, to: number) => void;
+  /** List slots: orders the items by file name (pairs of an export land next to each other). */
+  readonly sortByName: (slotKey: string) => void;
+  /** Grouped slots: swaps an item with its partner in the group (before <-> after). */
+  readonly swapInGroup: (slotKey: string, index: number) => void;
   readonly runAction: (action: SlotActionView) => void;
   /** Marks empty required slots; true when all are filled. */
   readonly validate: () => boolean;
@@ -93,6 +98,7 @@ export const useMediaSlots = (
       required: slot.required,
       multiple: slot.multiple !== undefined,
       maxItems: slot.multiple?.max ?? 1,
+      group: slot.group ?? null,
       accept: ACCEPT_BY_SLOT_KIND[slot.kind],
       assets: idsOf(media.value[slot.key])
         .map((id) => assets.value.get(id))
@@ -130,7 +136,9 @@ export const useMediaSlots = (
     if (!slot || files.length === 0) return;
     // Only what fits is uploaded: a list slot keeps up to `max`, a single slot one file.
     const room = slot.multiple ? Math.max(0, slot.multiple.max - idsOf(media.value[slotKey]).length) : 1;
-    const accepted = files.slice(0, room);
+    // Grouped slots (before/after pairs) take each upload in file name order.
+    const ordered = slot.group ? [...files].sort((a, b) => compareFileNames(a.name, b.name)) : files;
+    const accepted = ordered.slice(0, room);
     if (accepted.length < files.length) {
       notify.warning(
         `${slot.label}: ${String(accepted.length)} of ${String(files.length)} files added`,
@@ -192,6 +200,25 @@ export const useMediaSlots = (
       const [moved] = ids.splice(from, 1);
       if (moved === undefined || to < 0 || to > ids.length) return;
       ids.splice(to, 0, moved);
+      setMedia({ ...media.value, [slotKey]: ids });
+    },
+    sortByName: (slotKey) => {
+      const nameOf = (id: string): string => assets.value.get(id)?.originalName ?? '';
+      const ids = idsOf(media.value[slotKey]).sort((a, b) => compareFileNames(nameOf(a), nameOf(b)));
+      setMedia({ ...media.value, [slotKey]: ids });
+    },
+    swapInGroup: (slotKey, index) => {
+      const size = template.mediaSlots.find((slot) => slot.key === slotKey)?.group?.size;
+      if (!size) return;
+      const ids = idsOf(media.value[slotKey]);
+      const start = index - (index % size);
+      // Mirror position in the group: in a pair, the other item.
+      const partner = start + (size - 1 - (index - start));
+      const current = ids[index];
+      const other = ids[partner];
+      if (partner === index || current === undefined || other === undefined) return;
+      ids[index] = other;
+      ids[partner] = current;
       setMedia({ ...media.value, [slotKey]: ids });
     },
     runAction: (action) => {

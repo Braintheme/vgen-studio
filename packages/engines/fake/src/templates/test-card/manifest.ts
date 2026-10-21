@@ -9,7 +9,7 @@ import { z } from 'zod';
 export const testCardTemplate = defineTemplate({
   id: 'test-card',
   engine: 'fake',
-  version: '1.0.0',
+  version: '1.1.0',
   name: 'Test card',
   description:
     'Engine stub for development: a photo on a colored card. No live preview, a poster frame instead.',

@@ -1,5 +1,10 @@
 import { useStorage } from '@vueuse/core';
-import { DEFAULT_QUALITY_PRESET, type QualityPreset } from '@vgen/shared';
+import {
+  DEFAULT_QUALITY_PRESET,
+  DEFAULT_STILL_SCALE,
+  type QualityPreset,
+  type StillScale,
+} from '@vgen/shared';
 import { defineStore } from 'pinia';
 
 /** Slot key -> asset id(s); `null` = empty slot. */
@@ -13,6 +18,8 @@ export interface ComposeDraft {
   readonly settings: Readonly<Record<string, unknown>>;
   readonly media: DraftMedia;
   readonly quality: QualityPreset;
+  /** Image templates: pixel density of the slides (missing in drafts saved before it existed). */
+  readonly scale?: StillScale;
   /** Style preset the settings came from (for the output name and "Update preset"). */
   readonly presetId: string | null;
 }
@@ -30,6 +37,7 @@ export const useComposeDraftStore = defineStore('compose-draft', () => {
       settings: {},
       media: {},
       quality: DEFAULT_QUALITY_PRESET,
+      scale: DEFAULT_STILL_SCALE,
       presetId: null,
     };
     drafts.value = { ...drafts.value, [templateId]: { ...current, ...patch, templateVersion } };

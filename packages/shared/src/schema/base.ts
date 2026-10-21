@@ -72,6 +72,7 @@ export const MusicSchema = z
 export type Music = z.output<typeof MusicSchema>;
 
 export const SHARPEN_LEVELS = ['off', 'low', 'medium'] as const;
+export type SharpenLevel = (typeof SHARPEN_LEVELS)[number];
 
 export const ImageProcessingSchema = z
   .object({
@@ -215,6 +216,7 @@ export const baseShape = (duration: DurationSpec) => ({
       '16:9': 'Landscape 16:9 · 1920×1080',
       '1:1': 'Square 1:1 · 1080×1080',
       '4:5': 'Portrait 4:5 · 1080×1350',
+      '3:4': 'Portrait 3:4 · 1080×1440',
     },
   }),
   durationSec: z

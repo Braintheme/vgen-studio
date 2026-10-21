@@ -16,7 +16,7 @@ export const CARD_TILTS = ['flat', 'soft', 'strong'] as const;
 export const beforeAfterCardTemplate = defineTemplate({
   id: 'before-after-card',
   engine: 'remotion',
-  version: '1.2.0',
+  version: '1.3.0',
   name: 'Before / After — Card',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/before-after-card.jpg',

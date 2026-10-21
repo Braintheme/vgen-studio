@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
   Sse,
   type MessageEvent,
 } from '@nestjs/common';
@@ -24,9 +25,12 @@ import {
   type Paginated,
   type RenderJobDto,
 } from '@vgen/shared';
+import type { Response } from 'express';
 import type { Observable } from 'rxjs';
 import type { z } from 'zod';
+import { contentDisposition } from '../common/content-disposition.js';
 import { RendersService } from './renders.service.js';
+import { writeZip } from './zip-stream.js';
 
 @ApiTags('renders')
 @Controller('renders')
@@ -59,6 +63,21 @@ export class RendersController {
   @ApiOkResponse({ standardSchema: RenderJobDtoSchema })
   get(@Param('id', ParseUUIDPipe) id: string): Promise<RenderJobDto> {
     return this.renders.get(id);
+  }
+
+  /** The slides of an image output as one ZIP (built on the fly; 404 for videos). */
+  @Get(':id/archive')
+  async archive(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response): Promise<void> {
+    const archive = await this.renders.archive(id);
+    res.status(200);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', contentDisposition('attachment', archive.fileName));
+    try {
+      await writeZip(archive.entries, res);
+    } catch {
+      // Headers are out: all that is left is to cut the download short.
+      res.destroy();
+    }
   }
 
   @Post(':id/cancel')

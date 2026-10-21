@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { Images, ChevronLeft, ChevronRight, Plus, X } from '@lucide/vue';
+import { ArrowDownAZ, ArrowLeftRight, Images, ChevronLeft, ChevronRight, Plus, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import FileDropzone from '@/components/common/FileDropzone.vue';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import type { MediaSlotView } from '@/features/compose/types';
 
-/** A list slot (e.g. screenshots): thumbnails in order, drag or arrows to reorder, add more. */
+/**
+ * A list slot (e.g. screenshots): thumbnails in order, drag or arrows to reorder, add more.
+ * Grouped slots (before/after pairs) label each item with its group and position.
+ */
 const props = defineProps<{
   mediaSlot: MediaSlotView;
 }>();
@@ -16,11 +19,31 @@ const emit = defineEmits<{
   remove: [index: number];
   move: [from: number, to: number];
   browse: [];
+  sort: [];
+  /** Grouped slots: swap an item with its partner (e.g. before <-> after of a pair). */
+  swap: [index: number];
 }>();
 
 const uploading = computed(() => props.mediaSlot.uploadProgress !== null);
 const full = computed(() => props.mediaSlot.assets.length >= props.mediaSlot.maxItems);
 const dragged = ref<number | null>(null);
+
+const group = computed(() => props.mediaSlot.group);
+
+/** `3 · After` in a grouped slot, the position otherwise. */
+const itemLabel = (index: number): string => {
+  const current = group.value;
+  if (!current) return String(index + 1);
+  return `${String(Math.floor(index / current.size) + 1)} · ${current.labels[index % current.size] ?? ''}`;
+};
+
+/** The other item of a pair exists (the last photo of an odd list has none). */
+const hasPartner = (index: number): boolean => {
+  const current = group.value;
+  if (!current) return false;
+  const start = index - (index % current.size);
+  return start + current.size <= props.mediaSlot.assets.length;
+};
 
 const onDrop = (index: number): void => {
   if (dragged.value !== null && dragged.value !== index) emit('move', dragged.value, index);
@@ -41,12 +64,14 @@ const onDrop = (index: number): void => {
         {{ mediaSlot.description }}
       </span>
     </div>
-    <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
+    <!-- Grouped slots use an even column count, so a pair always shares a row. -->
+    <div class="grid gap-2" :class="group ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-3 sm:grid-cols-5'">
       <div
         v-for="(asset, index) in mediaSlot.assets"
         :key="`${asset.id}-${index}`"
         class="group relative aspect-[4/5] cursor-grab overflow-hidden rounded-md border bg-muted"
         :class="dragged === index && 'opacity-40'"
+        :title="asset.originalName"
         draggable="true"
         @dragstart="dragged = index"
         @dragend="dragged = null"
@@ -59,8 +84,13 @@ const onDrop = (index: number): void => {
           class="size-full object-contain"
         />
         <span class="absolute top-1 left-1 rounded bg-background/80 px-1.5 text-xs tabular-nums">{{
-          index + 1
+          itemLabel(index)
         }}</span>
+        <span
+          v-if="group"
+          class="absolute inset-x-0 bottom-0 truncate bg-background/70 px-1 text-[10px] group-hover:opacity-0"
+          >{{ asset.originalName }}</span
+        >
         <Button
           variant="secondary"
           size="icon"
@@ -80,6 +110,18 @@ const onDrop = (index: number): void => {
             @click="emit('move', index, index - 1)"
           >
             <ChevronLeft />
+          </Button>
+          <Button
+            v-if="group"
+            variant="secondary"
+            size="icon"
+            class="size-6"
+            :disabled="!hasPartner(index)"
+            :aria-label="`Swap ${itemLabel(index)} with its pair`"
+            :title="`Swap ${group.labels.join(' / ').toLowerCase()} in this pair`"
+            @click="emit('swap', index)"
+          >
+            <ArrowLeftRight />
           </Button>
           <Button
             variant="secondary"
@@ -108,16 +150,28 @@ const onDrop = (index: number): void => {
         </div>
       </FileDropzone>
     </div>
-    <Button
-      v-if="mediaSlot.kind === 'image' || mediaSlot.kind === 'video'"
-      variant="link"
-      size="sm"
-      class="h-auto justify-self-start p-0 text-xs"
-      :disabled="uploading"
-      @click="emit('browse')"
-    >
-      <Images class="size-3.5" /> From library
-    </Button>
+    <div class="flex gap-4">
+      <Button
+        v-if="mediaSlot.kind === 'image' || mediaSlot.kind === 'video'"
+        variant="link"
+        size="sm"
+        class="h-auto p-0 text-xs"
+        :disabled="uploading"
+        @click="emit('browse')"
+      >
+        <Images class="size-3.5" /> From library
+      </Button>
+      <Button
+        v-if="group && mediaSlot.assets.length > 1"
+        variant="link"
+        size="sm"
+        class="h-auto p-0 text-xs"
+        :disabled="uploading"
+        @click="emit('sort')"
+      >
+        <ArrowDownAZ class="size-3.5" /> Sort by name
+      </Button>
+    </div>
     <Progress v-if="uploading" :model-value="(mediaSlot.uploadProgress ?? 0) * 100" class="h-1.5" />
     <p v-if="mediaSlot.error" class="text-xs text-destructive">{{ mediaSlot.error }}</p>
   </div>

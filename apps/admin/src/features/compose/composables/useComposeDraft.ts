@@ -1,7 +1,9 @@
 import {
+  DEFAULT_STILL_SCALE,
   sanitizeMediaRefs,
   sanitizeTemplateSettings,
   type QualityPreset,
+  type StillScale,
   type TemplateDefinition,
 } from '@vgen/shared';
 import { computed, type ComputedRef, type WritableComputedRef } from 'vue';
@@ -14,6 +16,8 @@ export interface ComposeDraftState {
   readonly isFresh: boolean;
   readonly media: ComputedRef<DraftMedia>;
   readonly quality: WritableComputedRef<QualityPreset>;
+  /** Image templates: 1× or 2× the format's size. */
+  readonly scale: WritableComputedRef<StillScale>;
   readonly presetId: WritableComputedRef<string | null>;
   readonly saveSettings: (settings: Readonly<Record<string, unknown>>) => void;
   readonly setMedia: (media: DraftMedia) => void;
@@ -57,6 +61,12 @@ export const useComposeDraft = (
       get: () => draft()?.quality ?? 'social',
       set: (quality) => {
         update({ quality });
+      },
+    }),
+    scale: computed({
+      get: () => draft()?.scale ?? DEFAULT_STILL_SCALE,
+      set: (scale) => {
+        update({ scale });
       },
     }),
     presetId: computed({

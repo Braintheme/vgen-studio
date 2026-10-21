@@ -10,6 +10,7 @@ import StringField from './fields/StringField.vue';
 import SwitchField from './fields/SwitchField.vue';
 import TextToggleField from './fields/TextToggleField.vue';
 import ColumnsField from './fields/ColumnsField.vue';
+import PopoverField from './fields/PopoverField.vue';
 
 defineProps<{
   field: GenericFieldSpec;
@@ -17,9 +18,9 @@ defineProps<{
 
 /**
  * Widget registry: one component per generic field kind (custom ones come from slots).
- * `columns` lays out other fields and renders them through this component (below).
+ * `columns` and `popover` lay out other fields and render them through this component (below).
  */
-const FIELD_COMPONENTS: Record<Exclude<GenericFieldSpec['kind'], 'columns'>, Component> = {
+const FIELD_COMPONENTS: Record<Exclude<GenericFieldSpec['kind'], 'columns' | 'popover'>, Component> = {
   select: ChoiceSelectField,
   font: ChoiceSelectField,
   segmented: SegmentedField,
@@ -38,5 +39,10 @@ const FIELD_COMPONENTS: Record<Exclude<GenericFieldSpec['kind'], 'columns'>, Com
       <SchemaField v-if="cell.kind !== 'custom'" :field="cell" />
     </template>
   </ColumnsField>
+  <PopoverField v-else-if="field.kind === 'popover'" :field="field">
+    <template #cell="{ field: cell }">
+      <SchemaField v-if="cell.kind !== 'custom'" :field="cell" />
+    </template>
+  </PopoverField>
   <component :is="FIELD_COMPONENTS[field.kind]" v-else :field="field" />
 </template>

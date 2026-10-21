@@ -17,10 +17,21 @@ export interface MediaSlot<K extends string = string> {
   /** Present for list slots (e.g. a slideshow); the value is then an array of asset ids. */
   readonly multiple?: { readonly min: number; readonly max: number };
   /**
+   * List slots read in groups (e.g. before/after pairs: `{ size: 2, labels: ['Before', 'After'] }`):
+   * the list must hold whole groups. The admin labels the items and sorts each upload by name.
+   */
+  readonly group?: MediaSlotGroup;
+  /**
    * Video slots: the props path of the `videoRangeField` that picks the used fragment
    * (e.g. `params.clip`). The worker cuts that fragment; the admin edits it next to the video.
    */
   readonly range?: string;
+}
+
+export interface MediaSlotGroup {
+  readonly size: number;
+  /** One label per position in a group. */
+  readonly labels: readonly string[];
 }
 
 type SingleRequired = z.ZodType<string, string>;
@@ -43,7 +54,16 @@ export type MediaShape<Slots extends readonly MediaSlot[]> = {
 const slotValueSchema = (slot: MediaSlot): z.ZodType => {
   if (slot.multiple) {
     const { min, max } = slot.multiple;
-    const list = z.array(AssetIdSchema).max(max);
+    const group = slot.group;
+    const list = group
+      ? z
+          .array(AssetIdSchema)
+          .max(max)
+          .refine(
+            (items) => items.length % group.size === 0,
+            `Add whole groups of ${String(group.size)} (${group.labels.join(', ')})`,
+          )
+      : z.array(AssetIdSchema).max(max);
     return slot.required
       ? list.min(min)
       : list

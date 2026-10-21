@@ -23,6 +23,7 @@
     "@vgen/shared": "workspace:*",
     "@vgen/storage": "workspace:*",
     "bullmq": "catalog:",
+    "fflate": "catalog:",
     "ioredis": "catalog:",
     "nestjs-cls": "catalog:",
     "reflect-metadata": "catalog:",

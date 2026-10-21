@@ -1,5 +1,5 @@
 import { watchDebounced } from '@vueuse/core';
-import type { QualityPreset, TemplateDefinition } from '@vgen/shared';
+import type { QualityPreset, StillScale, TemplateDefinition } from '@vgen/shared';
 import { computed, type ComputedRef, type ShallowRef, type WritableComputedRef } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
@@ -44,6 +44,8 @@ export interface ComposeScreenReady {
   readonly summary: ComputedRef<OutputSummary>;
   readonly poster: ComputedRef<PosterPreviewView>;
   readonly quality: WritableComputedRef<QualityPreset>;
+  /** Image templates: slide size (1× / 2×). */
+  readonly scale: WritableComputedRef<StillScale>;
   readonly generate: () => Promise<void>;
   readonly generating: ComputedRef<boolean>;
 }
@@ -128,6 +130,7 @@ export const useComposeScreen = (): ComposeScreen => {
     validateMedia,
     media: draft.media,
     quality: draft.quality,
+    scale: draft.scale,
     presetId: draft.presetId,
   });
 
@@ -147,6 +150,7 @@ export const useComposeScreen = (): ComposeScreen => {
     summary: preview.summary,
     poster,
     quality: draft.quality,
+    scale: draft.scale,
     generate: generation.generate,
     generating: generation.generating,
   };

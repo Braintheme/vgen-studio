@@ -78,6 +78,7 @@ export const manifest: EngineManifest = {
     audio: true,
     maxDurationSec: 1,
     browserPreview: false,
+    stills: false,
   },
   templates: [valid],
 };

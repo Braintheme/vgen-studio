@@ -29,6 +29,18 @@ export const assertValidTemplate = (template: TemplateDefinition, engine?: Engin
       problems.push(`media slot key "${key}" must be camelCase`);
     }
   }
+  for (const slot of template.mediaSlots) {
+    const { group, multiple } = slot;
+    if (!group) continue;
+    if (!multiple) {
+      problems.push(`media slot "${slot.key}": a group needs a list slot (multiple)`);
+    } else if (group.size < 2 || multiple.min % group.size !== 0 || multiple.max % group.size !== 0) {
+      problems.push(`media slot "${slot.key}": min and max must be multiples of the group size (>= 2)`);
+    }
+    if (group.labels.length !== group.size) {
+      problems.push(`media slot "${slot.key}": the group needs one label per item`);
+    }
+  }
   for (const action of template.ui?.slotActions ?? []) {
     for (const slot of action.slots) {
       if (!slotKeys.includes(slot)) {
@@ -50,6 +62,9 @@ export const assertValidTemplate = (template: TemplateDefinition, engine?: Engin
     const unsupported = template.formats.filter((format) => !engine.capabilities.formats.includes(format));
     if (unsupported.length > 0) {
       problems.push(`formats not supported by engine "${engine.id}": ${unsupported.join(', ')}`);
+    }
+    if (template.output === 'stills' && !engine.capabilities.stills) {
+      problems.push(`engine "${engine.id}" does not render image outputs`);
     }
   }
 

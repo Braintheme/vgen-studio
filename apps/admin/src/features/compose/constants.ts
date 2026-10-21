@@ -20,6 +20,9 @@ export const OTHER_SECTION = { id: 'other', title: 'More options' } as const;
 /** Props that are not edited by hand. */
 export const HIDDEN_PATHS: readonly string[] = ['seed'];
 
+/** Image templates (`output: 'stills'`) have no timing and no sound. */
+export const STILLS_HIDDEN_PATHS: readonly string[] = ['durationSec', 'fps', 'music'];
+
 /** Debounce between form edits and preview/draft updates. */
 /** Storage scope of the settings form's folded sections (per template id). */
 export const COLLAPSED_SCOPE = 'compose';
@@ -34,6 +37,12 @@ export const ACCEPT_BY_SLOT_KIND = {
 export const QUALITY_OPTIONS = [
   { value: 'social', label: 'Social (recommended)' },
   { value: 'high', label: 'High (archive)' },
+] as const;
+
+/** Size of image outputs (slides). */
+export const SCALE_OPTIONS = [
+  { value: 1, label: '1× (recommended)' },
+  { value: 2, label: '2× (twice as large)' },
 ] as const;
 
 /** Select value for "no preset" (select items cannot hold null). */

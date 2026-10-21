@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { CircleAlert, Download, Ellipsis, ExternalLink, RotateCcw, Square, Trash2 } from '@lucide/vue';
+import {
+  CircleAlert,
+  Download,
+  Ellipsis,
+  ExternalLink,
+  Images,
+  RotateCcw,
+  Square,
+  Trash2,
+} from '@lucide/vue';
 import type { RenderJobDto } from '@vgen/shared';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
@@ -22,6 +31,7 @@ const emit = defineEmits<{
   remove: [render: RenderJobDto];
   duplicate: [render: RenderJobDto];
   showError: [render: RenderJobDto];
+  showSlides: [render: RenderJobDto];
 }>();
 
 const isActive = computed(() => ACTIVE_RENDER_STATUSES.has(props.render.status));
@@ -42,6 +52,12 @@ const isActive = computed(() => ACTIVE_RENDER_STATUSES.has(props.render.status))
         <DropdownMenuItem as-child>
           <a :href="render.output.url" target="_blank" rel="noopener"><ExternalLink /> Open video</a>
         </DropdownMenuItem>
+      </template>
+      <template v-if="render.stills">
+        <DropdownMenuItem as-child>
+          <a :href="render.stills.archiveUrl" :download="render.outputName"><Download /> Download ZIP</a>
+        </DropdownMenuItem>
+        <DropdownMenuItem @select="emit('showSlides', render)"><Images /> View slides</DropdownMenuItem>
       </template>
       <DropdownMenuItem v-if="render.status === 'failed'" @select="emit('showError', render)">
         <CircleAlert /> View error

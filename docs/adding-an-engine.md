@@ -25,12 +25,13 @@ export const myEngineManifest: EngineManifest = {
   name: 'My engine',
   version: '0.1.0+renderer.1.2.3', // adapter version (+ renderer version as build metadata)
   capabilities: {
-    formats: ['9:16', '16:9', '1:1', '4:5'],
+    formats: FORMAT_IDS, // 9:16, 16:9, 1:1, 4:5, 3:4
     fps: [30, 60],
     codecs: ['h264'],
     audio: true,
     maxDurationSec: 60,
     browserPreview: false, // true only with a ./player adapter
+    stills: false, // true with renderStills (templates with `output: 'stills'`)
   },
   templates: [myTemplate],
 };
@@ -46,6 +47,8 @@ export const createMyEngine = (): RenderEngine => ({
     // metadata (width, height, fps, frames), encoding (crf, preset, bitrates)
   },
   async renderStill(input, { outputPath, frame, signal }) {}, // JPEG; used for previews
+  // Optional, with capabilities.stills: every frame as a lossless image, in frame order.
+  // async renderStills(input, { outputDir, scale, onProgress, signal }) { return [...pngPaths]; },
   dispose: async () => {},
 });
 ```

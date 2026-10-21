@@ -38,7 +38,13 @@ export const useSchemaForm = <TOutput extends GenericObject>(
   schema: z.ZodType<TOutput>,
   initialValues: SchemaValues,
 ): SchemaFormState<TOutput> => {
-  const form = useForm<SchemaValues, TOutput>({ validationSchema: zodTypedSchema(schema), initialValues });
+  const form = useForm<SchemaValues, TOutput>({
+    validationSchema: zodTypedSchema(schema),
+    initialValues,
+    // Fields unmount while their popover is closed or their conditional group is hidden; their
+    // values are still settings (vee-validate drops them by default).
+    keepValuesOnUnmount: true,
+  });
   return {
     values: form.values,
     validate: async () => {

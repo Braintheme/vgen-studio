@@ -2,7 +2,10 @@
 // runtime problems lint and unit tests cannot see (e.g. a component used outside its context).
 // Usage: pnpm --filter @vgen/engine-remotion admin-check [--path=/media] [--click="Clean up unused"]
 //        (no --path: every main page plus the compose screen of every template)
+//        [--setup="localStorage.setItem(...)"] [--eval="<js after load>"]
+//        [--screenshot=/app/fixtures/renders/admin.png]
 import { spawn } from 'node:child_process';
+import { writeFile } from 'node:fs/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 import { ensureRemotionBrowser } from '../src/server/browser.js';
@@ -11,6 +14,12 @@ const { values } = parseArgs({
   options: {
     path: { type: 'string' },
     click: { type: 'string' },
+    /** JS run on the page once, then the page reloads (e.g. put a draft into localStorage). */
+    setup: { type: 'string' },
+    /** JS (may return a promise) run after the page loaded, e.g. to pick a select option. */
+    eval: { type: 'string' },
+    /** PNG of the (last) checked page, e.g. `/app/fixtures/renders/admin.png`. */
+    screenshot: { type: 'string' },
     wait: { type: 'string', default: '12000' },
     admin: { type: 'string', default: process.env['ADMIN_URL'] ?? 'http://admin:5173' },
     api: { type: 'string', default: process.env['API_URL'] ?? 'http://api:3000/api/v1' },
@@ -94,16 +103,35 @@ try {
     });
   await send('Runtime.enable');
   await send('Page.enable');
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 1440,
+    height: 1100,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
 
   for (const path of await pagesToCheck()) {
     problems = [];
     await send('Page.navigate', { url: `${values.admin}${path}` });
     await sleep(Number(values.wait));
+    if (values.setup) {
+      await send('Runtime.evaluate', { expression: values.setup });
+      await send('Page.reload');
+      await sleep(Number(values.wait));
+    }
     if (values.click) {
       await send('Runtime.evaluate', {
         expression: `[...document.querySelectorAll('button')].find((b) => b.textContent.includes(${JSON.stringify(values.click)}))?.click()`,
       });
       await sleep(3000);
+    }
+    if (values.eval) {
+      await send('Runtime.evaluate', { expression: values.eval, awaitPromise: true });
+      await sleep(3000);
+    }
+    if (values.screenshot) {
+      const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+      await writeFile(values.screenshot, Buffer.from(String(shot['data']), 'base64'));
     }
     if (problems.length > 0) failures += 1;
     console.log(

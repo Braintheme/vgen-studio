@@ -13,6 +13,8 @@ export interface EngineCapabilities {
   readonly maxDurationSec: number;
   /** Whether the engine ships a browser player adapter for live previews. */
   readonly browserPreview: boolean;
+  /** Whether the engine renders image outputs (`renderStills`, templates with `output: 'stills'`). */
+  readonly stills: boolean;
 }
 
 /**
@@ -67,11 +69,27 @@ export interface EngineStillOptions {
   readonly signal: AbortSignal;
 }
 
+export interface EngineStillsOptions {
+  /** Empty directory for the images. */
+  readonly outputDir: string;
+  /** Pixel density: 2 renders every image at twice the output size. */
+  readonly scale: number;
+  /** Progress in the 0..1 range. */
+  readonly onProgress: (progress: number) => void;
+  readonly signal: AbortSignal;
+}
+
 /** Server-side render engine adapter (Strategy). Only workers depend on implementations. */
 export interface RenderEngine extends EngineManifest {
   /** One-time warm-up, e.g. bundling compositions. */
   init(): Promise<void>;
   render(input: EngineRenderInput, options: EngineRenderOptions): Promise<void>;
   renderStill(input: EngineRenderInput, options: EngineStillOptions): Promise<void>;
+  /**
+   * Image outputs (`capabilities.stills`): every frame of the metadata is one image, written
+   * losslessly (PNG) into `outputDir`; returns the files in frame order. The worker encodes
+   * the delivery JPEGs.
+   */
+  renderStills?(input: EngineRenderInput, options: EngineStillsOptions): Promise<readonly string[]>;
   dispose(): Promise<void>;
 }

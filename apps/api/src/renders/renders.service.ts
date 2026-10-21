@@ -3,6 +3,7 @@ import type { MediaAssetEntity, RenderJobEntity } from '@vgen/db';
 import {
   buildOutputFileName,
   parseTemplateProps,
+  type StillScale,
   type BaseProps,
   type CreateRenderResponse,
   type DuplicateRenderResponse,
@@ -25,6 +26,7 @@ import { RenderQueueService } from '../queue/render-queue.service.js';
 import { RenderEventsService } from './render-events.service.js';
 import { toRenderDto } from './renders.mapper.js';
 import { RendersRepository } from './renders.repository.js';
+import type { ZipEntry } from './zip-stream.js';
 
 /** Keeps idle SSE connections alive through proxies. */
 const HEARTBEAT_MS = 15_000;
@@ -50,6 +52,7 @@ export class RendersService {
     templateId: string;
     props: Record<string, unknown>;
     quality: QualityPreset;
+    scale: StillScale;
     presetId: string | null;
   }): Promise<CreateRenderResponse> {
     const template = this.catalog.getTemplate(request.templateId);
@@ -60,7 +63,7 @@ export class RendersService {
         parsed.error.issues.map((issue) => issueToDetail(issue, 'props')),
       );
     }
-    return this.submit(template, parsed.data, request.quality, request.presetId);
+    return this.submit(template, parsed.data, request.quality, request.scale, request.presetId);
   }
 
   async duplicate(id: string): Promise<DuplicateRenderResponse> {
@@ -87,6 +90,7 @@ export class RendersService {
       template,
       parsed.data,
       original.quality as QualityPreset,
+      original.scale as StillScale,
       original.presetId,
     );
     return { ...created, templateVersionChanged: original.templateVersion !== template.version };
@@ -131,10 +135,32 @@ export class RendersService {
     if (!(await this.repository.deleteFinished(id))) {
       throw new ConflictError(`Render is ${job.status}; cancel it before deleting`);
     }
-    const generated = [job.outputAssetId, job.thumbnailAssetId].filter(
+    const generated = [job.outputAssetId, job.thumbnailAssetId, ...job.slideAssetIds].filter(
       (assetId): assetId is string => assetId !== null,
     );
     await this.media.deleteGenerated(generated);
+  }
+
+  /** The slides of a finished image output, as ZIP entries (streamed by the controller). */
+  async archive(id: string): Promise<{ fileName: string; entries: ZipEntry[] }> {
+    const job = await this.require(id);
+    if (job.status !== 'done' || job.slideAssetIds.length === 0) {
+      throw new NotFoundError('Slides of render', id);
+    }
+    const assets = await this.media.findMany(job.slideAssetIds);
+    const byId = new Map(assets.map((asset) => [asset.id, asset]));
+    const entries = job.slideAssetIds.flatMap((assetId) => {
+      const asset = byId.get(assetId);
+      return asset
+        ? [
+            {
+              name: asset.originalName,
+              open: async () => (await this.media.openFile(assetId, 'original', undefined)).stream,
+            },
+          ]
+        : [];
+    });
+    return { fileName: job.outputName, entries };
   }
 
   /** SSE for one render: current state first (nothing is missed), then live events. */
@@ -174,6 +200,7 @@ export class RendersService {
     template: TemplateDefinition,
     props: BaseProps,
     quality: QualityPreset,
+    requestedScale: StillScale,
     presetId: string | null,
   ): Promise<CreateRenderResponse> {
     if (!template.formats.includes(props.format)) {
@@ -181,7 +208,12 @@ export class RendersService {
         { path: 'props.format', message: `Supported: ${template.formats.join(', ')}` },
       ]);
     }
-    const warnings = [...(await this.checkMedia(template, props)), ...(await this.checkMusic(props))];
+    const stills = template.output === 'stills';
+    const warnings = [
+      ...(await this.checkMedia(template, props)),
+      // Image outputs have no audio.
+      ...(stills ? [] : await this.checkMusic(props)),
+    ];
     const presetName = presetId ? await this.presets.findName(presetId) : null;
     if (presetId && presetName === null) {
       throw new ValidationFailedError(`Style preset "${presetId}" not found`, [
@@ -197,12 +229,15 @@ export class RendersService {
       props: props as unknown as Record<string, unknown>,
       format: props.format,
       quality,
+      // Videos are always rendered at the format's size.
+      scale: stills ? requestedScale : 1,
       presetId,
       outputName: buildOutputFileName({
         templateId: template.id,
         presetName,
         format: props.format,
         date: new Date(),
+        extension: stills ? 'zip' : 'mp4',
       }),
     });
     try {
@@ -277,7 +312,7 @@ export class RendersService {
 
   private async assetsOf(jobs: readonly RenderJobEntity[]): Promise<Map<string, MediaAssetEntity>> {
     const ids = jobs
-      .flatMap((job) => [job.outputAssetId, job.thumbnailAssetId])
+      .flatMap((job) => [job.outputAssetId, job.thumbnailAssetId, ...job.slideAssetIds])
       .filter((id): id is string => id !== null);
     return new Map((await this.media.findMany(ids)).map((asset) => [asset.id, asset]));
   }

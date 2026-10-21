@@ -1,6 +1,7 @@
 // End-to-end smoke test against a running stack (`make up`, then `make test-e2e`):
 // generate a photo pair -> upload -> render before/after with defaults -> wait for `done`
-// -> check the MP4 with ffprobe. If the fake engine is installed, its template and the
+// -> check the MP4 with ffprobe; render carousel slides at 2x -> check the JPEGs and the
+// ZIP. If the fake engine is installed, its template and the
 // poster-frame preview are checked too. Everything the test creates is deleted again.
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -102,6 +103,45 @@ const waitForRender = async (id: string): Promise<RenderJobDto> => {
   }
 };
 
+/** Image outputs: slides at the scaled size, delivery JPEGs without EXIF, one ZIP of all. */
+const renderAndInspectSlides = async (
+  templateId: string,
+  props: Record<string, unknown>,
+  scale: number,
+  expected: { readonly slides: number; readonly width: number; readonly height: number },
+): Promise<void> => {
+  const job = await postJson(CreateRenderResponseSchema, '/renders', { templateId, props, scale });
+  created.renders.push(job.id);
+  console.log(`  ..  queued ${job.outputName}`);
+  const render = await waitForRender(job.id);
+  check(
+    render.status === 'done',
+    `${templateId}: render finished (${render.status}${render.error ? `: ${render.error}` : ''})`,
+  );
+  check(render.thumbnail !== null, `${templateId}: has a thumbnail`);
+  const slides = render.stills?.slides ?? [];
+  check(slides.length === expected.slides, `${templateId}: ${String(expected.slides)} slides`);
+  for (const slide of slides) {
+    check(
+      slide.width === expected.width && slide.height === expected.height,
+      `${slide.name}: ${String(expected.width)}×${String(expected.height)}`,
+    );
+    const bytes = Buffer.from(await (await fetch(`${API}${slide.url.replace('/api/v1', '')}`)).arrayBuffer());
+    check(bytes[0] === 0xff && bytes[1] === 0xd8, `${slide.name}: JPEG`);
+    check(!bytes.includes(Buffer.from('Exif\0\0', 'latin1')), `${slide.name}: no EXIF`);
+  }
+  const archiveUrl = render.stills?.archiveUrl;
+  if (!archiveUrl) throw new Error('render has no archive');
+  const archive = await fetch(`${API}${archiveUrl.replace('/api/v1', '')}`);
+  const zip = Buffer.from(await archive.arrayBuffer());
+  // Local file headers ("PK\x03\x04"): one per slide.
+  const entries = zip.toString('latin1').split('PK\x03\x04').length - 1;
+  check(
+    archive.headers.get('content-type') === 'application/zip' && entries === expected.slides,
+    `${templateId}: ZIP with ${String(expected.slides)} files`,
+  );
+};
+
 const renderAndInspect = async (
   templateId: string,
   props: Record<string, unknown>,
@@ -162,6 +202,14 @@ try {
     await renderAndInspect('before-after', { media: { before, after } }, dir),
     [1080, 1920],
     13,
+  );
+
+  console.log('carousel slides (images, 2x):');
+  await renderAndInspectSlides(
+    'before-after-carousel',
+    { media: { photos: [before, after, before, after] } },
+    2,
+    { slides: 2, width: 2160, height: 2880 },
   );
 
   if (!engines.some((engine) => engine.id === 'fake')) {

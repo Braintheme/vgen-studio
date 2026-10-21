@@ -1,6 +1,7 @@
 // Isomorphic entry: engine metadata + template definitions, no renderer code.
-import type { EngineManifest } from '@vgen/shared';
+import { FORMAT_IDS, type EngineManifest } from '@vgen/shared';
 import { beforeAfterCardTemplate } from '../templates/before-after-card/manifest.js';
+import { beforeAfterCarouselTemplate } from '../templates/before-after-carousel/manifest.js';
 import { beforeAfterTemplate } from '../templates/before-after/manifest.js';
 import { paletteGradeTemplate } from '../templates/palette-grade/manifest.js';
 import { presetFlipTemplate } from '../templates/preset-flip/manifest.js';
@@ -14,12 +15,14 @@ export const remotionEngineManifest: EngineManifest = {
   name: 'Remotion',
   version: REMOTION_ENGINE_VERSION,
   capabilities: {
-    formats: ['9:16', '16:9', '1:1', '4:5'],
+    formats: FORMAT_IDS,
     fps: [30, 60],
     codecs: ['h264'],
     audio: true,
     maxDurationSec: 120,
     browserPreview: true,
+    // Image outputs: one frame per slide (`renderStills`).
+    stills: true,
   },
   templates: [
     beforeAfterTemplate,
@@ -27,6 +30,7 @@ export const remotionEngineManifest: EngineManifest = {
     presetReelTemplate,
     paletteGradeTemplate,
     presetFlipTemplate,
+    beforeAfterCarouselTemplate,
   ],
 };
 
@@ -40,3 +44,5 @@ export { paletteGradeTemplate } from '../templates/palette-grade/manifest.js';
 export type { PaletteGradeProps } from '../templates/palette-grade/manifest.js';
 export { presetFlipTemplate } from '../templates/preset-flip/manifest.js';
 export type { PresetFlipProps } from '../templates/preset-flip/manifest.js';
+export { beforeAfterCarouselTemplate } from '../templates/before-after-carousel/manifest.js';
+export type { BeforeAfterCarouselProps } from '../templates/before-after-carousel/manifest.js';
