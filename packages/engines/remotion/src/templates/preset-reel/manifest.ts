@@ -26,6 +26,7 @@ import { alignBeforeAfter } from '../../core/pairs/align-pair.js';
 import { checkBeforeAfterMedia } from '../../core/pairs/pair-checks.js';
 import { REVEAL_EFFECTS, revealEffectField, type RevealEffectId } from '../../core/reveals/registry.js';
 import { seamTransitionField } from '../../core/transitions/registry.js';
+import { videoFramingField } from '../../core/video-framing/framing.js';
 import { videoGradeField } from '../../core/video-grade/schema.js';
 import { reelTimeline, type ReelTimeline } from './timeline.js';
 
@@ -52,7 +53,7 @@ const slider = (title: string, min: number, max: number, value: number, step: nu
 export const presetReelTemplate = defineTemplate({
   id: 'preset-reel',
   engine: 'remotion',
-  version: '1.7.0',
+  version: '1.8.0',
   name: 'Preset Reel',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/preset-reel.jpg',
@@ -111,14 +112,7 @@ export const presetReelTemplate = defineTemplate({
     clip: videoRangeField({ label: 'Clip fragment', minSec: 3, maxSec: 30, defaultSec: 12 }),
     // Colour grading of the clip (preview = render; neutral by default).
     clipGrade: videoGradeField(),
-    framing: z
-      .object({
-        zoom: slider('Zoom', 1, 3, 1, 0.05, '×'),
-        x: slider('Move left / right', -1, 1, 0, 0.05),
-        y: slider('Move up / down', -1, 1, 0, 0.05),
-      })
-      .prefault({})
-      .meta({ title: 'Framing', scope: 'content' }),
+    framing: videoFramingField(),
     punchIn: z
       .object({
         enabled: z.boolean().default(true).meta({ title: 'Punch-in on the camera', widget: 'switch' }),

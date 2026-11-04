@@ -19,6 +19,7 @@ import { PARTICLE_SHAPES } from '../../core/particles/burst.js';
 import { beforeAdjustmentsField } from '../../core/photo-adjust/schema.js';
 import { REVEAL_EFFECTS, revealEffectField, type RevealEffectId } from '../../core/reveals/registry.js';
 import { seamTransitionField } from '../../core/transitions/registry.js';
+import { videoFramingField } from '../../core/video-framing/framing.js';
 import { videoGradeField } from '../../core/video-grade/schema.js';
 import { WORD_SWAP_LABELS, WORD_SWAPS } from '../../core/typography/word-swap.js';
 import { DEFAULTS, flipTimeline, type FlipTimeline } from './timeline.js';
@@ -68,7 +69,7 @@ const segmented = <const T extends readonly [string, ...string[]]>(
 export const presetFlipTemplate = defineTemplate({
   id: 'preset-flip',
   engine: 'remotion',
-  version: '1.4.0',
+  version: '1.5.0',
   name: 'Preset Flip',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/preset-flip.jpg',
@@ -110,14 +111,7 @@ export const presetFlipTemplate = defineTemplate({
     clip: videoRangeField({ label: 'Clip fragment', minSec: 2, maxSec: 30, defaultSec: DEFAULTS.clipSec }),
     // Colour grading of the clip (preview = render; neutral by default).
     clipGrade: videoGradeField(),
-    framing: z
-      .object({
-        zoom: slider('Zoom', 1, 3, 1, 0.05, '×'),
-        x: slider('Move left / right', -1, 1, 0, 0.05),
-        y: slider('Move up / down', -1, 1, 0, 0.05),
-      })
-      .prefault({})
-      .meta({ title: 'Framing', scope: 'content' }),
+    framing: videoFramingField(),
     zoomPoint: z
       .object({
         x: slider('Zoom into: left / right', -1, 1, 0, 0.05),

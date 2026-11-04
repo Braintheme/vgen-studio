@@ -77,7 +77,9 @@ defaults, extra)` from `core/typography/typography-field.ts` builds one for typo
   `VideoPlane`.
 - Video: `videoSlot('clip', { label, required, range: 'params.clip' })` plus
   `clip: videoRangeField({ label, minSec, maxSec, defaultSec })` in `params`. The admin shows a
-  trimmer next to the video; the worker cuts that fragment. Draw it with `VideoPlane`.
+  trimmer next to the video; the worker cuts that fragment. Draw it with `VideoPlane`. Add
+  `framing: videoFramingField()` to `params` (a compact row: rotate by quarter turns, zoom, pan)
+  and pass `framing={params.framing}` to `VideoPlane`.
 - List slots (`multiple: { min, max }`) get a sortable gallery in the admin; read them with
   `imageAssets(assets.media, key)`. A list read in groups (before/after pairs) adds
   `group: { size: 2, labels: ['Before', 'After'] }`: the list must hold whole groups (`min` and

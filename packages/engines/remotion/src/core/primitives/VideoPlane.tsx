@@ -2,15 +2,9 @@ import type React from 'react';
 import { Video } from '@remotion/media';
 import type { ResolvedVideo } from '@vgen/shared';
 import { AbsoluteFill, Freeze, Img, useCurrentFrame, useVideoConfig } from 'remotion';
+import { framingOffset, isSideways, type VideoFraming } from '../video-framing/framing.js';
 import { useGradeFilter } from '../video-grade/GradeFilter.js';
 import type { VideoGrade } from '../video-grade/schema.js';
-
-/** Reframing of a video inside the frame: zoom >= 1 and a pan of -1..1 per axis (0 = centered). */
-export interface VideoFraming {
-  readonly zoom: number;
-  readonly x: number;
-  readonly y: number;
-}
 
 /** A zoom about a point of the frame (-1..1 per axis, 0 = center); `scale` 1 = none. */
 export interface FocusZoom {
@@ -33,26 +27,8 @@ export interface VideoPlaneProps {
   readonly grade?: VideoGrade;
 }
 
-/** Pan offsets (px) of a cover-fitted media of `size` zoomed by `zoom` inside `frame`. */
-export const framingOffset = (
-  size: { readonly width: number; readonly height: number },
-  frame: { readonly width: number; readonly height: number },
-  framing: VideoFraming,
-): { readonly width: number; readonly height: number; readonly x: number; readonly y: number } => {
-  const cover = Math.max(frame.width / size.width, frame.height / size.height);
-  const width = size.width * cover;
-  const height = size.height * cover;
-  const zoom = Math.max(1, framing.zoom);
-  return {
-    width,
-    height,
-    x: -framing.x * Math.max(0, (width * zoom - frame.width) / 2),
-    y: -framing.y * Math.max(0, (height * zoom - frame.height) / 2),
-  };
-};
-
 /**
- * A video fragment filling the frame: cover-fitted, reframed (zoom + pan) and optionally
+ * A video fragment filling the frame: cover-fitted, reframed (rotation, zoom, pan) and optionally
  * zoomed about a focus point (punch-ins). Everything moves by transforms only.
  */
 export const VideoPlane: React.FC<VideoPlaneProps> = ({
@@ -68,7 +44,9 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({
   const frame = useCurrentFrame();
   const { width, height, fps } = useVideoConfig();
   const size = video ?? { width, height };
-  const fit = framingOffset(size, { width, height }, framing);
+  // The rotation is for the clip; the placeholder only stands in for it.
+  const rotate = video ? (framing.rotate ?? 0) : 0;
+  const fit = framingOffset(size, { width, height }, { ...framing, rotate });
   const zoom = Math.max(1, framing.zoom);
   const punch = focusZoom ?? { scale: 1, x: 0, y: 0 };
   // Zooming about P keeps P in place: v' = P + s (v - P) = s v + (1 - s) P.
@@ -76,12 +54,16 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({
   const py = (punch.y * height) / 2;
   const outer = `translate(${((1 - punch.scale) * px).toFixed(3)}px, ${((1 - punch.scale) * py).toFixed(3)}px) scale(${punch.scale.toFixed(5)})`;
   const inner = `translate(${fit.x.toFixed(3)}px, ${fit.y.toFixed(3)}px) scale(${zoom.toFixed(5)})`;
+  // `fit` is the size on screen: a quarter-turned element is laid out the other way round.
+  const boxWidth = isSideways(rotate) ? fit.height : fit.width;
+  const boxHeight = isSideways(rotate) ? fit.width : fit.height;
   const media: React.CSSProperties = {
     position: 'absolute',
-    left: (width - fit.width) / 2,
-    top: (height - fit.height) / 2,
-    width: fit.width,
-    height: fit.height,
+    left: (width - boxWidth) / 2,
+    top: (height - boxHeight) / 2,
+    width: boxWidth,
+    height: boxHeight,
+    ...(rotate === 0 ? {} : { transform: `rotate(${String(rotate)}deg)`, transformOrigin: '50% 50%' }),
   };
   const silent = typeof volume === 'number' && volume <= 0;
   return (
