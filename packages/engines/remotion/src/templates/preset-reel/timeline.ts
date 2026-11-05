@@ -10,10 +10,7 @@ export const TIMING = {
   punchIn: 0.2,
   /** The punch-in must leave this much of the clip after it. */
   punchInTail: 0.3,
-  /** Title entrance: first line starts, each line rises, the next one follows. */
-  titleIn: 0.15,
-  titleRise: 0.6,
-  titleStagger: 0.09,
+  /** The title leaves with the punch-in. */
   titleOut: 0.18,
   /** The card photo settles inside its window after the cut. */
   cardSettle: 0.7,
@@ -31,13 +28,15 @@ export interface ReelTimelineInput {
   readonly clipSec: number;
   readonly screens: number;
   readonly screenSec: number;
+  /** False drops the settings section: the clip goes straight into the finale. */
+  readonly showSettings?: boolean;
   readonly beforeHoldSec: number;
   /** Natural length of the chosen reveal effect. */
   readonly revealSec: number;
   readonly afterHoldSec: number;
   /** Punch-in moment, seconds into the clip, or null. */
   readonly punchInAtSec: number | null;
-  /** The shutter clicks this long before the zoom into the settings starts. */
+  /** The shutter clicks this long before the zoom out of the clip starts. */
   readonly shutterBeforeSec: number;
   /** Another finale's own length (the palette process), replacing the card's holds and reveal. */
   readonly finaleSec?: number | null;
@@ -46,6 +45,7 @@ export interface ReelTimelineInput {
 export interface ReelTimeline {
   readonly totalFrames: number;
   readonly clip: Span;
+  /** Empty (`from` = `to`) when the settings section is dropped. */
   readonly settings: Span;
   readonly card: Span;
   readonly seamFrames: number;
@@ -76,7 +76,8 @@ export const reelTimeline = (input: ReelTimelineInput): ReelTimeline => {
   const screens = Math.max(1, input.screens);
   const screenFrames = Math.max(1, frames(input.screenSec));
   const clip = { from: 0, to: clipFrames };
-  const settings = { from: clip.to, to: clip.to + screens * screenFrames };
+  const settingsFrames = input.showSettings === false ? 0 : screens * screenFrames;
+  const settings = { from: clip.to, to: clip.to + settingsFrames };
   const before = frames(input.beforeHoldSec);
   const revealFrames = Math.max(1, frames(input.revealSec));
   const finale = input.finaleSec ?? null;
@@ -105,7 +106,7 @@ export const reelTimeline = (input: ReelTimelineInput): ReelTimeline => {
     punchIn,
     titleExit: punchIn ? punchIn.from : null,
     reveal,
-    // Click, then the zoom into the settings (the seam starts half a seam before the cut).
+    // Click, then the zoom out of the clip (the seam starts half a seam before the cut).
     shutterAt: Math.max(0, clip.to - Math.round(seamFrames / 2) - frames(input.shutterBeforeSec)),
     swooshAt: Math.max(card.from, reveal.from - SWOOSH_LEAD_FRAMES),
   };

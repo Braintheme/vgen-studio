@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { AssetIdSchema } from '../ids.js';
+import { valueAtPath } from '../util.js';
+import type { UiVisibleWhen } from './ui-hints.js';
 
 export const MEDIA_KINDS = ['image', 'audio', 'video'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
@@ -14,6 +16,11 @@ export interface MediaSlot<K extends string = string> {
   readonly label: string;
   readonly description?: string;
   readonly required: boolean;
+  /**
+   * For an optional slot that a setting turns on and off: the slot must be filled while the field
+   * holds one of the values. Otherwise it is off: it may stay empty and the template ignores it.
+   */
+  readonly requiredWhen?: UiVisibleWhen;
   /** Present for list slots (e.g. a slideshow); the value is then an array of asset ids. */
   readonly multiple?: { readonly min: number; readonly max: number };
   /**
@@ -82,6 +89,26 @@ export const mediaSchemaFromSlots = <const Slots extends readonly MediaSlot[]>(s
   // The runtime shape is built from the same slots the mapped type describes.
   return z.object(shape as MediaShape<Slots>).meta({ scope: 'content' });
 };
+
+/** A slot with `requiredWhen` whose setting is currently off (`values`: props or settings). */
+export const isSlotOff = (slot: MediaSlot, values: unknown): boolean => {
+  const when = slot.requiredWhen;
+  if (!when) return false;
+  const value = valueAtPath(values, when.field);
+  return !when.equals.some((expected) => expected === value);
+};
+
+/** Whether a slot must be filled for these values (`values`: props or settings). */
+export const isSlotRequired = (slot: MediaSlot, values: unknown): boolean =>
+  slot.required || (slot.requiredWhen !== undefined && !isSlotOff(slot, values));
+
+/** Slots with `requiredWhen` that must be filled for these props but are empty. */
+export const missingConditionalSlots = (slots: readonly MediaSlot[], props: unknown): MediaSlot[] =>
+  slots.filter((slot) => {
+    if (!slot.requiredWhen || !isSlotRequired(slot, props)) return false;
+    const value = valueAtPath(props, `media.${slot.key}`);
+    return value === null || value === undefined || (Array.isArray(value) && value.length === 0);
+  });
 
 export const imageSlot = <const K extends string, const R extends boolean>(
   key: K,

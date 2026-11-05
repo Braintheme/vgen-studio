@@ -11,6 +11,7 @@ import {
   type RemotionTemplateProps,
 } from '../../core/composition.js';
 import { fontFamily, useFonts } from '../../core/fonts.js';
+import { titleFonts } from '../../core/styled-title/fields.js';
 import { useLayout } from '../../core/hooks.js';
 import { Grain, Vignette } from '../../core/primitives/Overlays.js';
 import { SeamedSection, type Seam } from '../../core/transitions/SeamedSection.js';
@@ -28,7 +29,12 @@ export const PresetReel: React.FC<RemotionTemplateProps<PresetReelProps>> = ({ p
   const { fps } = useVideoConfig();
   const layout = useLayout();
   const { params, style } = props;
-  const fontsLoaded = useFonts([style.fonts.heading, style.fonts.body, params.titleAccentFont]);
+  const fontsLoaded = useFonts([
+    style.fonts.heading,
+    style.fonts.body,
+    params.titleAccentFont,
+    ...titleFonts(params.titleStyle),
+  ]);
   const timeline = useMemo(() => timelineOf(props), [props]);
   const palette = useMemo(() => paletteTimelineOf(props), [props]);
 
@@ -38,6 +44,7 @@ export const PresetReel: React.FC<RemotionTemplateProps<PresetReelProps>> = ({ p
     transition: params.toSettings,
   };
   const toCard: Seam = { at: timeline.card.from, frames: timeline.seamFrames, transition: params.toCard };
+  const hasSettings = timeline.settings.to > timeline.settings.from;
   const before = useAdjustedPhoto(
     imageAsset(assets.media, 'before')?.src ?? BEFORE_PLACEHOLDER,
     props.params.adjust.before,
@@ -49,7 +56,12 @@ export const PresetReel: React.FC<RemotionTemplateProps<PresetReelProps>> = ({ p
 
   return (
     <AbsoluteFill style={{ backgroundColor: style.colors.background, overflow: 'hidden' }}>
-      <SeamedSection from={timeline.clip.from} to={timeline.clip.to} exit={toSettings} layout={layout}>
+      <SeamedSection
+        from={timeline.clip.from}
+        to={timeline.clip.to}
+        exit={hasSettings ? toSettings : toCard}
+        layout={layout}
+      >
         {(local) => (
           <ClipSection
             frame={local}
@@ -61,24 +73,26 @@ export const PresetReel: React.FC<RemotionTemplateProps<PresetReelProps>> = ({ p
           />
         )}
       </SeamedSection>
-      <SeamedSection
-        from={timeline.settings.from}
-        to={timeline.settings.to}
-        enter={toSettings}
-        exit={toCard}
-        layout={layout}
-      >
-        {(local) => (
-          <SettingsSection
-            frame={local}
-            fps={fps}
-            layout={layout}
-            props={props}
-            screens={imageAssets(assets.media, 'settings')}
-            timeline={timeline}
-          />
-        )}
-      </SeamedSection>
+      {hasSettings ? (
+        <SeamedSection
+          from={timeline.settings.from}
+          to={timeline.settings.to}
+          enter={toSettings}
+          exit={toCard}
+          layout={layout}
+        >
+          {(local) => (
+            <SettingsSection
+              frame={local}
+              fps={fps}
+              layout={layout}
+              props={props}
+              screens={imageAssets(assets.media, 'settings')}
+              timeline={timeline}
+            />
+          )}
+        </SeamedSection>
+      ) : null}
       <SeamedSection from={timeline.card.from} to={timeline.card.to} enter={toCard} layout={layout}>
         {(local) =>
           palette ? (

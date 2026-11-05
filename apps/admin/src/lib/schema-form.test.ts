@@ -196,6 +196,52 @@ describe('columns', () => {
   });
 });
 
+describe('popovers over flat fields', () => {
+  const template = defineTemplate({
+    id: 'flat-popover-test',
+    engine: 'fixture',
+    version: '1.0.0',
+    name: 'Flat popover',
+    description: 'Test template',
+    mediaSlots: [],
+    duration: { default: 10, min: 5, max: 20 },
+    texts: {},
+    params: {
+      style: z.enum(['a', 'b', 'c', 'd']).default('a'),
+      size: z.number().min(0).max(2).default(1).meta({ widget: 'slider' }),
+      shadow: z.object({ blur: z.number().min(0).max(9).default(1).meta({ widget: 'slider' }) }).prefault({}),
+      gone: z.number().min(0).max(2).default(1).meta({ widget: 'slider' }),
+    },
+    posterFrame: () => 0,
+  });
+  const schema = z.toJSONSchema(template.settingsSchema, { io: 'input' }) as Record<string, unknown>;
+  const build = (fields: readonly string[], hidden: readonly string[] = []) =>
+    buildFormSections(
+      schema,
+      [{ id: 't', title: 'T', paths: ['params.style'], popovers: [{ id: 'p', label: 'Look', fields }] }],
+      hidden,
+    )[0]?.fields;
+
+  it('adds a compact row after the section fields, at the fields own paths', () => {
+    const fields = build(['params.size', 'params.shadow']);
+    expect(fields?.map((field) => [field.kind, field.path])).toEqual([
+      ['select', 'params.style'],
+      ['popover', 't.p'],
+    ]);
+    const row = fields?.[1];
+    expect(row?.kind === 'popover' && row.label).toBe('Look');
+    expect(row?.kind === 'popover' && row.fields.map((field) => field.path)).toEqual([
+      'params.size',
+      'params.shadow.blur',
+    ]);
+  });
+
+  it('drops a row with nothing to show', () => {
+    expect(build(['params.gone'], ['params.gone'])?.map((field) => field.kind)).toEqual(['select']);
+    expect(build(['params.nope'])?.map((field) => field.kind)).toEqual(['select']);
+  });
+});
+
 describe('visibleSections', () => {
   const sections = buildFormSections(schema, [
     { id: 'always', title: 'Always', paths: ['params.mode'] },

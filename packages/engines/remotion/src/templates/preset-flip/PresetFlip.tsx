@@ -12,6 +12,8 @@ import {
   type RemotionTemplateProps,
 } from '../../core/composition.js';
 import { fontFamily, useFonts } from '../../core/fonts.js';
+import { titleFonts } from '../../core/styled-title/fields.js';
+import { StyledTitle } from '../../core/styled-title/StyledTitle.js';
 import { useLayout } from '../../core/hooks.js';
 import type { Layout } from '../../core/layout.js';
 import { useAdjustedPhoto } from '../../core/photo-adjust/useAdjustedPhoto.js';
@@ -24,7 +26,6 @@ import { RevealEffect } from '../../core/reveals/RevealEffect.js';
 import { SeamedSection, type Seam } from '../../core/transitions/SeamedSection.js';
 import { cameraAt } from './camera.js';
 import { CtaTitle } from './CtaTitle.js';
-import { FlipTitle } from './FlipTitle.js';
 import { timelineOf, type PresetFlipProps } from './manifest.js';
 import { PaletteFx } from './PaletteFx.js';
 import { labelCenterY, PresetLabel, type LabelSwap } from './PresetLabel.js';
@@ -85,9 +86,7 @@ export const PresetFlip: React.FC<RemotionTemplateProps<PresetFlipProps>> = ({ p
   const layout = useLayout();
   const { params, texts, style } = props;
   const accentFont = params.titleAccentFont;
-  const fonts: FontId[] = ['montserrat', 'anton', 'league-gothic', accentFont];
-  if (params.titleStyle === 'stack') fonts.push('bebas-neue');
-  if (params.titleStyle === 'editorial') fonts.push('playfair-display');
+  const fonts: FontId[] = ['anton', 'league-gothic', accentFont, ...titleFonts(params.titleStyle)];
   useFonts(fonts);
   const timeline = useMemo(() => timelineOf(props), [props]);
 
@@ -184,7 +183,7 @@ export const PresetFlip: React.FC<RemotionTemplateProps<PresetFlipProps>> = ({ p
         }
       </SeamedSection>
       {frame < timeline.cut ? (
-        <FlipTitle
+        <StyledTitle
           frame={frame}
           fps={fps}
           layout={layout}

@@ -1,7 +1,70 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { ASSET_A, ASSET_B, fixtureTemplate } from '../testing/fixtures.js';
-import { parseTemplateProps, resolveTemplateDefaults } from './definition.js';
+import { assertValidTemplate } from '../registry/validate-template.js';
+import { defineTemplate, parseTemplateProps, resolveTemplateDefaults } from './definition.js';
+import { isSlotOff, isSlotRequired } from './media-slots.js';
+
+describe('a slot with requiredWhen', () => {
+  const slot = {
+    key: 'shots',
+    kind: 'image',
+    label: 'Shots',
+    required: false,
+    requiredWhen: { field: 'params.show', equals: [true] },
+    multiple: { min: 1, max: 3 },
+  } as const;
+  const template = defineTemplate({
+    id: 'conditional',
+    engine: 'fixture',
+    version: '1.0.0',
+    name: 'Conditional',
+    description: 'Test template',
+    mediaSlots: [slot],
+    duration: { default: 10, min: 5, max: 20 },
+    texts: {},
+    params: { show: z.boolean().default(true) },
+    posterFrame: () => 0,
+  });
+
+  it('must be filled while its setting is on', () => {
+    const result = parseTemplateProps(template, { media: {} });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]).toMatchObject({ path: ['media', 'shots'], message: 'Shots is required' });
+    expect(parseTemplateProps(template, { media: { shots: [ASSET_A] } }).success).toBe(true);
+  });
+
+  it('may stay empty, or keep its files, while its setting is off', () => {
+    const params = { show: false };
+    expect(parseTemplateProps(template, { media: {}, params }).data?.media).toEqual({ shots: [] });
+    expect(parseTemplateProps(template, { media: { shots: [ASSET_A] }, params }).success).toBe(true);
+  });
+
+  it('reports its state; slots without the condition are never off', () => {
+    expect(isSlotOff(slot, { params: { show: false } })).toBe(true);
+    expect(isSlotRequired(slot, { params: { show: false } })).toBe(false);
+    expect(isSlotOff(slot, { params: { show: true } })).toBe(false);
+    expect(isSlotRequired(slot, { params: { show: true } })).toBe(true);
+    const plain = { key: 'a', kind: 'image', label: 'A', required: true } as const;
+    expect(isSlotOff(plain, {})).toBe(false);
+    expect(isSlotRequired(plain, {})).toBe(true);
+  });
+
+  it('is checked at registration', () => {
+    expect(() => {
+      assertValidTemplate({ ...template, mediaSlots: [{ ...slot, required: true }] });
+    }).toThrow(/needs an optional slot/);
+    expect(() => {
+      assertValidTemplate({
+        ...template,
+        mediaSlots: [{ ...slot, requiredWhen: { field: 'params.nope', equals: [true] } }],
+      });
+    }).toThrow(/unknown field "params.nope"/);
+    expect(() => {
+      assertValidTemplate(template);
+    }).not.toThrow();
+  });
+});
 
 describe('defineTemplate', () => {
   it('resolves defaults: base defaults <- template overrides', () => {

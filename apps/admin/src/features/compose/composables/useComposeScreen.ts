@@ -104,7 +104,7 @@ export const useComposeScreen = (): ComposeScreen => {
     validate: validateMedia,
     assets,
     ...media
-  } = useMediaSlots(template, draft.media, draft.setMedia, reportDraftFix);
+  } = useMediaSlots(template, draft.media, draft.setMedia, reportDraftFix, settings);
   const picker = useMediaPicker(template, draft.media, media.pick);
   const videoRanges = useComposeVideoRanges({
     template,

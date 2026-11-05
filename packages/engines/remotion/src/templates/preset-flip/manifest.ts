@@ -18,15 +18,19 @@ import { checkPhotoSetMedia } from '../../core/pairs/pair-checks.js';
 import { PARTICLE_SHAPES } from '../../core/particles/burst.js';
 import { beforeAdjustmentsField } from '../../core/photo-adjust/schema.js';
 import { REVEAL_EFFECTS, revealEffectField, type RevealEffectId } from '../../core/reveals/registry.js';
+import {
+  TITLE_ENTRANCE_LABELS,
+  TITLE_ENTRANCES,
+  TITLE_STYLE_LABELS,
+  TITLE_STYLES,
+  titleLayoutFields,
+} from '../../core/styled-title/fields.js';
 import { seamTransitionField } from '../../core/transitions/registry.js';
 import { videoFramingField } from '../../core/video-framing/framing.js';
 import { videoGradeField } from '../../core/video-grade/schema.js';
 import { WORD_SWAP_LABELS, WORD_SWAPS } from '../../core/typography/word-swap.js';
 import { DEFAULTS, flipTimeline, type FlipTimeline } from './timeline.js';
 
-export const TITLE_STYLES = ['classic', 'plate', 'sticker', 'stack', 'editorial'] as const;
-export const TITLE_ENTRANCES = ['none', 'rise', 'pop'] as const;
-export const TITLE_POSITIONS = ['top', 'center', 'bottom'] as const;
 export const LABEL_SWAPS = ['cut', ...WORD_SWAPS] as const;
 export const LABEL_POSITIONS = ['top', 'center', 'bottom'] as const;
 export const CTA_ENTRANCES = ['cut', 'slice', 'pop'] as const;
@@ -131,44 +135,13 @@ export const presetFlipTemplate = defineTemplate({
     titleStyle: z
       .enum(TITLE_STYLES)
       .default('classic')
-      .meta({
-        title: 'Title style',
-        widget: 'select',
-        optionLabels: {
-          classic: 'Classic (POV)',
-          plate: 'On a dark plate (bright videos)',
-          sticker: 'Stickers',
-          stack: 'Bold stack',
-          editorial: 'Editorial',
-        },
-      }),
+      .meta({ title: 'Title style', widget: 'select', optionLabels: TITLE_STYLE_LABELS }),
     titleColor: ColorSchema.default('#ffffff').meta({ title: 'Title colour' }),
     titleAccent: ColorSchema.default('#fccb04').meta({ title: 'Title accent colour' }),
     titleAccentFont: FontIdSchema.default('courgette').meta({ title: 'Accent word font', widget: 'font' }),
     titleSize: slider('Title size', 0.7, 1.4, 1, 0.05, '×'),
-    titlePosition: segmented(TITLE_POSITIONS, 'top', 'Title position', {
-      top: 'Top',
-      center: 'Center',
-      bottom: 'Bottom',
-    }),
-    titleOffsetY: slider('Title: move down / up', -300, 300, 0, 2, 'px'),
-    titleKickerGap: slider('Space under the first line', -60, 80, 0, 1, 'px'),
-    titleLineGap: slider('Space above the last line', -60, 80, -5, 1, 'px'),
-    titleTailWeight: slider('Last line thickness', 100, 900, 500, 50),
-    titleShadow: z
-      .object({
-        opacity: slider('Shadow strength', 0, 1, 0.45, 0.05),
-        blur: slider('Shadow softness', 0, 60, 20, 1, 'px'),
-        x: slider('Shadow left / right', -30, 30, 0, 1, 'px'),
-        y: slider('Shadow up / down', -30, 30, 4, 1, 'px'),
-      })
-      .prefault({})
-      .meta({ title: 'Title shadow' }),
-    titleEntrance: segmented(TITLE_ENTRANCES, 'none', 'Title entrance', {
-      none: 'None',
-      rise: 'Rise',
-      pop: 'Pop',
-    }),
+    ...titleLayoutFields({ lineGap: -5, shadow: { opacity: 0.45, blur: 20, x: 0, y: 4 } }),
+    titleEntrance: segmented(TITLE_ENTRANCES, 'none', 'Title entrance', TITLE_ENTRANCE_LABELS),
 
     // Photos
     revealEffect: revealEffectField({ title: 'Photo change', default: 'crossfade' }),
@@ -269,22 +242,27 @@ export const presetFlipTemplate = defineTemplate({
       {
         id: 'title',
         label: 'Title',
-        fields: [
-          'texts.titleKicker',
-          'texts.titleHero',
-          'texts.titleTail',
-          'params.titleStyle',
-          'params.titleColor',
-          'params.titleAccent',
-          'params.titleAccentFont',
-          'params.titleSize',
-          'params.titlePosition',
-          'params.titleOffsetY',
-          'params.titleKickerGap',
-          'params.titleLineGap',
-          'params.titleTailWeight',
-          'params.titleShadow',
-          'params.titleEntrance',
+        fields: ['texts.titleKicker', 'texts.titleHero', 'texts.titleTail', 'params.titleStyle'],
+        popovers: [
+          {
+            id: 'title-font',
+            label: 'Font & entrance',
+            fields: ['params.titleAccentFont', 'params.titleEntrance'],
+          },
+          { id: 'title-colors', label: 'Colours', fields: ['params.titleColor', 'params.titleAccent'] },
+          {
+            id: 'title-layout',
+            label: 'Size & position',
+            fields: [
+              'params.titleSize',
+              'params.titlePosition',
+              'params.titleOffsetY',
+              'params.titleKickerGap',
+              'params.titleLineGap',
+              'params.titleTailWeight',
+            ],
+          },
+          { id: 'title-shadow', label: 'Shadow', fields: ['params.titleShadow'] },
         ],
       },
       {

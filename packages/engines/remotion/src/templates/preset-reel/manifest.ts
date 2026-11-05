@@ -25,13 +25,14 @@ import { backgroundField } from '../../core/backgrounds/registry.js';
 import { alignBeforeAfter } from '../../core/pairs/align-pair.js';
 import { checkBeforeAfterMedia } from '../../core/pairs/pair-checks.js';
 import { REVEAL_EFFECTS, revealEffectField, type RevealEffectId } from '../../core/reveals/registry.js';
+import { TITLE_STYLE_LABELS, TITLE_STYLES, titleLayoutFields } from '../../core/styled-title/fields.js';
 import { seamTransitionField } from '../../core/transitions/registry.js';
 import { videoFramingField } from '../../core/video-framing/framing.js';
 import { videoGradeField } from '../../core/video-grade/schema.js';
 import { reelTimeline, type ReelTimeline } from './timeline.js';
 
 export const TITLE_SIZES = ['s', 'm', 'l'] as const;
-export const TITLE_ANIMATIONS = ['rise', 'none'] as const;
+export const TITLE_ANIMATIONS = ['rise', 'none', 'pop'] as const;
 export const FINALES = ['card', 'palette'] as const;
 
 /** Transitions that suit a zoom between sections. */
@@ -53,7 +54,7 @@ const slider = (title: string, min: number, max: number, value: number, step: nu
 export const presetReelTemplate = defineTemplate({
   id: 'preset-reel',
   engine: 'remotion',
-  version: '1.8.0',
+  version: '1.10.0',
   name: 'Preset Reel',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/preset-reel.jpg',
@@ -70,7 +71,9 @@ export const presetReelTemplate = defineTemplate({
       key: 'settings',
       kind: 'image',
       label: 'Settings screenshots',
-      required: true,
+      required: false,
+      // Off for a reel without settings: the files may stay here, unused.
+      requiredWhen: { field: 'params.showSettings', equals: [true] },
       description: 'In the order they are shown',
       multiple: { min: 1, max: 25 },
     },
@@ -129,6 +132,14 @@ export const presetReelTemplate = defineTemplate({
         volume: slider('Clip volume', 0, 1, 0.6, 0.05),
       })
       .prefault({}),
+    titleStyle: z
+      .enum(['reel', ...TITLE_STYLES])
+      .default('reel')
+      .meta({
+        title: 'Title style',
+        widget: 'select',
+        optionLabels: { reel: 'Reel', ...TITLE_STYLE_LABELS },
+      }),
     titleSize: z
       .enum(TITLE_SIZES)
       .default('m')
@@ -137,11 +148,25 @@ export const presetReelTemplate = defineTemplate({
         widget: 'segmented',
         optionLabels: { s: 'Small', m: 'Medium', l: 'Large' },
       }),
-    titleAccentFont: FontIdSchema.default('jetbrains-mono').meta({ title: 'Accent font', widget: 'font' }),
+    // On top of the size above, which older presets hold.
+    titleScale: slider('Fine size', 0.7, 1.4, 1, 0.05, '×'),
+    titleOwnColors: z.boolean().default(false).meta({ title: 'Own title colours', widget: 'switch' }),
+    titleColor: ColorSchema.default('#ffffff').meta({ title: 'Title colour' }),
+    titleAccent: ColorSchema.default('#e4f028').meta({ title: 'Title accent colour' }),
+    titleAccentFont: FontIdSchema.default('jetbrains-mono').meta({
+      title: 'Accent word font',
+      widget: 'font',
+    }),
+    ...titleLayoutFields({ lineGap: 0, shadow: { opacity: 0.35, blur: 12, x: 0, y: 2 } }),
     titleAnimation: z
       .enum(TITLE_ANIMATIONS)
       .default('rise')
-      .meta({ title: 'Title entrance', widget: 'segmented', optionLabels: { rise: 'Rise', none: 'None' } }),
+      .meta({
+        title: 'Title entrance',
+        widget: 'segmented',
+        optionLabels: { rise: 'Rise', none: 'None', pop: 'Pop' },
+      }),
+    showSettings: z.boolean().default(true).meta({ title: 'Show the screenshots', widget: 'switch' }),
     background: backgroundField({ title: 'Settings background', default: 'light-streaks' }),
     screenSec: slider('Time per screenshot', 0.3, 3, 0.8, 0.05, 's'),
     screenBorder: z
@@ -152,7 +177,6 @@ export const presetReelTemplate = defineTemplate({
       })
       .prefault({}),
     panelFloat: z.boolean().default(true).meta({ title: 'Screenshots float gently', widget: 'switch' }),
-    // Pinned to the effects it shipped with: effects added to the registry later are opt-in.
     // The last scene: the instant card (the reference), or palette-grade's process full screen.
     finale: z
       .enum(FINALES)
@@ -168,6 +192,7 @@ export const presetReelTemplate = defineTemplate({
         afterHoldSec: slider('After photo holds', HOLD_SEC.minOutro, 6, 2.3, 0.1, 's'),
       })
       .prefault({}),
+    // Pinned to the effects it shipped with: effects added to the registry later are opt-in.
     revealEffect: revealEffectField({
       title: 'Before / after transition',
       allowed: ['diagonal-wipe', 'circle-reveal', 'blinds', 'split-slider', 'slide-over', 'line-wipe'],
@@ -181,8 +206,8 @@ export const presetReelTemplate = defineTemplate({
       allowed: SEAM_OPTIONS,
       default: 'punch-zoom',
     }),
-    toCard: seamTransitionField({ title: 'Settings → card', allowed: SEAM_OPTIONS, default: 'punch-zoom' }),
-    shutterSound: soundEffectField({ label: 'Shutter sound before the settings' }),
+    toCard: seamTransitionField({ title: 'Into the finale', allowed: SEAM_OPTIONS, default: 'punch-zoom' }),
+    shutterSound: soundEffectField({ label: 'Shutter sound before the zoom' }),
     shutterBeforeSec: slider('Shutter before the zoom', 0.2, 1.5, 0.6, 0.05, 's'),
     // Starts with the wipe inside the card, whatever its length (short built-in or a long track).
     swooshSound: soundEffectField({ label: 'Swoosh on the before / after', volume: 0.6 }),
@@ -208,24 +233,46 @@ export const presetReelTemplate = defineTemplate({
       {
         id: 'title',
         label: 'Title',
-        fields: [
-          'texts.titleLead',
-          'texts.titleHero',
-          'texts.titleTail',
-          'params.titleSize',
-          'params.titleAccentFont',
-          'params.titleAnimation',
+        fields: ['texts.titleLead', 'texts.titleHero', 'texts.titleTail', 'params.titleStyle'],
+        popovers: [
+          {
+            id: 'title-font',
+            label: 'Font & entrance',
+            fields: ['params.titleAccentFont', 'params.titleAnimation'],
+          },
+          {
+            id: 'title-colors',
+            label: 'Colours',
+            fields: ['params.titleOwnColors', 'params.titleColor', 'params.titleAccent'],
+          },
+          {
+            id: 'title-layout',
+            label: 'Size & position',
+            fields: [
+              'params.titleSize',
+              'params.titleScale',
+              'params.titlePosition',
+              'params.titleOffsetY',
+              'params.titleKickerGap',
+              'params.titleLineGap',
+              'params.titleTailWeight',
+            ],
+          },
+          { id: 'title-shadow', label: 'Shadow', fields: ['params.titleShadow'] },
         ],
       },
+      { id: 'settings', label: 'Settings screenshots', fields: ['params.showSettings'] },
       {
-        id: 'settings',
-        label: 'Settings screenshots',
+        id: 'settings-look',
+        label: 'Settings screenshots: look',
+        visibleWhen: { field: 'params.showSettings', equals: [true] },
         fields: [
           'texts.settingsTitle',
           'params.background',
           'params.screenSec',
           'params.screenBorder',
           'params.panelFloat',
+          'params.toSettings',
         ],
       },
       { id: 'finale', label: 'Finale', fields: ['params.finale'] },
@@ -254,13 +301,7 @@ export const presetReelTemplate = defineTemplate({
       {
         id: 'seams',
         label: 'Transitions & sounds',
-        fields: [
-          'params.toSettings',
-          'params.toCard',
-          'params.shutterSound',
-          'params.shutterBeforeSec',
-          'params.swooshSound',
-        ],
+        fields: ['params.toCard', 'params.shutterSound', 'params.shutterBeforeSec', 'params.swooshSound'],
       },
       { id: 'photos', label: 'Photo adjustments', fields: ['params.adjust'] },
     ],
@@ -294,6 +335,7 @@ interface TimelineProps {
   readonly params: {
     readonly clip: VideoRange;
     readonly screenSec: number;
+    readonly showSettings: boolean;
     readonly beforeHoldSec: number;
     readonly afterHoldSec: number;
     readonly revealEffect: RevealEffectId;
@@ -321,7 +363,7 @@ export function paletteTimelineOf(props: TimelineProps): GradeTimeline | null {
   });
 }
 
-/** The timeline of given props (screens = uploaded screenshots; at least one is shown). */
+/** The timeline of given props (screens = uploaded screenshots; at least one, unless the section is off). */
 export function timelineOf(props: TimelineProps): ReelTimeline {
   const palette = paletteTimelineOf(props);
   const { params } = props;
@@ -331,6 +373,7 @@ export function timelineOf(props: TimelineProps): ReelTimeline {
     clipSec: videoRangeSec(params.clip),
     screens: Array.isArray(screens) ? screens.length : 0,
     screenSec: params.screenSec,
+    showSettings: params.showSettings,
     beforeHoldSec: params.beforeHoldSec,
     revealSec: REVEAL_EFFECTS.get(params.revealEffect).durationSec,
     afterHoldSec: params.afterHoldSec,

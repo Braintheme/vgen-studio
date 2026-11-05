@@ -28,7 +28,20 @@ export class TemplatesService {
       ui: template.ui
         ? {
             ...(template.ui.groups
-              ? { groups: template.ui.groups.map((group) => ({ ...group, fields: [...group.fields] })) }
+              ? {
+                  groups: template.ui.groups.map(({ popovers, ...group }) => ({
+                    ...group,
+                    fields: [...group.fields],
+                    ...(popovers
+                      ? {
+                          popovers: popovers.map((popover) => ({
+                            ...popover,
+                            fields: [...popover.fields],
+                          })),
+                        }
+                      : {}),
+                  })),
+                }
               : {}),
             ...(template.ui.slotActions
               ? {
@@ -59,6 +72,9 @@ export class TemplatesService {
         kind: slot.kind,
         label: slot.label,
         required: slot.required,
+        ...(slot.requiredWhen
+          ? { requiredWhen: { field: slot.requiredWhen.field, equals: [...slot.requiredWhen.equals] } }
+          : {}),
         ...(slot.description ? { description: slot.description } : {}),
         ...(slot.multiple ? { multiple: { ...slot.multiple } } : {}),
         ...(slot.group ? { group: { size: slot.group.size, labels: [...slot.group.labels] } } : {}),

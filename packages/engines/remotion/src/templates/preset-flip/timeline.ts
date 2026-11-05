@@ -9,10 +9,6 @@ export const TIMING = {
   seam: 0.72,
   /** Label number swaps (when animated) take this long, centred on the label change. */
   labelSwap: 0.32,
-  /** Title entrance: first line starts, each line takes this long, the next follows. */
-  titleIn: 0.15,
-  titleLine: 0.6,
-  titleStagger: 0.09,
   /** CTA entrance (when animated). */
   ctaIn: 0.4,
   /** Palette effects: dot pop-in, stagger between dots, pop-out; burst flight. */

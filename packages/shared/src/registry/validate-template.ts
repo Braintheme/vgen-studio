@@ -2,6 +2,7 @@ import { TemplateDefinitionError } from '../errors.js';
 import type { EngineManifest } from '../engine/engine.js';
 import { SLUG_PATTERN } from '../ids.js';
 import type { TemplateDefinition } from '../template/definition.js';
+import { valueAtPath } from '../util.js';
 
 const SLOT_KEY_PATTERN = /^[a-z][a-zA-Z0-9]*$/;
 
@@ -30,6 +31,9 @@ export const assertValidTemplate = (template: TemplateDefinition, engine?: Engin
     }
   }
   for (const slot of template.mediaSlots) {
+    if (slot.requiredWhen && slot.required) {
+      problems.push(`media slot "${slot.key}": requiredWhen needs an optional slot (required: false)`);
+    }
     const { group, multiple } = slot;
     if (!group) continue;
     if (!multiple) {
@@ -53,6 +57,13 @@ export const assertValidTemplate = (template: TemplateDefinition, engine?: Engin
   if (!defaults.success) {
     const details = defaults.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
     problems.push(`defaults do not match the schema (${details.join('; ')})`);
+  } else {
+    for (const slot of template.mediaSlots) {
+      const field = slot.requiredWhen?.field;
+      if (field !== undefined && valueAtPath(defaults.data, field) === undefined) {
+        problems.push(`media slot "${slot.key}": requiredWhen references unknown field "${field}"`);
+      }
+    }
   }
 
   if (engine) {

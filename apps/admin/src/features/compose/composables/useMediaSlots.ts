@@ -1,5 +1,12 @@
-import type { MediaAssetDto, MediaInfo, MediaWarning, TemplateDefinition } from '@vgen/shared';
-import { computed, reactive, watch, type ComputedRef } from 'vue';
+import {
+  isSlotOff,
+  isSlotRequired,
+  type MediaAssetDto,
+  type MediaInfo,
+  type MediaWarning,
+  type TemplateDefinition,
+} from '@vgen/shared';
+import { computed, reactive, watch, type ComputedRef, type Ref } from 'vue';
 import { useNotify } from '@/composables/useNotify';
 import { compareFileNames } from '@/lib/file-names';
 import { useMediaAssets, useUploadMediaMutation } from '@/queries/media';
@@ -30,6 +37,9 @@ export interface MediaSlotsState {
   readonly validate: () => boolean;
 }
 
+/** Shown on a slot whose setting is off: its files stay but do not reach the video. */
+const SLOT_OFF_NOTE = 'Turned off: not used';
+
 const idsOf = (value: DraftMedia[string] | undefined): string[] =>
   value === null || value === undefined ? [] : typeof value === 'string' ? [value] : [...value];
 
@@ -49,6 +59,8 @@ export const useMediaSlots = (
   setMedia: (media: DraftMedia) => void,
   /** Reports an automatic fix (media deleted since the draft was saved). */
   report: (line: string) => void,
+  /** Current settings: a setting can turn a slot off (`requiredWhen`). */
+  settings: Readonly<Ref<unknown>>,
 ): MediaSlotsState => {
   const notify = useNotify();
   const uploadMutation = useUploadMediaMutation();
@@ -90,22 +102,25 @@ export const useMediaSlots = (
   );
 
   const slots = computed<MediaSlotView[]>(() =>
-    template.mediaSlots.map((slot) => ({
-      key: slot.key,
-      kind: slot.kind,
-      label: slot.label,
-      description: slot.description ?? null,
-      required: slot.required,
-      multiple: slot.multiple !== undefined,
-      maxItems: slot.multiple?.max ?? 1,
-      group: slot.group ?? null,
-      accept: ACCEPT_BY_SLOT_KIND[slot.kind],
-      assets: idsOf(media.value[slot.key])
-        .map((id) => assets.value.get(id))
-        .filter((asset): asset is MediaAssetDto => asset !== undefined),
-      uploadProgress: uploads.get(slot.key) ?? null,
-      error: errors.get(slot.key) ?? null,
-    })),
+    template.mediaSlots.map((slot) => {
+      const off = isSlotOff(slot, settings.value);
+      return {
+        key: slot.key,
+        kind: slot.kind,
+        label: slot.label,
+        description: off ? SLOT_OFF_NOTE : (slot.description ?? null),
+        required: isSlotRequired(slot, settings.value),
+        multiple: slot.multiple !== undefined,
+        maxItems: slot.multiple?.max ?? 1,
+        group: slot.group ?? null,
+        accept: ACCEPT_BY_SLOT_KIND[slot.kind],
+        assets: idsOf(media.value[slot.key])
+          .map((id) => assets.value.get(id))
+          .filter((asset): asset is MediaAssetDto => asset !== undefined),
+        uploadProgress: uploads.get(slot.key) ?? null,
+        error: off ? null : (errors.get(slot.key) ?? null),
+      };
+    }),
   );
 
   const actions = computed<SlotActionView[]>(() =>
@@ -232,7 +247,7 @@ export const useMediaSlots = (
     validate: () => {
       let valid = true;
       for (const slot of template.mediaSlots) {
-        if (slot.required && idsOf(media.value[slot.key]).length === 0) {
+        if (isSlotRequired(slot, settings.value) && idsOf(media.value[slot.key]).length === 0) {
           errors.set(slot.key, `${slot.label} is required`);
           valid = false;
         }

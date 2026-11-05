@@ -25,9 +25,15 @@ const layoutFor = (template: TemplateDefinition, schema: Record<string, unknown>
     id: group.id,
     title: group.label,
     paths: group.fields,
+    ...(group.popovers ? { popovers: group.popovers } : {}),
     ...(group.visibleWhen ? { visibleWhen: group.visibleWhen } : {}),
   }));
-  const grouped = new Set(groups.flatMap((group) => group.paths));
+  const grouped = new Set(
+    groups.flatMap((group) => [
+      ...group.paths,
+      ...(group.popovers ?? []).flatMap((popover) => popover.fields),
+    ]),
+  );
   const leftovers = TEMPLATE_ROOTS.flatMap((root) => childPaths(schema, root)).filter(
     (path) => !grouped.has(path),
   );

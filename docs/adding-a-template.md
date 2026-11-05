@@ -59,6 +59,10 @@ Rules that keep everything else automatic:
   of its values, colour swatches) that opens its fields in a popover. `typographyField(title,
 defaults, extra)` from `core/typography/typography-field.ts` builds one for typography (font,
   weight, size, letter spacing, line height + the template's colours / gaps).
+- Compact rows over flat fields: `popovers: [{ id, label, fields: ['params.a', 'params.b'] }]` in a
+  group shows those fields as one row after the group's `fields`, with the same popover. Use it
+  when the fields already hold stored values: moving them into an object would lose them in
+  presets and drafts.
 - Enum options can carry icons: `optionIcons: { rows: 'layout-rows', columns: 'layout-columns' }`
   turns a segmented control into icon tiles (generic ids such as `layout-rows`, `layout-columns`, `align-top` / `align-middle` /
   `align-bottom`, mapped in
@@ -80,6 +84,10 @@ defaults, extra)` from `core/typography/typography-field.ts` builds one for typo
   trimmer next to the video; the worker cuts that fragment. Draw it with `VideoPlane`. Add
   `framing: videoFramingField()` to `params` (a compact row: rotate by quarter turns, zoom, pan)
   and pass `framing={params.framing}` to `VideoPlane`.
+- A slot a setting turns on and off: `required: false` plus `requiredWhen: { field, equals }`. It
+  must be filled only while the field holds one of the values (form, API, worker snapshot);
+  otherwise it may stay empty, its files are kept, the admin marks it as off and the template
+  ignores it. See `settings` and `params.showSettings` in `templates/preset-reel`.
 - List slots (`multiple: { min, max }`) get a sortable gallery in the admin; read them with
   `imageAssets(assets.media, key)`. A list read in groups (before/after pairs) adds
   `group: { size: 2, labels: ['Before', 'After'] }`: the list must hold whole groups (`min` and
@@ -127,7 +135,7 @@ from `core/`:
   `delayRender`; `paletteWedges`, `darkestColor`);
 - the backgrounds registry (`BackgroundLayer`, `backgroundField`) and `SeamedSection` for
   sections joined by registered transitions;
-- typography: `WordReveal`, `TypeOn` (typewriter), `AccentTitle` (lines with `*accents*`),
+- typography: `WordReveal`, `TypeOn` (typewriter), `styled-title/StyledTitle` (a three-line title over a clip, several looks; settings in `fields.ts`),
   `WordSwap` (one word turning into another: glitch, decode, flip board, typewriter, fade),
   `SlicedText` (a word over a copy of itself in another colour, cut on a slant by a mask);
 - `pairs/` for before/after alignment (`prepareAssets`) and media checks; `alignSetTo(anchor,
