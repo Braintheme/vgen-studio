@@ -82,8 +82,16 @@ export interface SectionLayout {
   readonly title: string;
   /** Field or object paths; objects expand into all their (visible) fields. */
   readonly paths: readonly string[];
+  /** Compact rows over the given fields, after `paths` (each opens its fields in a popover). */
+  readonly popovers?: readonly SectionPopover[];
   /** Shown only while another field holds one of the values (see `visibleSections`). */
   readonly visibleWhen?: UiVisibleWhen;
+}
+
+export interface SectionPopover {
+  readonly id: string;
+  readonly label: string;
+  readonly fields: readonly string[];
 }
 
 export interface FormSectionSpec {
@@ -237,6 +245,10 @@ const describeLeaf = (node: Node, path: string, label: string): FieldSpec | null
   return null;
 };
 
+/** What a popover can hold: the generic widgets. */
+const inPopover = (field: FieldSpec): boolean =>
+  field.kind !== 'custom' && field.kind !== 'columns' && field.kind !== 'popover';
+
 const expand = (node: Node, path: string, hidden: ReadonlySet<string>): FieldSpec[] => {
   if (hidden.has(path)) return [];
   const label = str(node, 'title') ?? humanize(path.split('.').at(-1) ?? path);
@@ -259,7 +271,7 @@ const expand = (node: Node, path: string, hidden: ReadonlySet<string>): FieldSpe
   if (widget === 'popover' && Object.keys(children).length > 0) {
     const fields = Object.entries(children)
       .flatMap(([key, child]) => expand(child, `${path}.${key}`, hidden))
-      .filter((field) => field.kind !== 'custom' && field.kind !== 'columns' && field.kind !== 'popover');
+      .filter(inPopover);
     return fields.length > 0 ? [{ kind: 'popover', path, label, fields }] : [];
   }
   if (str(node, 'type') === 'object' && Object.keys(children).length > 0) {
@@ -290,15 +302,25 @@ export const buildFormSections = (
   hiddenPaths: readonly string[] = [],
 ): FormSectionSpec[] => {
   const hidden = new Set(hiddenPaths);
+  const fieldsAt = (paths: readonly string[]): FieldSpec[] =>
+    paths.flatMap((path) => {
+      const node = nodeAt(schema, path);
+      return node ? expand(node, path, hidden) : [];
+    });
   return layout
     .map((section) => ({
       id: section.id,
       title: section.title,
       ...(section.visibleWhen ? { visibleWhen: section.visibleWhen } : {}),
-      fields: section.paths.flatMap((path) => {
-        const node = nodeAt(schema, path);
-        return node ? expand(node, path, hidden) : [];
-      }),
+      fields: [
+        ...fieldsAt(section.paths),
+        ...(section.popovers ?? []).flatMap((popover): FieldSpec[] => {
+          const fields = fieldsAt(popover.fields).filter(inPopover);
+          return fields.length > 0
+            ? [{ kind: 'popover', path: `${section.id}.${popover.id}`, label: popover.label, fields }]
+            : [];
+        }),
+      ],
     }))
     .filter((section) => section.fields.length > 0);
 };

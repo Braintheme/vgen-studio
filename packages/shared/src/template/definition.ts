@@ -2,7 +2,13 @@ import { z } from 'zod';
 import { computeOutputMetadata, FORMAT_IDS, type Format, type OutputMetadata } from '../formats.js';
 import { baseShape, type BaseProps, type DurationSpec, type TextField } from '../schema/base.js';
 import { deepMerge, type DeepPartial } from '../util.js';
-import { mediaSchemaFromSlots, type MediaInfoMap, type MediaSlot, type MediaWarning } from './media-slots.js';
+import {
+  mediaSchemaFromSlots,
+  missingConditionalSlots,
+  type MediaInfoMap,
+  type MediaSlot,
+  type MediaWarning,
+} from './media-slots.js';
 import type { PrepareAssetsContext, PreparedMediaMap } from './prepare.js';
 import type { UiHints } from './ui-hints.js';
 
@@ -69,7 +75,17 @@ const buildSchemas = <
   };
   return {
     settings: z.object(settingsShape),
-    props: z.object({ ...settingsShape, media: mediaSchemaFromSlots(parts.mediaSlots) }),
+    props: z
+      .object({ ...settingsShape, media: mediaSchemaFromSlots(parts.mediaSlots) })
+      .superRefine((props, context) => {
+        for (const slot of missingConditionalSlots(parts.mediaSlots, props)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['media', slot.key],
+            message: `${slot.label} is required`,
+          });
+        }
+      }),
   };
 };
 

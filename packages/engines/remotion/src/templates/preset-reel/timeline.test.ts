@@ -54,6 +54,17 @@ describe('reelTimeline', () => {
     expect(t.settings.to - t.settings.from).toBe(t.screenFrames);
   });
 
+  it('drops the settings section on request: the card follows the clip, the rest keeps its timing', () => {
+    const full = reelTimeline(reference);
+    const short = reelTimeline({ ...reference, showSettings: false });
+    expect(short.settings).toEqual({ from: full.clip.to, to: full.clip.to });
+    expect(short.card.from).toBe(full.clip.to);
+    expect(short.totalFrames).toBe(full.totalFrames - (full.settings.to - full.settings.from));
+    expect(short.shutterAt).toBe(full.shutterAt);
+    expect(short.reveal.from - short.card.from).toBe(full.reveal.from - full.card.from);
+    expect(reelTimeline({ ...reference, showSettings: true })).toEqual(full);
+  });
+
   it('clicks the shutter before the zoom and starts the swoosh with the wipe in the card', () => {
     const t = reelTimeline(reference);
     // The zoom starts half a seam (15 frames) before the cut at 749; the click 0.6 s earlier.

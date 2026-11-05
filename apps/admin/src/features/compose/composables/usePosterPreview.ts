@@ -1,6 +1,7 @@
 import { refDebounced } from '@vueuse/core';
 import {
   isDeepEqual,
+  isSlotRequired,
   type CreatePreviewRequest,
   type PlayerInput,
   type TemplateDefinition,
@@ -27,7 +28,9 @@ export const usePosterPreview = ({
   enabled,
 }: PosterPreviewDeps): ComputedRef<PosterPreviewView> => {
   const mediaReady = computed(() =>
-    template.mediaSlots.every((slot) => !slot.required || isFilled(input.value.props.media[slot.key])),
+    template.mediaSlots.every(
+      (slot) => !isSlotRequired(slot, input.value.props) || isFilled(input.value.props.media[slot.key]),
+    ),
   );
   const request = computed<CreatePreviewRequest | null>(() =>
     enabled.value && mediaReady.value ? { templateId: template.id, props: { ...input.value.props } } : null,

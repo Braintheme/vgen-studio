@@ -1,13 +1,16 @@
 import type React from 'react';
-import { fontFamily } from '../../core/fonts.js';
-import type { Layout } from '../../core/layout.js';
-import { cubicBezier, ease, progress } from '../../core/motion.js';
-import { placeAt, SUBPIXEL_TEXT_TRANSFORM } from '../../core/placement.js';
-import { parseAccentText } from '../../core/typography/accent-text.js';
-import type { PresetFlipProps } from './manifest.js';
-import { TIMING } from './timeline.js';
+import { fontFamily } from '../fonts.js';
+import type { Layout } from '../layout.js';
+import { cubicBezier, ease, progress, type EasingFn } from '../motion.js';
+import { placeAt, SUBPIXEL_TEXT_TRANSFORM } from '../placement.js';
+import { parseAccentText } from '../typography/accent-text.js';
+import type { TitleEntrance, TitlePosition, TitleShadow, TitleStyle } from './fields.js';
 
-type TitleStyle = PresetFlipProps['params']['titleStyle'];
+/** Entrance, seconds: the first line starts, each line takes this long, the next follows. */
+const ENTRANCE = { start: 0.15, line: 0.6, stagger: 0.09 } as const;
+/** The block's top when placed at the top, as a share of the frame's height. */
+const TOP_AT = { portrait: 0.122, landscape: 0.08 } as const;
+
 type LineKey = 'kicker' | 'hero' | 'tail';
 
 interface LineLook {
@@ -23,19 +26,23 @@ interface Look {
   /** Box around the whole block (plate). */
   readonly block?: React.CSSProperties;
   readonly gap: number;
+  /** Another place at the top of the frame than `TOP_AT`. */
+  readonly topAt?: { readonly portrait: number; readonly landscape: number };
+  /** Opacity of the `rise` entrance, `ease.outCubic` by default. */
+  readonly riseFade?: EasingFn;
 }
 
 export interface TitleColors {
   readonly text: string;
   readonly accent: string;
   readonly accentFont: string;
+  /** The template's heading font (the `reel` look). */
+  readonly heading?: string;
 }
-
-type Params = PresetFlipProps['params'];
 
 /** Owner-tunable layout of the block (design px at 1080 on the short side). */
 export interface TitleSetup {
-  readonly position: Params['titlePosition'];
+  readonly position: TitlePosition;
   /** Moves the block down (negative: up), px. */
   readonly offsetY: number;
   /** Extra space above the main line (under the kicker) and above the last line, px. */
@@ -43,7 +50,7 @@ export interface TitleSetup {
   readonly lineGap: number;
   /** Weight of the last line's plain words (the reference's "For the"). */
   readonly tailWeight: number;
-  readonly shadow: Params['titleShadow'];
+  readonly shadow: TitleShadow;
 }
 
 /** CSS text shadow of the block (none at zero opacity). */
@@ -53,12 +60,74 @@ const textShadow = (shadow: TitleSetup['shadow'], u: number): string | undefined
     : undefined;
 
 const POP_EASE = cubicBezier(0.34, 1.56, 0.64, 1);
+const REEL_TOP_AT = { portrait: 0.155, landscape: 0.1 } as const;
+
+const reelLook = (u: number, unit: number, colors: TitleColors, setup: TitleSetup): Look => {
+  const heading = colors.heading ?? fontFamily('montserrat');
+  const shadow = textShadow(setup.shadow, unit);
+  const accent: React.CSSProperties = {
+    fontFamily: colors.accentFont,
+    fontWeight: 700,
+    fontStyle: 'normal',
+    letterSpacing: '0.05em',
+    marginLeft: '0.3em',
+    color: colors.accent,
+  };
+  return {
+    lines: {
+      kicker: {
+        text: {
+          fontFamily: heading,
+          fontWeight: 300,
+          fontStyle: 'italic',
+          fontSize: 61 * u,
+          lineHeight: 1.18,
+          color: colors.accent,
+          textShadow: shadow,
+        },
+        accent,
+      },
+      hero: {
+        text: {
+          fontFamily: heading,
+          fontWeight: 900,
+          fontStyle: 'italic',
+          fontSize: 97 * u,
+          lineHeight: 0.92,
+          letterSpacing: '-0.01em',
+          color: colors.text,
+          textShadow: shadow,
+        },
+        accent,
+      },
+      tail: {
+        text: {
+          fontFamily: heading,
+          fontWeight: setup.tailWeight,
+          fontSize: 68 * u,
+          lineHeight: 1.5,
+          color: colors.text,
+          textShadow: shadow,
+        },
+        accent,
+      },
+    },
+    gap: 0,
+    topAt: REEL_TOP_AT,
+    riseFade: ease.outQuint,
+  };
+};
 
 /**
  * Design sizes at 1080 px on the short side. `classic` follows references/4: a bold yellow
  * kicker, a black italic hero line, a light italic tail with a script accent word.
  */
-const looks = (u: number, colors: TitleColors, setup: TitleSetup): Readonly<Record<TitleStyle, Look>> => {
+const looks = (
+  u: number,
+  unit: number,
+  colors: TitleColors,
+  setup: TitleSetup,
+): Readonly<Record<TitleStyle, Look>> => {
   const montserrat = fontFamily('montserrat');
   const shadow = textShadow(setup.shadow, u);
   const script = (size: number, color: string): React.CSSProperties => ({
@@ -249,26 +318,30 @@ const looks = (u: number, colors: TitleColors, setup: TitleSetup): Readonly<Reco
       },
       gap: 0,
     },
+    // preset-reel's original look (references/2): the shadow keeps its size at any title size.
+    reel: reelLook(u, unit, colors, setup),
   };
 };
 
-export interface FlipTitleProps {
+export interface StyledTitleProps {
   readonly frame: number;
   readonly fps: number;
   readonly layout: Layout;
   readonly style: TitleStyle;
-  readonly entrance: PresetFlipProps['params']['titleEntrance'];
+  readonly entrance: TitleEntrance;
   readonly size: number;
   readonly colors: TitleColors;
   readonly setup: TitleSetup;
   readonly lines: Readonly<Record<LineKey, string | null>>;
+  /** 0..1 exit of the whole block (fades and grows slightly); without it the block never leaves. */
+  readonly exit?: number;
 }
 
 /**
- * The POV title over the clip: three lines (kicker, hero, tail with an `*accent*`) in one of
- * several looks. Stays in place while the clip zooms away (it is not part of the zoom).
+ * A title over a clip: three lines (kicker, hero, tail with an `*accent*`) in one of several
+ * looks. Settings: `fields.ts`.
  */
-export const FlipTitle: React.FC<FlipTitleProps> = ({
+export const StyledTitle: React.FC<StyledTitleProps> = ({
   frame,
   fps,
   layout,
@@ -278,21 +351,26 @@ export const FlipTitle: React.FC<FlipTitleProps> = ({
   colors,
   setup,
   lines,
+  exit,
 }) => {
   const u = layout.unit * size;
-  const look = looks(u, colors, setup)[style];
+  const look = looks(u, layout.unit, colors, setup)[style];
   const shown = (['kicker', 'hero', 'tail'] as const).flatMap((key) => {
     const text = lines[key];
     return text && text.trim().length > 0 ? [{ key, text }] : [];
   });
-  if (shown.length === 0) return null;
+  if (shown.length === 0 || (exit ?? 0) >= 1) return null;
 
   // Top: the reference's place; centre and bottom anchor the block's middle / bottom edge.
   const offset = setup.offsetY * layout.unit;
+  const topAt = look.topAt ?? TOP_AT;
   const anchor =
     setup.position === 'top'
       ? {
-          y: Math.max(layout.safe.top, layout.height * (layout.orientation === 'portrait' ? 0.122 : 0.08)),
+          y: Math.max(
+            layout.safe.top,
+            layout.height * (layout.orientation === 'portrait' ? topAt.portrait : topAt.landscape),
+          ),
           shift: '0%',
         }
       : setup.position === 'center'
@@ -305,14 +383,20 @@ export const FlipTitle: React.FC<FlipTitleProps> = ({
       ? 1
       : progress(
           frame,
-          Math.round((TIMING.titleIn + index * TIMING.titleStagger) * fps),
-          Math.round(TIMING.titleLine * fps),
+          Math.round((ENTRANCE.start + index * ENTRANCE.stagger) * fps),
+          Math.round(ENTRANCE.line * fps),
         );
 
   return (
     <div
       style={{
-        ...placeAt(layout.width / 2, anchor.y + offset, { transform: `translate(-50%, ${anchor.shift})` }),
+        ...placeAt(layout.width / 2, anchor.y + offset, {
+          transform: `translate(-50%, ${anchor.shift})${
+            exit === undefined ? '' : ` scale(${(1 + 0.06 * exit).toFixed(4)})`
+          }`,
+        }),
+        // A block that scales on exit: no `will-change` (it would freeze the raster scale).
+        ...(exit === undefined ? {} : { willChange: 'auto', transformOrigin: '50% 40%', opacity: 1 - exit }),
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -327,7 +411,7 @@ export const FlipTitle: React.FC<FlipTitleProps> = ({
         const motion =
           entrance === 'rise'
             ? {
-                opacity: ease.outCubic(t),
+                opacity: (look.riseFade ?? ease.outCubic)(t),
                 transform: `translateY(${((1 - ease.outQuint(t)) * 0.45).toFixed(4)}em)`,
               }
             : entrance === 'pop'

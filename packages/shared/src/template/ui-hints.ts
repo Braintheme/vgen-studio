@@ -7,10 +7,22 @@ export interface UiVisibleWhen {
   readonly equals: readonly (string | number | boolean)[];
 }
 
+/**
+ * Several fields of a group as one compact row that opens them in a popover. For flat fields whose
+ * stored values must stay where they are; new settings can use an object with `widget: 'popover'`.
+ */
+export interface UiFieldPopover {
+  readonly id: string;
+  readonly label: string;
+  readonly fields: readonly PropPath[];
+}
+
 export interface UiFieldGroup {
   readonly id: string;
   readonly label: string;
   readonly fields: readonly PropPath[];
+  /** Compact rows, shown after `fields`. */
+  readonly popovers?: readonly UiFieldPopover[];
   readonly collapsed?: boolean;
   /** Hidden (its fields have no effect) unless the condition holds, e.g. another finale. */
   readonly visibleWhen?: UiVisibleWhen;

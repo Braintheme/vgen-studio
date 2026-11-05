@@ -8,6 +8,9 @@ export const MediaSlotDtoSchema = z.object({
   label: z.string(),
   description: z.string().optional(),
   required: z.boolean(),
+  requiredWhen: z
+    .object({ field: z.string(), equals: z.array(z.union([z.string(), z.number(), z.boolean()])) })
+    .optional(),
   multiple: z.object({ min: z.number().int(), max: z.number().int() }).optional(),
   group: z.object({ size: z.number().int(), labels: z.array(z.string()) }).optional(),
 });
@@ -19,6 +22,9 @@ export const UiHintsDtoSchema = z.object({
         id: z.string(),
         label: z.string(),
         fields: z.array(z.string()),
+        popovers: z
+          .array(z.object({ id: z.string(), label: z.string(), fields: z.array(z.string()) }))
+          .optional(),
         collapsed: z.boolean().optional(),
       }),
     )

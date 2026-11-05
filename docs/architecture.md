@@ -126,7 +126,9 @@ A video slot points at a `videoRangeField` of the template (`videoSlot(..., { ra
 worker cuts exactly that fragment from the original (frame-accurate, the output fps, sized to
 cover the frame twice over, H.264 + AAC) and hands the engine a `ResolvedVideo` with
 `startSec: 0`. The admin preview plays the proxy instead, starting at the range start. Templates
-place videos with `VideoPlane` (zoom/pan framing, punch-ins by transforms).
+place videos with `VideoPlane` (`videoFramingField()`: rotate by quarter turns, zoom, pan; punch-ins
+by transforms). Rotation is drawn in the composition, so the preview matches the render and the
+worker's cut stays as is; rotation metadata in the file is already applied by ffmpeg.
 
 Templates may derive their length from content (`resolveMetadata`, e.g. clip + screenshots +
 card) and hide `durationSec`; the admin then sizes the music fragment by the derived length.
