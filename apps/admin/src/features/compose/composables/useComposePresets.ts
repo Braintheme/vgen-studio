@@ -123,7 +123,7 @@ export const useComposePresets = (deps: ComposePresetsDeps): ComposePresetsState
       const name = await prompt({
         title: 'Save style as preset',
         description:
-          'Saves format, timing, style, photo processing and music settings. Texts and photos are not saved.',
+          'Saves format, timing, style, photo processing and music settings. Media and per-video texts are not saved.',
         label: 'Preset name',
         initialValue: selected.value ? `${selected.value.name} copy` : '',
         confirmLabel: 'Save preset',
