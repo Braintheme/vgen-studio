@@ -27,6 +27,19 @@ describe('preset-reel title', () => {
     const settings = { params: { titleStyle: 'stack', titleOwnColors: true, titleOffsetY: 20 } };
     expect(pickByScope(presetReelTemplate.settingsSchema, settings, 'style')).toEqual(settings);
   });
+
+  it('saves its text in presets, while the card texts stay per video', () => {
+    const line = (value: string) => ({ enabled: true, value });
+    const title = {
+      titleLead: line('POV:'),
+      titleHero: line('They asked'),
+      titleTail: { enabled: false, value: 'for the *RAWs*' },
+    };
+    const card = { cardTitle: line('Shot on X100V'), cardLens: line('23MM'), cardExposure: line('1/250') };
+    const texts = { ...title, ...card };
+    expect(pickByScope(presetReelTemplate.settingsSchema, { texts }, 'style')).toEqual({ texts: title });
+    expect(pickByScope(presetReelTemplate.settingsSchema, { texts }, 'content')).toEqual({ texts: card });
+  });
 });
 
 describe('preset-reel settings screenshots', () => {

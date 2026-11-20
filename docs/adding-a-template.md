@@ -70,6 +70,8 @@ defaults, extra)` from `core/typography/typography-field.ts` builds one for typo
 - Field metadata drives the admin form: `title`, `widget` (`select`, `segmented`, `slider`,
   `switch`, `color`, `font`, `text`, `textarea`, or a custom id), `optionLabels`, `unit`, `step`.
 - `scope: 'content'` marks per-video data (it is never saved in presets). Everything else is style.
+  `textField` is content unless given `scope: 'style'`: do that for texts reused across videos
+  (labels, a series' title, a footer), so a preset carries them.
 - Effects and transitions come from the engine registries (`revealEffectField`,
   `seamTransitionField`): their options are generated, not hardcoded. Without `allowed`, a
   template offers every registered entry, including ones added later; existing templates pin

@@ -54,7 +54,7 @@ const slider = (title: string, min: number, max: number, value: number, step: nu
 export const presetReelTemplate = defineTemplate({
   id: 'preset-reel',
   engine: 'remotion',
-  version: '1.10.0',
+  version: '1.11.0',
   name: 'Preset Reel',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/preset-reel.jpg',
@@ -83,12 +83,24 @@ export const presetReelTemplate = defineTemplate({
   // The length follows the content (clip + screenshots + card); this field is hidden.
   duration: { default: 20, min: 4, max: 90 },
   texts: {
-    titleLead: textField({ label: 'Title: first line', default: 'How to get that', maxLength: 40 }),
-    titleHero: textField({ label: 'Title: main line', default: '"Aesthetic"', maxLength: 28 }),
+    // The title is a series' hook, reused across videos: presets keep it.
+    titleLead: textField({
+      label: 'Title: first line',
+      default: 'How to get that',
+      maxLength: 40,
+      scope: 'style',
+    }),
+    titleHero: textField({
+      label: 'Title: main line',
+      default: '"Aesthetic"',
+      maxLength: 28,
+      scope: 'style',
+    }),
     titleTail: textField({
       label: 'Title: last line (*accent*)',
       default: 'Look in *Lightroom*',
       maxLength: 40,
+      scope: 'style',
     }),
     settingsTitle: textField({
       label: 'Settings title',

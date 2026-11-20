@@ -73,7 +73,7 @@ const segmented = <const T extends readonly [string, ...string[]]>(
 export const presetFlipTemplate = defineTemplate({
   id: 'preset-flip',
   engine: 'remotion',
-  version: '1.5.0',
+  version: '1.6.0',
   name: 'Preset Flip',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/preset-flip.jpg',
@@ -99,9 +99,15 @@ export const presetFlipTemplate = defineTemplate({
   // The length follows the content (clip + photos + call to action); this field is hidden.
   duration: { default: 13, min: 4, max: 60 },
   texts: {
-    titleKicker: textField({ label: 'Title: first line', default: 'POV:', maxLength: 24 }),
-    titleHero: textField({ label: 'Title: main line', default: 'They Ask', maxLength: 28 }),
-    titleTail: textField({ label: 'Title: last line (*accent*)', default: 'For the *RAWs*', maxLength: 40 }),
+    // The title is a series' hook, reused across videos: presets keep it.
+    titleKicker: textField({ label: 'Title: first line', default: 'POV:', maxLength: 24, scope: 'style' }),
+    titleHero: textField({ label: 'Title: main line', default: 'They Ask', maxLength: 28, scope: 'style' }),
+    titleTail: textField({
+      label: 'Title: last line (*accent*)',
+      default: 'For the *RAWs*',
+      maxLength: 40,
+      scope: 'style',
+    }),
     labelWord: textField({ label: 'Label word', default: 'PRESET', maxLength: 16, scope: 'style' }),
     labelPrefix: textField({ label: 'Before the number', default: '#', maxLength: 6, scope: 'style' }),
     ctaLead: textField({ label: 'Call to action: first line', default: 'COMMENT', maxLength: 24 }),
