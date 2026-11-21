@@ -83,6 +83,15 @@ export const ClipSection: React.FC<ClipSectionProps> = ({ frame, fps, layout, pr
           hero: textOf(texts.titleHero),
           tail: textOf(texts.titleTail),
         }}
+        instagram={{
+          text: textOf(texts.titleText),
+          font: params.titleIgFont,
+          weight: params.titleIgWeight,
+          align: params.titleIgAlign,
+          color: params.titleIgColor,
+          fill: params.titleIgFill,
+          outline: params.titleIgOutline,
+        }}
         exit={exit}
       />
     </>

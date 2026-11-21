@@ -42,6 +42,32 @@ describe('preset-reel title', () => {
   });
 });
 
+describe('preset-reel instagram title', () => {
+  const instagram = {
+    texts: { titleText: { enabled: true, value: 'POV: they asked\nfor the RAWs' } },
+    params: {
+      titleStyle: 'instagram',
+      titleIgFont: 'anton',
+      titleIgWeight: 400,
+      titleIgAlign: 'left',
+      titleIgColor: '#ffffff',
+      titleIgFill: { mode: 'see-through', color: '#000000' },
+      titleIgOutline: { enabled: true, color: '#ff0000', width: 10 },
+    },
+  };
+
+  it('is offered, while the default look stays reel', () => {
+    expect(parse({ media: { ...media, settings: [ASSET] } }).data?.params.titleStyle).toBe('reel');
+    const { data } = parse({ media: { ...media, settings: [ASSET] }, ...instagram });
+    expect(data?.params).toMatchObject(instagram.params);
+    expect(data?.texts.titleText.value).toBe('POV: they asked\nfor the RAWs');
+  });
+
+  it('saves its text and look in presets', () => {
+    expect(pickByScope(presetReelTemplate.settingsSchema, instagram, 'style')).toEqual(instagram);
+  });
+});
+
 describe('preset-reel settings screenshots', () => {
   it('are required while the section is on (the default)', () => {
     const result = parse({ media: { ...media, settings: [] } });

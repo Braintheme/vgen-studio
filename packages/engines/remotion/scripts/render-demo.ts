@@ -1,7 +1,7 @@
 // Renders demo videos (or stills) of a template from the fixture pair.
 // Usage: pnpm --filter @vgen/engine-remotion demo [--template=before-after] [--effects=a,b] [--formats=9:16,16:9]
 //        [--frames=60,150 | --frames=40-80] [--png] [--range=40-120] [--crf=0]
-//        [--duration=13] [--out=dir] [--set=params.finale=rereveal]
+//        [--duration=13] [--out=dir] [--set=params.finale=rereveal] [--set='texts.x.value=Line 1\nLine 2']
 //        [--clip=<video>] [--screens=<dir of images>]   (templates with a video / list slot)
 //        [--scale=2]   (image templates: every slide is a still; 2 = twice the format's size)
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises';
@@ -98,7 +98,9 @@ const range = values.range?.split('-').map(Number) as [number, number] | undefin
 
 /** `--set=params.finale=rereveal` style overrides for quick experiments. */
 const overrides = values.set.reduce<Record<string, unknown>>((acc, entry) => {
-  const [key = '', raw = ''] = entry.split('=');
+  const [key = '', ...rest] = entry.split('=');
+  // `\n` in a value is a line break (multi-line texts).
+  const raw = rest.join('=').replace(/\\+n/g, '\n');
   const value: unknown =
     raw === 'true' ? true : raw === 'false' ? false : Number.isNaN(Number(raw)) ? raw : Number(raw);
   const pathParts = key.split('.');

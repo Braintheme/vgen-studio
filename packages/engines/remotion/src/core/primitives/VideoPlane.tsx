@@ -28,7 +28,7 @@ export interface VideoPlaneProps {
 }
 
 /**
- * A video fragment filling the frame: cover-fitted, reframed (rotation, zoom, pan) and optionally
+ * A video fragment filling the frame: cover-fitted, reframed (rotation, straightening, scale, pan) and optionally
  * zoomed about a focus point (punch-ins). Everything moves by transforms only.
  */
 export const VideoPlane: React.FC<VideoPlaneProps> = ({
@@ -47,13 +47,14 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({
   // The rotation is for the clip; the placeholder only stands in for it.
   const rotate = video ? (framing.rotate ?? 0) : 0;
   const fit = framingOffset(size, { width, height }, { ...framing, rotate });
-  const zoom = Math.max(1, framing.zoom);
   const punch = focusZoom ?? { scale: 1, x: 0, y: 0 };
   // Zooming about P keeps P in place: v' = P + s (v - P) = s v + (1 - s) P.
   const px = (punch.x * width) / 2;
   const py = (punch.y * height) / 2;
   const outer = `translate(${((1 - punch.scale) * px).toFixed(3)}px, ${((1 - punch.scale) * py).toFixed(3)}px) scale(${punch.scale.toFixed(5)})`;
-  const inner = `translate(${fit.x.toFixed(3)}px, ${fit.y.toFixed(3)}px) scale(${zoom.toFixed(5)})`;
+  // Straightened: rotated about the centre and grown to keep the frame filled (`framingOffset`).
+  const tilt = fit.tilt === 0 ? '' : ` rotate(${fit.tilt.toFixed(3)}deg)`;
+  const inner = `translate(${fit.x.toFixed(3)}px, ${fit.y.toFixed(3)}px)${tilt} scale(${fit.scale.toFixed(5)})`;
   // `fit` is the size on screen: a quarter-turned element is laid out the other way round.
   const boxWidth = isSideways(rotate) ? fit.height : fit.width;
   const boxHeight = isSideways(rotate) ? fit.width : fit.height;
