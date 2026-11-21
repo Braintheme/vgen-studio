@@ -50,3 +50,16 @@ export const summarizeSelection = (
   }
   return { count, bytes, inRenders, inDrafts };
 };
+
+/** The page after `page` while files remain (an infinite list's next page). */
+export const nextPageParam = (page: {
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
+}): number | undefined => (page.page * page.pageSize < page.total ? page.page + 1 : undefined);
+
+/** Items without repeats (pages shift when files are added meanwhile): the first one stays. */
+export const uniqueById = <T extends { readonly id: string }>(items: readonly T[]): T[] => {
+  const seen = new Set<string>();
+  return items.filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)));
+};

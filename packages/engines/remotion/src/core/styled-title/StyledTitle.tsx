@@ -1,15 +1,19 @@
 import type React from 'react';
 import { fontFamily } from '../fonts.js';
 import type { Layout } from '../layout.js';
-import { cubicBezier, ease, progress, type EasingFn } from '../motion.js';
-import { placeAt, SUBPIXEL_TEXT_TRANSFORM } from '../placement.js';
+import { ease, type EasingFn } from '../motion.js';
+import { SUBPIXEL_TEXT_TRANSFORM } from '../placement.js';
 import { parseAccentText } from '../typography/accent-text.js';
 import type { TitleEntrance, TitlePosition, TitleShadow, TitleStyle } from './fields.js';
-
-/** Entrance, seconds: the first line starts, each line takes this long, the next follows. */
-const ENTRANCE = { start: 0.15, line: 0.6, stagger: 0.09 } as const;
-/** The block's top when placed at the top, as a share of the frame's height. */
-const TOP_AT = { portrait: 0.122, landscape: 0.08 } as const;
+import { InstagramTitle, type InstagramTitleSetup } from './InstagramTitle.js';
+import {
+  entranceAt,
+  entranceMotion,
+  textShadow,
+  titleAnchor,
+  titleBlockStyle,
+  type TopAt,
+} from './title-block.js';
 
 type LineKey = 'kicker' | 'hero' | 'tail';
 
@@ -27,7 +31,7 @@ interface Look {
   readonly block?: React.CSSProperties;
   readonly gap: number;
   /** Another place at the top of the frame than `TOP_AT`. */
-  readonly topAt?: { readonly portrait: number; readonly landscape: number };
+  readonly topAt?: TopAt;
   /** Opacity of the `rise` entrance, `ease.outCubic` by default. */
   readonly riseFade?: EasingFn;
 }
@@ -53,13 +57,6 @@ export interface TitleSetup {
   readonly shadow: TitleShadow;
 }
 
-/** CSS text shadow of the block (none at zero opacity). */
-const textShadow = (shadow: TitleSetup['shadow'], u: number): string | undefined =>
-  shadow.opacity > 0
-    ? `${(shadow.x * u).toFixed(2)}px ${(shadow.y * u).toFixed(2)}px ${(shadow.blur * u).toFixed(2)}px rgba(0,0,0,${shadow.opacity.toFixed(3)})`
-    : undefined;
-
-const POP_EASE = cubicBezier(0.34, 1.56, 0.64, 1);
 const REEL_TOP_AT = { portrait: 0.155, landscape: 0.1 } as const;
 
 const reelLook = (u: number, unit: number, colors: TitleColors, setup: TitleSetup): Look => {
@@ -127,7 +124,7 @@ const looks = (
   unit: number,
   colors: TitleColors,
   setup: TitleSetup,
-): Readonly<Record<TitleStyle, Look>> => {
+): Readonly<Record<Exclude<TitleStyle, 'instagram'>, Look>> => {
   const montserrat = fontFamily('montserrat');
   const shadow = textShadow(setup.shadow, u);
   const script = (size: number, color: string): React.CSSProperties => ({
@@ -335,6 +332,8 @@ export interface StyledTitleProps {
   readonly lines: Readonly<Record<LineKey, string | null>>;
   /** 0..1 exit of the whole block (fades and grows slightly); without it the block never leaves. */
   readonly exit?: number;
+  /** The `instagram` style's text and look (that style draws nothing without it). */
+  readonly instagram?: InstagramTitleSetup;
 }
 
 /**
@@ -352,7 +351,22 @@ export const StyledTitle: React.FC<StyledTitleProps> = ({
   setup,
   lines,
   exit,
+  instagram,
 }) => {
+  if (style === 'instagram') {
+    return instagram ? (
+      <InstagramTitle
+        frame={frame}
+        fps={fps}
+        layout={layout}
+        entrance={entrance}
+        size={size}
+        setup={setup}
+        look={instagram}
+        exit={exit}
+      />
+    ) : null;
+  }
   const u = layout.unit * size;
   const look = looks(u, layout.unit, colors, setup)[style];
   const shown = (['kicker', 'hero', 'tail'] as const).flatMap((key) => {
@@ -361,42 +375,14 @@ export const StyledTitle: React.FC<StyledTitleProps> = ({
   });
   if (shown.length === 0 || (exit ?? 0) >= 1) return null;
 
-  // Top: the reference's place; centre and bottom anchor the block's middle / bottom edge.
-  const offset = setup.offsetY * layout.unit;
-  const topAt = look.topAt ?? TOP_AT;
-  const anchor =
-    setup.position === 'top'
-      ? {
-          y: Math.max(
-            layout.safe.top,
-            layout.height * (layout.orientation === 'portrait' ? topAt.portrait : topAt.landscape),
-          ),
-          shift: '0%',
-        }
-      : setup.position === 'center'
-        ? { y: layout.height / 2, shift: '-50%' }
-        : { y: layout.height - Math.max(layout.safe.bottom, layout.height * 0.08), shift: '-100%' };
+  const anchor = titleAnchor(layout, setup, look.topAt);
   const gapAbove = (key: LineKey, index: number): number =>
     index === 0 ? 0 : (key === 'hero' ? setup.kickerGap : key === 'tail' ? setup.lineGap : 0) * u;
-  const enterOf = (index: number): number =>
-    entrance === 'none'
-      ? 1
-      : progress(
-          frame,
-          Math.round((ENTRANCE.start + index * ENTRANCE.stagger) * fps),
-          Math.round(ENTRANCE.line * fps),
-        );
 
   return (
     <div
       style={{
-        ...placeAt(layout.width / 2, anchor.y + offset, {
-          transform: `translate(-50%, ${anchor.shift})${
-            exit === undefined ? '' : ` scale(${(1 + 0.06 * exit).toFixed(4)})`
-          }`,
-        }),
-        // A block that scales on exit: no `will-change` (it would freeze the raster scale).
-        ...(exit === undefined ? {} : { willChange: 'auto', transformOrigin: '50% 40%', opacity: 1 - exit }),
+        ...titleBlockStyle(layout, anchor, exit),
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -407,19 +393,7 @@ export const StyledTitle: React.FC<StyledTitleProps> = ({
     >
       {shown.map(({ key, text }, index) => {
         const line = look.lines[key];
-        const t = enterOf(index);
-        const motion =
-          entrance === 'rise'
-            ? {
-                opacity: (look.riseFade ?? ease.outCubic)(t),
-                transform: `translateY(${((1 - ease.outQuint(t)) * 0.45).toFixed(4)}em)`,
-              }
-            : entrance === 'pop'
-              ? {
-                  opacity: Math.min(1, t * 3),
-                  transform: `scale(${(0.6 + 0.4 * POP_EASE(t)).toFixed(4)})`,
-                }
-              : {};
+        const motion = entranceMotion(entrance, entranceAt(entrance, frame, fps, index), look.riseFade);
         return (
           <div key={key} style={{ ...line.text, marginTop: gapAbove(key, index), ...motion }}>
             <div

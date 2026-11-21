@@ -26,6 +26,11 @@ import { alignBeforeAfter } from '../../core/pairs/align-pair.js';
 import { checkBeforeAfterMedia } from '../../core/pairs/pair-checks.js';
 import { REVEAL_EFFECTS, revealEffectField, type RevealEffectId } from '../../core/reveals/registry.js';
 import { TITLE_STYLE_LABELS, TITLE_STYLES, titleLayoutFields } from '../../core/styled-title/fields.js';
+import {
+  instagramTitleFields,
+  instagramTitleText,
+  titleGroups,
+} from '../../core/styled-title/instagram-fields.js';
 import { seamTransitionField } from '../../core/transitions/registry.js';
 import { videoFramingField } from '../../core/video-framing/framing.js';
 import { videoGradeField } from '../../core/video-grade/schema.js';
@@ -54,7 +59,7 @@ const slider = (title: string, min: number, max: number, value: number, step: nu
 export const presetReelTemplate = defineTemplate({
   id: 'preset-reel',
   engine: 'remotion',
-  version: '1.11.0',
+  version: '1.13.0',
   name: 'Preset Reel',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/preset-reel.jpg',
@@ -102,6 +107,8 @@ export const presetReelTemplate = defineTemplate({
       maxLength: 40,
       scope: 'style',
     }),
+    // The `instagram` title style's own text.
+    titleText: instagramTitleText('How to get that\n"Aesthetic" look\nin Lightroom'),
     settingsTitle: textField({
       label: 'Settings title',
       default: 'Lightroom Settings',
@@ -170,6 +177,7 @@ export const presetReelTemplate = defineTemplate({
       widget: 'font',
     }),
     ...titleLayoutFields({ lineGap: 0, shadow: { opacity: 0.35, blur: 12, x: 0, y: 2 } }),
+    ...instagramTitleFields(),
     titleAnimation: z
       .enum(TITLE_ANIMATIONS)
       .default('rise')
@@ -242,37 +250,48 @@ export const presetReelTemplate = defineTemplate({
         fields: ['params.clip', 'params.framing', 'params.punchIn', 'params.clipAudio'],
       },
       { id: 'clip-grade', label: 'Clip color grading', fields: ['params.clipGrade'] },
-      {
-        id: 'title',
-        label: 'Title',
-        fields: ['texts.titleLead', 'texts.titleHero', 'texts.titleTail', 'params.titleStyle'],
-        popovers: [
-          {
-            id: 'title-font',
-            label: 'Font & entrance',
-            fields: ['params.titleAccentFont', 'params.titleAnimation'],
-          },
-          {
-            id: 'title-colors',
-            label: 'Colours',
-            fields: ['params.titleOwnColors', 'params.titleColor', 'params.titleAccent'],
-          },
-          {
-            id: 'title-layout',
-            label: 'Size & position',
-            fields: [
-              'params.titleSize',
-              'params.titleScale',
-              'params.titlePosition',
-              'params.titleOffsetY',
-              'params.titleKickerGap',
-              'params.titleLineGap',
-              'params.titleTailWeight',
-            ],
-          },
-          { id: 'title-shadow', label: 'Shadow', fields: ['params.titleShadow'] },
+      ...titleGroups({
+        styles: ['reel', ...TITLE_STYLES],
+        textPath: 'texts.titleText',
+        entranceField: 'params.titleAnimation',
+        layoutFields: [
+          'params.titleSize',
+          'params.titleScale',
+          'params.titlePosition',
+          'params.titleOffsetY',
         ],
-      },
+        title: {
+          id: 'title',
+          label: 'Title',
+          fields: ['texts.titleLead', 'texts.titleHero', 'texts.titleTail', 'params.titleStyle'],
+          popovers: [
+            {
+              id: 'title-font',
+              label: 'Font & entrance',
+              fields: ['params.titleAccentFont', 'params.titleAnimation'],
+            },
+            {
+              id: 'title-colors',
+              label: 'Colours',
+              fields: ['params.titleOwnColors', 'params.titleColor', 'params.titleAccent'],
+            },
+            {
+              id: 'title-layout',
+              label: 'Size & position',
+              fields: [
+                'params.titleSize',
+                'params.titleScale',
+                'params.titlePosition',
+                'params.titleOffsetY',
+                'params.titleKickerGap',
+                'params.titleLineGap',
+                'params.titleTailWeight',
+              ],
+            },
+            { id: 'title-shadow', label: 'Shadow', fields: ['params.titleShadow'] },
+          ],
+        },
+      }),
       { id: 'settings', label: 'Settings screenshots', fields: ['params.showSettings'] },
       {
         id: 'settings-look',

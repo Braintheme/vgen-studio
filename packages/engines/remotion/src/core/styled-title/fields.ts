@@ -4,14 +4,18 @@ import type { FontId } from '@vgen/shared';
 import { z } from 'zod';
 
 /** The looks every template with this title offers. */
-export const TITLE_STYLES = ['classic', 'plate', 'sticker', 'stack', 'editorial'] as const;
+export const TITLE_STYLES = ['classic', 'plate', 'sticker', 'stack', 'editorial', 'instagram'] as const;
 export const TITLE_STYLE_LABELS = {
   classic: 'Classic (POV)',
   plate: 'On a dark plate (bright videos)',
   sticker: 'Stickers',
   stack: 'Bold stack',
   editorial: 'Editorial',
+  instagram: 'Instagram (your own text)',
 } as const;
+
+/** `instagram` draws free text (`InstagramTitle`); the others draw the three lines. */
+export const INSTAGRAM_TITLE = 'instagram' as const;
 
 /** `reel` is preset-reel's original look, offered only there. */
 export type TitleStyle = 'reel' | (typeof TITLE_STYLES)[number];
@@ -65,7 +69,8 @@ export const titleLayoutFields = (defaults: { readonly lineGap: number; readonly
 
 /** Fonts a look draws with, besides the accent font (`reel` uses the template's heading font). */
 export const titleFonts = (style: TitleStyle): readonly FontId[] => {
-  if (style === 'reel') return [];
+  // `instagram` loads its chosen font itself.
+  if (style === 'reel' || style === 'instagram') return [];
   if (style === 'stack') return ['montserrat', 'bebas-neue'];
   if (style === 'editorial') return ['montserrat', 'playfair-display'];
   return ['montserrat'];

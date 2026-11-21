@@ -1,5 +1,8 @@
 import type { CreatePreviewRequest, MediaLibraryQuery, RenderListQuery } from '@vgen/shared';
 
+/** A library listing without its page (the infinite list asks for pages itself). */
+export type MediaLibraryInfiniteQuery = Omit<MediaLibraryQuery, 'page'>;
+
 /** Query key factory: the only place cache keys are spelled out. */
 export const queryKeys = {
   renders: {
@@ -21,6 +24,9 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.media.all, 'detail', id] as const,
     libraryAll: ['media', 'library'] as const,
     library: (query: MediaLibraryQuery) => [...queryKeys.media.libraryAll, query] as const,
+    /** Pages loaded one after another (the picker's "Load more"); under `libraryAll`. */
+    libraryInfinite: (query: MediaLibraryInfiniteQuery) =>
+      [...queryKeys.media.libraryAll, 'infinite', query] as const,
     peaks: (peaksUrl: string) => [...queryKeys.media.all, 'peaks', peaksUrl] as const,
   },
   music: {

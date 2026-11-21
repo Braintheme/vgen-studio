@@ -70,14 +70,15 @@ const screen = useComposeScreen();
     </div>
     <MediaPickerDialog
       v-model:open="screen.picker.open.value"
-      v-model:page="screen.picker.page.value"
       :target="screen.picker.slot.value"
       :tiles="screen.picker.tiles.value"
       :total="screen.picker.total.value"
-      :page-size="screen.picker.pageSize"
+      :has-more="screen.picker.hasMore.value"
       :loading="screen.picker.isLoading.value"
+      :loading-more="screen.picker.isLoadingMore.value"
       :selected-count="screen.picker.selectedCount.value"
       @toggle="screen.picker.toggle"
+      @load-more="screen.picker.loadMore"
       @confirm="screen.picker.confirm"
     />
   </template>

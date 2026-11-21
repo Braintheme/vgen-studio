@@ -1,9 +1,12 @@
 import {
   keepPreviousData,
+  useInfiniteQuery,
   useMutation,
   useQueries,
   useQuery,
   useQueryClient,
+  type InfiniteData,
+  type UseInfiniteQueryReturnType,
   type UseMutationReturnType,
   type UseQueryReturnType,
 } from '@tanstack/vue-query';
@@ -18,7 +21,8 @@ import type {
 import { computed, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue';
 import { ApiRequestError } from '@/api/errors';
 import { mediaApi } from '@/api/media';
-import { queryKeys } from './keys';
+import { nextPageParam } from '@/lib/media-library';
+import { queryKeys, type MediaLibraryInfiniteQuery } from './keys';
 
 /** Uploaded media never changes for a given id. */
 const MEDIA_STALE_TIME_MS = Number.POSITIVE_INFINITY;
@@ -90,6 +94,19 @@ export const useMediaLibraryQuery = (
     queryKey: computed(() => queryKeys.media.library(toValue(query))),
     queryFn: ({ signal }) => mediaApi.list(toValue(query), { signal }),
     placeholderData: keepPreviousData,
+    enabled: computed(() => toValue(enabled)),
+  });
+
+/** The media library page after page ("Load more"); uploads and deletes refresh it. */
+export const useMediaLibraryInfiniteQuery = (
+  query: MaybeRefOrGetter<MediaLibraryInfiniteQuery>,
+  enabled: MaybeRefOrGetter<boolean> = true,
+): UseInfiniteQueryReturnType<InfiniteData<MediaLibraryPage, number>, ApiRequestError> =>
+  useInfiniteQuery({
+    queryKey: computed(() => queryKeys.media.libraryInfinite(toValue(query))),
+    queryFn: ({ pageParam, signal }) => mediaApi.list({ ...toValue(query), page: pageParam }, { signal }),
+    initialPageParam: 1,
+    getNextPageParam: nextPageParam,
     enabled: computed(() => toValue(enabled)),
   });
 

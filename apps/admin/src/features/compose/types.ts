@@ -21,6 +21,8 @@ export interface MediaSlotView {
   readonly maxItems: number;
   /** List slots read in groups (e.g. before/after pairs); items are labelled by position. */
   readonly group: MediaSlotGroup | null;
+  /** A single slot paired with another (before / after): two files at once fill both. */
+  readonly paired: boolean;
   readonly accept: string;
   readonly assets: readonly MediaAssetDto[];
   /** Upload in progress (0..1), or null. */
@@ -84,6 +86,8 @@ export interface MediaPickerSlot {
   readonly key: string;
   readonly label: string;
   readonly kind: 'image' | 'video';
-  /** How many files can still go in (1 for a single slot: it is replaced). */
+  /** How many files can still go in (1 for a single slot: it is replaced; 2 for a pair). */
   readonly room: number;
+  /** Two picked files fill the pair (before / after) by file name. */
+  readonly paired: boolean;
 }

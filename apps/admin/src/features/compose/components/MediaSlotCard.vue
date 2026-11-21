@@ -34,9 +34,13 @@ const uploading = computed(() => props.mediaSlot.uploadProgress !== null);
     <div class="relative">
       <FileDropzone
         :accept="mediaSlot.accept"
-        :multiple="mediaSlot.multiple"
+        :multiple="mediaSlot.multiple || mediaSlot.paired"
         :disabled="uploading"
-        :hint="`Drop ${mediaSlot.label.toLowerCase()} here or click to browse`"
+        :hint="
+          mediaSlot.paired
+            ? `Drop ${mediaSlot.label.toLowerCase()} here, or both photos at once`
+            : `Drop ${mediaSlot.label.toLowerCase()} here or click to browse`
+        "
         @files="emit('upload', $event)"
       >
         <img

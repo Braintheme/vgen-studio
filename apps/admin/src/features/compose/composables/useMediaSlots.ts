@@ -9,6 +9,7 @@ import {
 import { computed, reactive, watch, type ComputedRef, type Ref } from 'vue';
 import { useNotify } from '@/composables/useNotify';
 import { compareFileNames } from '@/lib/file-names';
+import { orderByName, pairOf } from '@/lib/media-pairs';
 import { useMediaAssets, useUploadMediaMutation } from '@/queries/media';
 import type { DraftMedia } from '@/stores/compose-draft';
 import { ACCEPT_BY_SLOT_KIND } from '@/features/compose/constants';
@@ -21,8 +22,12 @@ export interface MediaSlotsState {
   readonly warnings: ComputedRef<readonly MediaWarning[]>;
   /** Assets of all slots, for the preview. */
   readonly assets: ComputedRef<ReadonlyMap<string, MediaAssetDto>>;
+  /** Uploads into a slot; two or more files on a paired slot fill both (by file name). */
   readonly upload: (slotKey: string, files: readonly File[]) => Promise<void>;
-  /** Puts already uploaded files (from the library) into a slot: appended to a list, else replaced. */
+  /**
+   * Puts already uploaded files (from the library) into a slot: appended to a list, else replaced.
+   * Two ids on a paired slot fill both, in the given order (before, after).
+   */
   readonly pick: (slotKey: string, ids: readonly string[]) => void;
   readonly clear: (slotKey: string) => void;
   /** List slots: removes one item / moves an item to another position. */
@@ -113,6 +118,7 @@ export const useMediaSlots = (
         multiple: slot.multiple !== undefined,
         maxItems: slot.multiple?.max ?? 1,
         group: slot.group ?? null,
+        paired: !slot.multiple && pairOf(template.ui?.slotActions, slot.key) !== null,
         accept: ACCEPT_BY_SLOT_KIND[slot.kind],
         assets: idsOf(media.value[slot.key])
           .map((id) => assets.value.get(id))
@@ -146,9 +152,44 @@ export const useMediaSlots = (
     return template.checkMedia(infos);
   });
 
+  /** Two or more files on a paired single slot: the first two by name fill before and after. */
+  const uploadPair = async (pair: readonly [string, string], files: readonly File[]): Promise<void> => {
+    const accepted = orderByName(files, (file) => file.name).slice(0, 2);
+    if (accepted.length < files.length) {
+      notify.warning(
+        `${String(accepted.length)} of ${String(files.length)} files added`,
+        'A before / after pair takes two photos.',
+      );
+    }
+    pair.forEach((key) => {
+      uploads.set(key, 0);
+      errors.delete(key);
+    });
+    try {
+      const uploaded = await uploadMutation.mutateAsync({
+        files: accepted,
+        onProgress: (fraction) => {
+          pair.forEach((key) => uploads.set(key, fraction));
+        },
+      });
+      const [first, second] = orderByName(uploaded, (asset) => asset.originalName);
+      setMedia({ ...media.value, [pair[0]]: first?.id ?? null, [pair[1]]: second?.id ?? null });
+    } catch (error) {
+      pair.forEach((key) => errors.set(key, error instanceof Error ? error.message : 'Upload failed'));
+      notify.error('Could not upload the photos', error);
+    } finally {
+      pair.forEach((key) => uploads.delete(key));
+    }
+  };
+
   const upload = async (slotKey: string, files: readonly File[]): Promise<void> => {
     const slot = template.mediaSlots.find((candidate) => candidate.key === slotKey);
     if (!slot || files.length === 0) return;
+    const pair = slot.multiple ? null : pairOf(template.ui?.slotActions, slotKey);
+    if (pair && files.length >= 2) {
+      await uploadPair(pair, files);
+      return;
+    }
     // Only what fits is uploaded: a list slot keeps up to `max`, a single slot one file.
     const room = slot.multiple ? Math.max(0, slot.multiple.max - idsOf(media.value[slotKey]).length) : 1;
     // Grouped slots (before/after pairs) take each upload in file name order.
@@ -186,6 +227,13 @@ export const useMediaSlots = (
   const pick = (slotKey: string, ids: readonly string[]): void => {
     const slot = template.mediaSlots.find((candidate) => candidate.key === slotKey);
     if (!slot || ids.length === 0) return;
+    const pair = slot.multiple ? null : pairOf(template.ui?.slotActions, slotKey);
+    const [first, second] = ids;
+    if (pair && first !== undefined && second !== undefined) {
+      pair.forEach((key) => errors.delete(key));
+      setMedia({ ...media.value, [pair[0]]: first, [pair[1]]: second });
+      return;
+    }
     const current = idsOf(media.value[slotKey]);
     const next = slot.multiple
       ? [...current, ...ids.filter((id) => !current.includes(id))].slice(0, slot.multiple.max)

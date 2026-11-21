@@ -25,6 +25,11 @@ import {
   TITLE_STYLES,
   titleLayoutFields,
 } from '../../core/styled-title/fields.js';
+import {
+  instagramTitleFields,
+  instagramTitleText,
+  titleGroups,
+} from '../../core/styled-title/instagram-fields.js';
 import { seamTransitionField } from '../../core/transitions/registry.js';
 import { videoFramingField } from '../../core/video-framing/framing.js';
 import { videoGradeField } from '../../core/video-grade/schema.js';
@@ -73,7 +78,7 @@ const segmented = <const T extends readonly [string, ...string[]]>(
 export const presetFlipTemplate = defineTemplate({
   id: 'preset-flip',
   engine: 'remotion',
-  version: '1.6.0',
+  version: '1.8.0',
   name: 'Preset Flip',
   // Gallery card (admin static file; regenerate from fixture renders when the look changes).
   thumbnailUrl: '/template-previews/preset-flip.jpg',
@@ -108,6 +113,8 @@ export const presetFlipTemplate = defineTemplate({
       maxLength: 40,
       scope: 'style',
     }),
+    // The `instagram` title style's own text.
+    titleText: instagramTitleText('POV: they ask\nfor the RAWs'),
     labelWord: textField({ label: 'Label word', default: 'PRESET', maxLength: 16, scope: 'style' }),
     labelPrefix: textField({ label: 'Before the number', default: '#', maxLength: 6, scope: 'style' }),
     ctaLead: textField({ label: 'Call to action: first line', default: 'COMMENT', maxLength: 24 }),
@@ -148,6 +155,7 @@ export const presetFlipTemplate = defineTemplate({
     titleSize: slider('Title size', 0.7, 1.4, 1, 0.05, '×'),
     ...titleLayoutFields({ lineGap: -5, shadow: { opacity: 0.45, blur: 20, x: 0, y: 4 } }),
     titleEntrance: segmented(TITLE_ENTRANCES, 'none', 'Title entrance', TITLE_ENTRANCE_LABELS),
+    ...instagramTitleFields(),
 
     // Photos
     revealEffect: revealEffectField({ title: 'Photo change', default: 'crossfade' }),
@@ -245,32 +253,38 @@ export const presetFlipTemplate = defineTemplate({
         fields: ['params.clip', 'params.framing', 'params.zoomPoint', 'params.clipAudio', 'params.toPhotos'],
       },
       { id: 'clip-grade', label: 'Clip color grading', fields: ['params.clipGrade'] },
-      {
-        id: 'title',
-        label: 'Title',
-        fields: ['texts.titleKicker', 'texts.titleHero', 'texts.titleTail', 'params.titleStyle'],
-        popovers: [
-          {
-            id: 'title-font',
-            label: 'Font & entrance',
-            fields: ['params.titleAccentFont', 'params.titleEntrance'],
-          },
-          { id: 'title-colors', label: 'Colours', fields: ['params.titleColor', 'params.titleAccent'] },
-          {
-            id: 'title-layout',
-            label: 'Size & position',
-            fields: [
-              'params.titleSize',
-              'params.titlePosition',
-              'params.titleOffsetY',
-              'params.titleKickerGap',
-              'params.titleLineGap',
-              'params.titleTailWeight',
-            ],
-          },
-          { id: 'title-shadow', label: 'Shadow', fields: ['params.titleShadow'] },
-        ],
-      },
+      ...titleGroups({
+        styles: TITLE_STYLES,
+        textPath: 'texts.titleText',
+        entranceField: 'params.titleEntrance',
+        layoutFields: ['params.titleSize', 'params.titlePosition', 'params.titleOffsetY'],
+        title: {
+          id: 'title',
+          label: 'Title',
+          fields: ['texts.titleKicker', 'texts.titleHero', 'texts.titleTail', 'params.titleStyle'],
+          popovers: [
+            {
+              id: 'title-font',
+              label: 'Font & entrance',
+              fields: ['params.titleAccentFont', 'params.titleEntrance'],
+            },
+            { id: 'title-colors', label: 'Colours', fields: ['params.titleColor', 'params.titleAccent'] },
+            {
+              id: 'title-layout',
+              label: 'Size & position',
+              fields: [
+                'params.titleSize',
+                'params.titlePosition',
+                'params.titleOffsetY',
+                'params.titleKickerGap',
+                'params.titleLineGap',
+                'params.titleTailWeight',
+              ],
+            },
+            { id: 'title-shadow', label: 'Shadow', fields: ['params.titleShadow'] },
+          ],
+        },
+      }),
       {
         id: 'photos',
         label: 'Photos',
