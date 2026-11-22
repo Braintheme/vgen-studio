@@ -25,6 +25,7 @@ import type { ApiRequestError } from '@/api/errors';
 import { openRenderEventStream } from '@/api/events';
 import { rendersApi } from '@/api/renders';
 import { queryKeys } from './keys';
+import { invalidateProjectLists, patchProjectCaches } from './projects';
 
 type RenderPage = Paginated<RenderJobDto>;
 
@@ -91,7 +92,36 @@ const isCachedInLists = (client: QueryClient, id: string): boolean =>
     .getQueriesData<RenderPage>({ queryKey: queryKeys.renders.lists() })
     .some(([, page]) => page?.items.some((render) => render.id === id) ?? false);
 
+/** A project shows its last render: keep its status and progress in step with the events. */
+const applyToProjects = (client: QueryClient, event: RenderEvent): void => {
+  patchProjectCaches(
+    client,
+    (project) => project.lastRender?.id === event.jobId,
+    (project) =>
+      project.lastRender
+        ? {
+            ...project,
+            lastRender:
+              event.type === 'progress'
+                ? {
+                    ...project.lastRender,
+                    status: project.lastRender.status === 'queued' ? 'rendering' : project.lastRender.status,
+                    progress: Math.max(project.lastRender.progress, event.progress),
+                  }
+                : {
+                    ...project.lastRender,
+                    status: event.status,
+                    progress: event.progress,
+                    error: event.error,
+                  },
+          }
+        : project,
+  );
+  if (event.type !== 'progress' && isFinalRenderStatus(event.status)) invalidateProjectLists(client);
+};
+
 const applyRenderEvent = (client: QueryClient, event: RenderEvent): void => {
+  applyToProjects(client, event);
   if (event.type === 'progress') {
     patchRenderCaches(client, event.jobId, (render) => ({
       ...render,
@@ -190,8 +220,12 @@ export const useCreateRenderMutation = (): UseMutationReturnType<
   const client = useQueryClient();
   return useMutation({
     mutationFn: (request: CreateRenderRequest) => rendersApi.create(request),
-    onSuccess: () => {
+    onSuccess: (render) => {
       invalidateRenderLists(client);
+      if (render.projectId) {
+        void client.invalidateQueries({ queryKey: queryKeys.projects.detail(render.projectId) });
+        invalidateProjectLists(client);
+      }
     },
   });
 };

@@ -19,6 +19,18 @@ const RENDER_MEDIA_IDS = `
     END
   ) ref`;
 
+/** Media ids a project references (its `media` slots), as a set-returning SQL fragment over `project` aliased `p`. */
+const PROJECT_MEDIA_IDS = `
+  SELECT ref
+  FROM jsonb_each(CASE WHEN jsonb_typeof(p.media) = 'object' THEN p.media ELSE '{}'::jsonb END) slot,
+  LATERAL jsonb_array_elements_text(
+    CASE jsonb_typeof(slot.value)
+      WHEN 'array' THEN slot.value
+      WHEN 'string' THEN jsonb_build_array(slot.value)
+      ELSE '[]'::jsonb
+    END
+  ) ref`;
+
 const ORDER = {
   newest: { column: 'asset.createdAt', direction: 'DESC' },
   oldest: { column: 'asset.createdAt', direction: 'ASC' },
@@ -48,6 +60,12 @@ export class MediaRepository {
       .createQueryBuilder('asset')
       .where('asset.role = :role', { role: 'upload' })
       .andWhere('asset.kind IN (:...kinds)', { kinds: query.kind ? [query.kind] : [...LIBRARY_MEDIA_KINDS] });
+    if (query.groupId) {
+      base.andWhere(
+        'EXISTS (SELECT 1 FROM media_group_item gi WHERE gi.asset_id = asset.id AND gi.group_id = :groupId)',
+        { groupId: query.groupId },
+      );
+    }
     const order = ORDER[query.sort];
     const [items, total] = await base
       .clone()
@@ -76,7 +94,30 @@ export class MediaRepository {
     return new Map(rows.map((row) => [row.id, row.count]));
   }
 
-  /** Uploaded photos / videos older than `before`, used by no render and not in `keepIds`. */
+  /** How many projects use each of the given media ids (ids no project uses are absent). */
+  async projectCounts(ids: readonly string[]): Promise<ReadonlyMap<string, number>> {
+    if (ids.length === 0) return new Map();
+    const rows: { id: string; count: number }[] = await this.repository.manager.query(
+      `SELECT used.ref AS id, COUNT(DISTINCT p.id)::int AS count
+       FROM project p, LATERAL (${PROJECT_MEDIA_IDS}) used
+       WHERE used.ref = ANY($1::text[])
+       GROUP BY used.ref`,
+      [[...ids]],
+    );
+    return new Map(rows.map((row) => [row.id, row.count]));
+  }
+
+  /** How many media groups hold each of the given media ids (ids in no group are absent). */
+  async groupCounts(ids: readonly string[]): Promise<ReadonlyMap<string, number>> {
+    if (ids.length === 0) return new Map();
+    const rows: { id: string; count: number }[] = await this.repository.manager.query(
+      `SELECT asset_id AS id, COUNT(*)::int AS count FROM media_group_item WHERE asset_id = ANY($1::uuid[]) GROUP BY asset_id`,
+      [[...ids]],
+    );
+    return new Map(rows.map((row) => [row.id, row.count]));
+  }
+
+  /** Uploaded photos / videos older than `before`, used by no render, project or group and not in `keepIds`. */
   findUnused(before: Date, keepIds: readonly string[]): Promise<MediaAssetEntity[]> {
     return this.repository
       .createQueryBuilder('asset')
@@ -87,6 +128,10 @@ export class MediaRepository {
       .andWhere(
         `NOT EXISTS (SELECT 1 FROM render_job r, LATERAL (${RENDER_MEDIA_IDS}) used WHERE used.ref = asset.id::text)`,
       )
+      .andWhere(
+        `NOT EXISTS (SELECT 1 FROM project p, LATERAL (${PROJECT_MEDIA_IDS}) used WHERE used.ref = asset.id::text)`,
+      )
+      .andWhere('NOT EXISTS (SELECT 1 FROM media_group_item gi WHERE gi.asset_id = asset.id)')
       .getMany();
   }
 

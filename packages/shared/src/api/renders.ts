@@ -13,6 +13,8 @@ export const CreateRenderRequestSchema = z.object({
   scale: StillScaleSchema.default(DEFAULT_STILL_SCALE),
   /** Style preset the props were based on (used for the output file name). */
   presetId: z.uuid().nullable().default(null),
+  /** Project the render was made from, if any. */
+  projectId: z.uuid().nullable().default(null),
 });
 export type CreateRenderRequest = z.input<typeof CreateRenderRequestSchema>;
 
@@ -28,6 +30,7 @@ export const RenderFileDtoSchema = z.object({
   url: z.string(),
   size: z.number().int(),
 });
+export type RenderFileDto = z.infer<typeof RenderFileDtoSchema>;
 
 export const RenderJobDtoSchema = z.object({
   id: z.uuid(),
@@ -42,6 +45,8 @@ export const RenderJobDtoSchema = z.object({
   quality: QualityPresetSchema,
   scale: StillScaleSchema,
   presetId: z.uuid().nullable(),
+  /** Project the render was made from; null for quick renders or deleted projects. */
+  projectId: z.uuid().nullable(),
   outputName: z.string(),
   output: RenderFileDtoSchema.extend({
     downloadUrl: z.string(),

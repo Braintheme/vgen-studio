@@ -3,8 +3,11 @@ import path from 'node:path';
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MediaAssetEntity } from '@vgen/db';
+import { MediaAssetEntity, MediaGroupEntity, MediaGroupItemEntity } from '@vgen/db';
 import { TypedConfigService } from '../config/typed-config.service.js';
+import { MediaGroupsController } from './media-groups.controller.js';
+import { MediaGroupsRepository } from './media-groups.repository.js';
+import { MediaGroupsService } from './media-groups.service.js';
 import { MediaIngestService } from './media-ingest.service.js';
 import { MediaController } from './media.controller.js';
 import { MediaRepository } from './media.repository.js';
@@ -12,7 +15,7 @@ import { MediaService } from './media.service.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([MediaAssetEntity]),
+    TypeOrmModule.forFeature([MediaAssetEntity, MediaGroupEntity, MediaGroupItemEntity]),
     MulterModule.registerAsync({
       inject: [TypedConfigService],
       useFactory: (config: TypedConfigService) => ({
@@ -22,8 +25,8 @@ import { MediaService } from './media.service.js';
       }),
     }),
   ],
-  controllers: [MediaController],
-  providers: [MediaRepository, MediaIngestService, MediaService],
+  controllers: [MediaController, MediaGroupsController],
+  providers: [MediaRepository, MediaIngestService, MediaService, MediaGroupsRepository, MediaGroupsService],
   exports: [MediaService],
 })
 export class MediaModule {}

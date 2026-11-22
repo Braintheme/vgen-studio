@@ -28,6 +28,8 @@ export const STILLS_HIDDEN_PATHS: readonly string[] = ['durationSec', 'fps', 'mu
 export const COLLAPSED_SCOPE = 'compose';
 export const PREVIEW_DEBOUNCE_MS = 200;
 export const DRAFT_SAVE_DEBOUNCE_MS = 500;
+/** A project batches edits this long before it saves them to the server. */
+export const PROJECT_SAVE_DEBOUNCE_MS = 700;
 
 export const ACCEPT_BY_SLOT_KIND = {
   image: UPLOAD_MIME_TYPES.image.join(','),

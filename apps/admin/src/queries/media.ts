@@ -77,10 +77,12 @@ export const useUploadMediaMutation = (): UseMutationReturnType<
   const client = useQueryClient();
   return useMutation({
     mutationFn: ({ files, onProgress }: UploadVariables) => mediaApi.upload(files, { onProgress }),
-    onSuccess: (assets) => {
+    onSuccess: async (assets) => {
       assets.forEach((asset) => {
         client.setQueryData(queryKeys.media.detail(asset.id), asset);
       });
+      // New files belong in the library lists (the Media page, "From library").
+      await client.invalidateQueries({ queryKey: queryKeys.media.libraryAll });
     },
   });
 };

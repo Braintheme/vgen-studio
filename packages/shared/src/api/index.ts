@@ -7,3 +7,4 @@ export * from './templates.js';
 export * from './music.js';
 export * from './presets.js';
 export * from './previews.js';
+export * from './projects.js';

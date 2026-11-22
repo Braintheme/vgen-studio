@@ -1,7 +1,7 @@
 // Opens admin pages in headless Chrome and fails on uncaught exceptions or console errors:
 // runtime problems lint and unit tests cannot see (e.g. a component used outside its context).
 // Usage: pnpm --filter @vgen/engine-remotion admin-check [--path=/media] [--click="Clean up unused"]
-//        (no --path: every main page plus the compose screen of every template)
+//        (no --path: every main page, the compose screen of every template and a project editor)
 //        [--setup="localStorage.setItem(...)"] [--eval="<js after load>"]
 //        [--screenshot=/app/fixtures/renders/admin.png]
 import { spawn } from 'node:child_process';
@@ -26,7 +26,7 @@ const { values } = parseArgs({
   },
 });
 const PORT = 9333;
-const MAIN_PAGES = ['/templates', '/renders', '/media', '/music', '/presets'];
+const MAIN_PAGES = ['/templates', '/projects', '/renders', '/media', '/music', '/presets'];
 
 interface CdpMessage {
   readonly id?: number;
@@ -49,7 +49,16 @@ const pagesToCheck = async (): Promise<string[]> => {
   const templates = (await fetch(`${values.api}/templates`).then((response) => response.json())) as {
     id: string;
   }[];
-  return [...MAIN_PAGES, ...templates.map((template) => `/compose/${template.id}`)];
+  // The project editor too, when there is a project to open.
+  const projects = (await fetch(`${values.api}/projects?pageSize=1`).then((response) => response.json())) as {
+    items?: { id: string }[];
+  };
+  const project = projects.items?.[0];
+  return [
+    ...MAIN_PAGES,
+    ...templates.map((template) => `/compose/${template.id}`),
+    ...(project ? [`/projects/${project.id}`] : []),
+  ];
 };
 
 const executable = await ensureRemotionBrowser();

@@ -82,6 +82,16 @@ export interface VideoRangeSource {
   readonly filmstrip: FilmstripDto | null;
 }
 
+/** A media group offered by "From library" for a list slot. */
+export interface MediaPickerGroup {
+  readonly id: string;
+  readonly name: string;
+  /** Files of the slot's kind in the group. */
+  readonly count: number;
+  /** The first file's preview. */
+  readonly previewUrl: string | null;
+}
+
 export interface MediaPickerSlot {
   readonly key: string;
   readonly label: string;

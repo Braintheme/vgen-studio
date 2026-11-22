@@ -84,12 +84,18 @@ export const MEDIA_LIBRARY_SORTS = ['newest', 'oldest', 'largest'] as const;
 export const MediaLibraryQuerySchema = PageQuerySchema.extend({
   kind: z.enum(LIBRARY_MEDIA_KINDS).optional(),
   sort: z.enum(MEDIA_LIBRARY_SORTS).default('newest'),
+  /** Only the files of this media group. */
+  groupId: z.uuid().optional(),
 });
 export type MediaLibraryQuery = z.infer<typeof MediaLibraryQuerySchema>;
 
 export const MediaLibraryItemDtoSchema = MediaAssetDtoSchema.extend({
   /** Renders whose settings use this file (they keep their video; re-rendering them needs it). */
   renderCount: z.number().int().min(0),
+  /** Projects whose media include the file (they keep it from "Clean up unused"). */
+  projectCount: z.number().int().min(0),
+  /** Media groups holding the file (they keep it from "Clean up unused" too). */
+  groupCount: z.number().int().min(0),
 });
 export type MediaLibraryItemDto = z.infer<typeof MediaLibraryItemDtoSchema>;
 
@@ -110,7 +116,7 @@ export const BulkDeleteMediaResponseSchema = z.object({
 export type BulkDeleteMediaResponse = z.infer<typeof BulkDeleteMediaResponseSchema>;
 
 /**
- * "Delete unused files older than N days": photos and videos no render uses and no draft holds
+ * "Delete unused files older than N days": photos and videos no render or project uses and no draft holds
  * (drafts live in the admin, which sends their files as `keepIds`). `dryRun` only counts.
  */
 export const MediaCleanupRequestSchema = z.object({
@@ -126,3 +132,38 @@ export const MediaCleanupResponseSchema = z.object({
   deleted: z.boolean(),
 });
 export type MediaCleanupResponse = z.infer<typeof MediaCleanupResponseSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// Media groups: named sets of library files (e.g. a preset's settings screenshots), used to fill
+// a list slot in one go. Deleting a group keeps its files; deleting a file drops it from groups.
+
+/** Most files one group holds (a list slot takes at most 25). */
+export const MEDIA_GROUP_LIMIT = 100;
+
+export const MediaGroupDtoSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  /** In file-name order (Screenshot 1, Screenshot 2, … Screenshot 10). */
+  items: z.array(MediaAssetDtoSchema),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+export type MediaGroupDto = z.infer<typeof MediaGroupDtoSchema>;
+
+const GroupNameSchema = z.string().trim().min(1).max(256);
+const GroupIdsSchema = z.array(z.uuid()).max(MEDIA_GROUP_LIMIT);
+
+export const CreateMediaGroupRequestSchema = z.object({
+  name: GroupNameSchema,
+  assetIds: GroupIdsSchema.min(1),
+});
+export type CreateMediaGroupRequest = z.infer<typeof CreateMediaGroupRequestSchema>;
+
+export const UpdateMediaGroupRequestSchema = z
+  .object({
+    name: GroupNameSchema.optional(),
+    addIds: GroupIdsSchema.optional(),
+    removeIds: GroupIdsSchema.optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, 'Nothing to update');
+export type UpdateMediaGroupRequest = z.infer<typeof UpdateMediaGroupRequestSchema>;

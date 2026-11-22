@@ -5,8 +5,9 @@ import { toMediaTiles, uniqueById } from '@/lib/media-library';
 import { orderByName, pairOf } from '@/lib/media-pairs';
 import type { MediaTileView } from '@/lib/ui-types';
 import { useMediaLibraryInfiniteQuery } from '@/queries/media';
+import { useMediaGroupsQuery } from '@/queries/media-groups';
 import type { DraftMedia } from '@/stores/compose-draft';
-import type { MediaPickerSlot } from '@/features/compose/types';
+import type { MediaPickerGroup, MediaPickerSlot } from '@/features/compose/types';
 
 /** Files per "Load more" (smaller than the media page: it is a dialog). */
 const PICKER_PAGE_SIZE = 24;
@@ -21,6 +22,12 @@ export interface MediaPickerState {
   readonly isLoading: ComputedRef<boolean>;
   readonly isLoadingMore: ComputedRef<boolean>;
   readonly selectedCount: ComputedRef<number>;
+  /** Groups for a list slot (empty for single and paired slots). */
+  readonly groups: ComputedRef<readonly MediaPickerGroup[]>;
+  /** Selects a group's files (of the slot's kind, as many as fit), in the group's order. */
+  readonly selectGroup: (groupId: string) => void;
+  /** Set when a picked group had more files than the slot can still take. */
+  readonly groupNote: Readonly<Ref<string | null>>;
   /** Whether the slot can take files from the library (photos and videos only). */
   readonly canBrowse: (slotKey: string) => boolean;
   readonly openFor: (slotKey: string) => void;
@@ -51,6 +58,15 @@ export const useMediaPicker = (
   const items = computed<MediaLibraryItemDto[]>(() =>
     uniqueById(query.data.value?.pages.flatMap((page) => page.items) ?? []),
   );
+  // A list slot (e.g. settings screenshots) can take a whole group at once.
+  const listSlot = computed(() => slot.value !== null && !slot.value.paired && slot.value.room > 1);
+  const groupsQuery = useMediaGroupsQuery(() => open.value && listSlot.value);
+  const groupNote = ref<string | null>(null);
+  const groupFiles = (groupId: string): string[] => {
+    const kind = slot.value?.kind;
+    const group = groupsQuery.data.value?.find((candidate) => candidate.id === groupId);
+    return group ? group.items.filter((item) => item.kind === kind).map((item) => item.id) : [];
+  };
 
   return {
     open,
@@ -63,6 +79,31 @@ export const useMediaPicker = (
     isLoading: computed(() => query.isLoading.value),
     isLoadingMore: computed(() => query.isFetchingNextPage.value),
     selectedCount: computed(() => selected.value.length),
+    groups: computed(() =>
+      listSlot.value
+        ? (groupsQuery.data.value ?? [])
+            .map((group) => {
+              const files = group.items.filter((item) => item.kind === slot.value?.kind);
+              return {
+                id: group.id,
+                name: group.name,
+                count: files.length,
+                previewUrl: files[0]?.previewUrl ?? null,
+              };
+            })
+            .filter((group) => group.count > 0)
+        : [],
+    ),
+    selectGroup: (groupId) => {
+      const room = slot.value?.room ?? 0;
+      const ids = groupFiles(groupId);
+      selected.value = ids.slice(0, room);
+      groupNote.value =
+        ids.length > room
+          ? `The slot takes ${String(room)} more: the first ${String(room)} of ${String(ids.length)} are selected.`
+          : null;
+    },
+    groupNote,
     canBrowse: (slotKey) => {
       const definition = template.mediaSlots.find((candidate) => candidate.key === slotKey);
       return definition !== undefined && isLibraryKind(definition.kind);
@@ -81,6 +122,7 @@ export const useMediaPicker = (
         paired,
       };
       selected.value = [];
+      groupNote.value = null;
       open.value = true;
     },
     toggle: (id) => {

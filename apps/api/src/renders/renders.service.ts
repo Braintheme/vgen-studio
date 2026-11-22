@@ -20,6 +20,7 @@ import {
   type TemplateDefinition,
 } from '@vgen/shared';
 import { concat, defer, from, interval, map, merge, type Observable } from 'rxjs';
+import { QueryFailedError } from 'typeorm';
 import { CatalogService } from '../catalog/catalog.service.js';
 import { ConflictError, NotFoundError, ValidationFailedError, issueToDetail } from '../common/errors.js';
 import { MediaService } from '../media/media.service.js';
@@ -30,6 +31,9 @@ import { RenderEventsService } from './render-events.service.js';
 import { toRenderDto } from './renders.mapper.js';
 import { RendersRepository } from './renders.repository.js';
 import type { ZipEntry } from './zip-stream.js';
+
+const isForeignKeyError = (error: unknown): boolean =>
+  error instanceof QueryFailedError && (error.driverError as { code?: unknown }).code === '23503';
 
 /** Keeps idle SSE connections alive through proxies. */
 const HEARTBEAT_MS = 15_000;
@@ -57,6 +61,8 @@ export class RendersService {
     quality: QualityPreset;
     scale: StillScale;
     presetId: string | null;
+    /** Project the render is made from (links it; the project shows its last render). */
+    projectId?: string | null;
   }): Promise<CreateRenderResponse> {
     const template = this.catalog.getTemplate(request.templateId);
     const parsed = parseTemplateProps(template, request.props);
@@ -66,7 +72,10 @@ export class RendersService {
         parsed.error.issues.map((issue) => issueToDetail(issue, 'props')),
       );
     }
-    return this.submit(template, parsed.data, request.quality, request.scale, request.presetId);
+    return this.submit(template, parsed.data, request.quality, request.scale, {
+      presetId: request.presetId,
+      projectId: request.projectId ?? null,
+    });
   }
 
   async duplicate(id: string): Promise<DuplicateRenderResponse> {
@@ -94,7 +103,7 @@ export class RendersService {
       parsed.data,
       original.quality as QualityPreset,
       original.scale as StillScale,
-      original.presetId,
+      { presetId: original.presetId, projectId: original.projectId },
     );
     return { ...created, templateVersionChanged: original.templateVersion !== template.version };
   }
@@ -220,7 +229,7 @@ export class RendersService {
     props: BaseProps,
     quality: QualityPreset,
     requestedScale: StillScale,
-    presetId: string | null,
+    { presetId, projectId }: { presetId: string | null; projectId: string | null },
   ): Promise<CreateRenderResponse> {
     if (!template.formats.includes(props.format)) {
       throw new ValidationFailedError(`Template "${template.id}" does not support format ${props.format}`, [
@@ -240,25 +249,36 @@ export class RendersService {
       ]);
     }
 
-    const job = await this.repository.create({
-      status: 'queued',
-      engine: template.engine,
-      templateId: template.id,
-      templateVersion: template.version,
-      props: props as unknown as Record<string, unknown>,
-      format: props.format,
-      quality,
-      // Videos are always rendered at the format's size.
-      scale: stills ? requestedScale : 1,
-      presetId,
-      outputName: buildOutputFileName({
+    const job = await this.repository
+      .create({
+        status: 'queued',
+        engine: template.engine,
         templateId: template.id,
-        presetName,
+        templateVersion: template.version,
+        props: props as unknown as Record<string, unknown>,
         format: props.format,
-        date: new Date(),
-        extension: stills ? 'zip' : 'mp4',
-      }),
-    });
+        quality,
+        // Videos are always rendered at the format's size.
+        scale: stills ? requestedScale : 1,
+        presetId,
+        projectId,
+        outputName: buildOutputFileName({
+          templateId: template.id,
+          presetName,
+          format: props.format,
+          date: new Date(),
+          extension: stills ? 'zip' : 'mp4',
+        }),
+      })
+      .catch((error: unknown) => {
+        // The only foreign key a request can break: a project id that does not exist.
+        if (isForeignKeyError(error)) {
+          throw new ValidationFailedError(`Project "${projectId ?? ''}" not found`, [
+            { path: 'projectId', message: 'Unknown project' },
+          ]);
+        }
+        throw error;
+      });
     try {
       await this.queue.enqueue(template.engine, job.id);
     } catch (error) {

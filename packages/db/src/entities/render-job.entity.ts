@@ -12,6 +12,7 @@ import {
   type Relation,
 } from 'typeorm';
 import { MediaAssetEntity } from './media-asset.entity.js';
+import { ProjectEntity } from './project.entity.js';
 import { StylePresetEntity } from './style-preset.entity.js';
 
 @Entity('render_job')
@@ -63,6 +64,15 @@ export class RenderJobEntity {
   @ManyToOne(() => StylePresetEntity, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'preset_id' })
   preset?: Relation<StylePresetEntity> | null;
+
+  /** Project the render was made from; null for quick renders (and deleted projects). */
+  @Index('ix_render_job_project')
+  @Column({ type: 'uuid', nullable: true })
+  projectId: string | null;
+
+  @ManyToOne(() => ProjectEntity, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'project_id', foreignKeyConstraintName: 'fk_render_job_project' })
+  project?: Relation<ProjectEntity> | null;
 
   /** Download file name, computed at creation time. */
   @Column({ type: 'varchar', length: 256 })

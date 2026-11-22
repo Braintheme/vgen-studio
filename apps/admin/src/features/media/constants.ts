@@ -10,6 +10,7 @@ export const KIND_OPTIONS: readonly SelectOption<LibraryKindFilter>[] = [
   { value: 'all', label: 'All' },
   { value: 'image', label: 'Photos' },
   { value: 'video', label: 'Videos' },
+  { value: 'groups', label: 'Groups' },
 ];
 
 export const SORT_OPTIONS: readonly SelectOption<MediaLibraryQuery['sort']>[] = [

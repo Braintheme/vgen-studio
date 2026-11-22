@@ -18,6 +18,8 @@ const item = (id: string, overrides: Partial<MediaLibraryItemDto> = {}): MediaLi
   peaksUrl: null,
   video: null,
   renderCount: 0,
+  projectCount: 0,
+  groupCount: 0,
   ...overrides,
 });
 
@@ -45,9 +47,13 @@ describe('media library helpers', () => {
 
   it('sums the selection and counts what still uses it', () => {
     const summary = summarizeSelection(
-      [item('a', { size: 100, renderCount: 2 }), item('b', { size: 50 }), item('c', { size: 5 })],
+      [
+        item('a', { size: 100, renderCount: 2 }),
+        item('b', { size: 50, projectCount: 1 }),
+        item('c', { size: 5 }),
+      ],
       new Map([['c', ['Preset Reel']]]),
     );
-    expect(summary).toEqual({ count: 3, bytes: 155, inRenders: 1, inDrafts: 1 });
+    expect(summary).toEqual({ count: 3, bytes: 155, inRenders: 1, inProjects: 1, inDrafts: 1 });
   });
 });

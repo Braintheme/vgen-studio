@@ -11,6 +11,10 @@ import type { LibraryKindFilter } from '@/features/media/types';
 
 export interface MediaLibraryState {
   readonly kind: Ref<LibraryKindFilter>;
+  /** In the Groups view: the open group (its files are listed); null = the group cards. */
+  readonly groupId: Ref<string | null>;
+  /** The Groups view shows group cards, not files. */
+  readonly showsGroupCards: ComputedRef<boolean>;
   readonly sort: Ref<MediaLibraryQuery['sort']>;
   readonly page: Ref<number>;
   readonly pageSize: number;
@@ -28,23 +32,35 @@ export interface MediaLibraryState {
   readonly toggle: (id: string) => void;
   readonly selectPage: () => void;
   readonly clearSelection: () => void;
+  /** Selects these files (e.g. just uploaded), replacing the selection. */
+  readonly selectOnly: (items: readonly MediaLibraryItemDto[]) => void;
 }
 
 /** The media page's list: filters, pages, draft usage and a selection kept across pages. */
 export const useMediaLibrary = (): MediaLibraryState => {
   const kind = ref<LibraryKindFilter>('all');
   const sort = ref<MediaLibraryQuery['sort']>('newest');
+  const groupId = ref<string | null>(null);
   const page = ref(1);
-  watch([kind, sort], () => {
+  watch([kind, sort, groupId], () => {
     page.value = 1;
   });
+  // A group is opened from the Groups view only: leaving the view closes it.
+  watch(kind, (next) => {
+    if (next !== 'groups') groupId.value = null;
+  });
+  const showsGroupCards = computed(() => kind.value === 'groups' && groupId.value === null);
 
-  const query = useMediaLibraryQuery(() => ({
-    page: page.value,
-    pageSize: MEDIA_PAGE_SIZE,
-    sort: sort.value,
-    ...(kind.value === 'all' ? {} : { kind: kind.value }),
-  }));
+  const query = useMediaLibraryQuery(
+    () => ({
+      page: page.value,
+      pageSize: MEDIA_PAGE_SIZE,
+      sort: sort.value,
+      ...(kind.value === 'image' || kind.value === 'video' ? { kind: kind.value } : {}),
+      ...(kind.value === 'groups' && groupId.value ? { groupId: groupId.value } : {}),
+    }),
+    () => !showsGroupCards.value,
+  );
   const draftUsage = useDraftMediaUsage();
   // Selected files with what is needed to describe them, whatever page they are on.
   const selected = shallowRef<ReadonlyMap<string, MediaLibraryItemDto>>(new Map());
@@ -60,6 +76,8 @@ export const useMediaLibrary = (): MediaLibraryState => {
 
   return {
     kind,
+    groupId,
+    showsGroupCards,
     sort,
     page,
     pageSize: MEDIA_PAGE_SIZE,
@@ -85,6 +103,9 @@ export const useMediaLibrary = (): MediaLibraryState => {
     },
     clearSelection: () => {
       selected.value = new Map();
+    },
+    selectOnly: (next) => {
+      selected.value = new Map(next.map((item) => [item.id, item]));
     },
   };
 };

@@ -33,8 +33,8 @@ const toDays = (raw: string | number): number => Math.max(0, Math.min(3650, Math
       <DialogHeader>
         <DialogTitle>Clean up unused files</DialogTitle>
         <DialogDescription>
-          Photos and videos that no render uses and no template's draft holds. Files in your current drafts
-          are always kept.
+          Photos and videos that no render or project uses and no template's draft holds. Files in your
+          current drafts are always kept.
         </DialogDescription>
       </DialogHeader>
       <label class="flex items-center gap-3 text-sm">

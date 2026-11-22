@@ -3,6 +3,8 @@
 export const ROUTE_NAMES = {
   templates: 'templates',
   compose: 'compose',
+  projects: 'projects',
+  project: 'project',
   renders: 'renders',
   music: 'music',
   presets: 'presets',
@@ -14,6 +16,8 @@ export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES];
 export const ROUTE_PATHS: Record<RouteName, string> = {
   templates: '/templates',
   compose: '/compose/:templateId',
+  projects: '/projects',
+  project: '/projects/:projectId',
   renders: '/renders',
   music: '/music',
   presets: '/presets',
@@ -23,6 +27,7 @@ export const ROUTE_PATHS: Record<RouteName, string> = {
 /** Route parameter names. */
 export const ROUTE_PARAMS = {
   templateId: 'templateId',
+  projectId: 'projectId',
 } as const;
 
 /** Query parameter names. */
@@ -40,4 +45,9 @@ export const routeTo = {
     query: presetId ? { [ROUTE_QUERY.preset]: presetId } : {},
   }),
   music: () => ({ name: ROUTE_NAMES.music }),
+  projects: () => ({ name: ROUTE_NAMES.projects }),
+  project: (projectId: string) => ({
+    name: ROUTE_NAMES.project,
+    params: { [ROUTE_PARAMS.projectId]: projectId },
+  }),
 };

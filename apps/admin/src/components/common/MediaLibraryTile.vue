@@ -63,8 +63,19 @@ const emit = defineEmits<{
         <Badge v-if="tile.renderCount > 0" variant="secondary">
           {{ tile.renderCount }} render{{ tile.renderCount === 1 ? '' : 's' }}
         </Badge>
+        <Badge v-if="tile.projectCount > 0" variant="secondary">
+          {{ tile.projectCount }} project{{ tile.projectCount === 1 ? '' : 's' }}
+        </Badge>
+        <Badge v-if="tile.groupCount > 0" variant="secondary">
+          {{ tile.groupCount }} group{{ tile.groupCount === 1 ? '' : 's' }}
+        </Badge>
         <Badge
-          v-if="tile.renderCount === 0 && tile.draftTemplates.length === 0"
+          v-if="
+            tile.renderCount === 0 &&
+            tile.projectCount === 0 &&
+            tile.groupCount === 0 &&
+            tile.draftTemplates.length === 0
+          "
           variant="outline"
           class="text-muted-foreground"
         >
