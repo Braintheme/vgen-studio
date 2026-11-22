@@ -24,7 +24,10 @@ Typical layout (folder `56`): `56 - Videos/` and `56 - Images/` (photos may sit 
 - **Marks** on clip names: any symbols before the camera's name (`$$`, `&&`, …) = the owner picked
   the clip and it has a photo pair → assemble those (the symbol itself means nothing: `&&` was a
   typo for `$$`). No mark = not picked.
-- **Photos**: Canon EOS 90D, `IMG_n_Original.jpg` = Before, `IMG_n_Edited.jpg` = After.
+- **Photos**: Canon EOS 90D, `IMG_n_Original.jpg` = Before, `IMG_n_Edited.jpg` = After. The
+  owner's picks sit in a subfolder (`56 - Images/01/`) next to the looks table; a pair left in the
+  main images folder and missing from the table was not picked (folder 56: `IMG_5677`, a second
+  shot inside C165) — no video for it, mention it in the report.
 - **Looks table**: `NN_Look_Titles.xlsx`, columns `Photo | Preview | Look 1..5`.
 
 ## Steps
@@ -41,6 +44,15 @@ Typical layout (folder `56`): `56 - Videos/` and `56 - Images/` (photos may sit 
      end usually means the recording stopped right before the shutter — use it, fragment to the
      clip's end (confirm the scene on the last frames). Far misses (> ~8 s): leave the clip and
      mention it.
+   - **Pairs the owner names** ("C248 — IMG_6465", "PXL — the bridge photo") win over the scan,
+     even far outside the clip or for a photo already used in another video (reuse it). Still
+     find the shot on the frames.
+   - **The camera clock can jump within a folder** (folder 57: afternoon +21.7 s, evening clips
+     C252–C261 had their shots ~19 s earlier than that predicts). When a later clip's frames do
+     not show the photo's scene at the expected time, look for the shot over the whole clip and
+     trust the frames.
+   - A clip shorter than the template's 3 s minimum (e.g. a 2.6 s `PXL_…`) cannot be used: skip
+     it and say so.
    **Skip what is already made**: the projects are the record (never write into the shoot folder).
    `GET /projects` (all pages) and, for each, the original names of its `clip` and `before` media
    (`GET /media/:id`): a clip + photo pair that already has a project is not assembled again. The
@@ -58,8 +70,13 @@ Typical layout (folder `56`): `56 - Videos/` and `56 - Images/` (photos may sit 
      shot at 10.1 s): trust the counter.
    - Measure the true offset on the first clip, then rerun the scan with `--offset <s>`.
 3. **Fragment** (`params.clip`):
-   - **Always start at 0**: every clip opens with the hook — the flip screen opening, the camera
-     turning on. Cutting it is a last resort (only for real junk at the start).
+   - **Start at the hook**: most clips open with it — the flip screen opening, the camera
+     turning on — and then start at 0. Never cut the hook itself. But **dead time before it is
+     junk, cut it**: seconds where the screen stays off / dark and nothing happens (the owner
+     fiddling before he opens or switches on the camera; folder 56, C176: ~7 s of a dark screen
+     pointed at the ground). Start ~0.3–0.5 s before the hook begins (the screen starts to
+     open / light up), so it plays whole. No hook in the clip at all → start where something
+     happens on the screen; a clip that starts with the action already on is fine from 0.
    - **End at the shot** (+0.2 s) when it is within ~15 s.
    - **A later shot**: end earlier on a good moment (subject on screen, composing; ideally a
      focus confirmation) at ~8–12 s. A slightly "wrong" end beats losing the hook; the owner cut
@@ -67,11 +84,14 @@ Typical layout (folder `56`): `56 - Videos/` and `56 - Images/` (photos may sit 
    - The template's limits: 3–30 s.
    - **Several photos in one clip** (e.g. a 69 s clip with three shots): **every photo pair gets
      its own video** — the owner uses different moments of one clip; none may be left without a
-     video. The **earliest** photo keeps the hook: 0 → its shot (the rules above). Each **later**
+     video. The **earliest** photo keeps the hook: hook start → its shot (the rules above). Each **later**
      photo: the fragment ends at its own shot and starts ~10 s earlier, never before the previous
      shot + 0.5 s (no hook there — the template takes one range; the camera screen shows that
      photo's scene, which is what counts: the sound is muted, the shutter moment is not seen).
      "Один ролик на клип" / "one video per clip" → only the earliest photo.
+     Two photos from one burst (same second, folder 57 C261): the earlier gets hook → a good
+     moment at ~8–12 s, the later ends at the shot and starts ~10 s before it (after the first
+     one's end).
 4. **Horizon** (`params.framing.tilt`): find the screen image's box on a full frame (bright picture
    inside the dark bezel), then `scripts/tilt.py <clip> --box x0,y0,x1,y1 --times <a,b>` (add
    `--strips <out>` to compare angles by eye). `+` = leaning clockwise ("down to the right");
@@ -83,11 +103,32 @@ Typical layout (folder `56`): `56 - Videos/` and `56 - Images/` (photos may sit 
    image as fractions of the frame (`cx`, `cy`, 0..1, top-left origin) and set
    `x = s/(s−1) · 2 · (cx − 0.5)`, `y = s/(s−1) · 2 · (cy − 0.5)` (`s` = scale; for 2×: `4·(c − 0.5)`),
    rounded to 0.05, within −1..1. Reference: folder 57 `C206` at 8.5 s — screen centre at
-   `cy` 0.564 → `y` 0.25, the value the owner set by eye. The punch only happens if
-   `atSec + 0.5 ≤ fragment length`: for a fragment shorter than 8.5 s set `atSec` to its end − 1.5.
-6. **Title** (`preset-reel`, `reel` look): `How to get that` / `"<Look 1>"` / `Look in *Lightroom*`
-   (`texts.titleLead / titleHero / titleTail`, `*word*` = accent). Look 1 unless the owner picks.
-7. **Preset**: the owner's choice; default `Video with Settings  - Pallete` (palette finale) —
+   `cy` 0.564 → `y` 0.25, the value the owner set by eye.
+   The screen is not always in the same place: with the camera in a cage / side mount (folder 57
+   evening clips) it sits small at the bottom right (`x` ≈ 0.65–0.7, `y` ≈ 0.75) — measure every
+   clip. A clip with no camera screen (an iPhone behind-the-scenes shot of the subject) → aim
+   the punch at the subject. The punch only happens if
+   `atSec + 0.5 ≤ fragment length`: for a fragment shorter than 8.5 s set `atSec` to its length − 1.5 (`atSec` counts from the fragment's start, not the clip's; so does the frame you measure the screen centre on).
+6. **Title** (`preset-reel`, `reel` look): set only the middle line, `texts.titleHero` =
+   `"<Look 1>"` (Look 1 unless the owner picks). The first and last lines (`titleLead`,
+   `titleTail`) are the preset's, as the owner typed them (e.g. `how to get that` /
+   `Look in*Lightroom*`: no space before the accent on purpose, the template adds one) — do not
+   send them. Only when the preset has no title texts use `how to get that` / `Look in*Lightroom*`
+   (`*word*` = accent). A photo missing from the looks table: ask once for the batch; when the
+   owner says "придумай сам", invent a two-word look in the table's style from the photo (e.g.
+   `Alpine Trail`, `Golden Meadow`) and mark it as invented in the report.
+   **The card's camera settings** — when the finale is the before/after card
+   (`params.finale: "card"`, from the preset or the defaults): read the photo's EXIF with
+   `python3 -I scripts/exif.py <Original> [<Edited>]` and set `texts.cardLens` (`18MM`: the focal
+   length of the shot) and `texts.cardExposure` (`1/400  F2.0  ISO 100`), and **always set
+   `texts.cardTitle` = `Shot on Canon. Sony, your move.`** (the owner's line). `cardTitle`,
+   `cardLens` and `cardExposure` are `content` texts: presets do not store them, so a project
+   that does not send them gets the template's placeholders ("Shot on Canon T1000", "50MM") even
+   though the owner saw his own line in the editor. `cardFooter` is `style` and comes from the
+   preset. No EXIF → leave lens / exposure out and say so in the report. Palette finale: nothing
+   to fill.
+7. **Preset**: the owner's choice; default `Video with Settings  - Card  - screenshots` (card
+   finale, timings tuned by the owner; folder 56 from 2026-11-22 on) —
    look it up by name in `GET /presets?templateId=preset-reel`.
    **Settings screenshots** come from **media groups** (Media page → Groups) — always check
    `GET /media-groups` (name + files in order):
@@ -120,9 +161,10 @@ Typical layout (folder `56`): `56 - Videos/` and `56 - Images/` (photos may sit 
      "name": "56 · IMG_5919 · Golden Lake",
      "settings": {
        "texts": {
-         "titleLead": { "value": "How to get that" },
          "titleHero": { "value": "\"Golden Lake\"" },
-         "titleTail": { "value": "Look in *Lightroom*" }
+         "cardTitle": { "value": "Shot on Canon. Sony, your move." },
+         "cardLens": { "value": "50MM" },
+         "cardExposure": { "value": "1/160  F2.2  ISO 320" }
        },
        "params": {
          "clip": { "startSec": 0, "endSec": 9.5 },
@@ -140,7 +182,7 @@ Typical layout (folder `56`): `56 - Videos/` and `56 - Images/` (photos may sit 
 11. **Check**: `make admin-check args="--path=/projects/<id>"` for each project.
 12. **Report** (in Russian): a table — project (link `http://localhost:5173/projects/<id>`), clip,
     fragment, shot moment and how it was found, title, Straighten, punch-in point, song + start,
-    screenshots group — plus what was skipped and why
+    screenshots group, card lens / exposure (card finale) — plus what was skipped and why
     (no photo, several photos, unknown mark) and any open question.
 
 ## Do not

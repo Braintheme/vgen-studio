@@ -126,7 +126,8 @@ Video media: uploads get a poster, an H.264 proxy and a filmstrip; a video slot 
 
 Deferred (agreed "later"): cleanup of orphan files on disk and of the preview-frame cache
 (`previews/`), music beat sync, reading camera settings (EXIF)
-from before/after photos into `preset-reel`'s card.
+from before/after photos into `preset-reel`'s card in the editor (the `assemble-videos` skill already
+fills it for the projects it makes: `scripts/exif.py`).
 A template's own default track: `seed/templates/<templateId>/<track>` → `make seed` adds it to the
 library and puts it into that template's "Default" preset (`palette-grade`'s comes from its
 reference, so it is git-ignored and local only).

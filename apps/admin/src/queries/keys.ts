@@ -30,6 +30,7 @@ export const queryKeys = {
     list: (query: ProjectListQuery) => [...queryKeys.projects.lists(), query] as const,
     details: () => [...queryKeys.projects.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.projects.details(), id] as const,
+    neighbors: (id: string) => [...queryKeys.projects.all, 'neighbors', id] as const,
     dayCounts: () => [...queryKeys.projects.all, 'days'] as const,
     days: (query: ProjectDaysQuery) => [...queryKeys.projects.dayCounts(), query] as const,
     selectable: (query: ProjectSelectableQuery) => [...queryKeys.projects.all, 'selectable', query] as const,

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ArrowLeft, CircleAlert, Pencil } from '@lucide/vue';
+import { ArrowLeft, ChevronLeft, ChevronRight, CircleAlert, Pencil } from '@lucide/vue';
+import type { ProjectNeighborsDto } from '@vgen/shared';
 import { nextTick, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,8 @@ const props = defineProps<{
   status: ProjectStatusView;
   saving: boolean;
   failed: boolean;
+  /** Place in the projects list and the neighbours; null while loading. */
+  neighbors: ProjectNeighborsDto | null;
 }>();
 
 const emit = defineEmits<{
@@ -47,12 +50,35 @@ const TONE_CLASS: Record<ProjectStatusView['tone'], string> = {
 
 <template>
   <div class="grid gap-2">
-    <RouterLink
-      :to="routeTo.projects()"
-      class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-    >
-      <ArrowLeft class="size-4" /> Projects
-    </RouterLink>
+    <div class="flex items-center justify-between gap-4">
+      <RouterLink
+        :to="routeTo.projects()"
+        class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft class="size-4" /> Projects
+      </RouterLink>
+      <!-- Review project after project without going back to the table (its order: newest first). -->
+      <nav v-if="neighbors" class="flex items-center gap-1 text-sm" aria-label="Neighbouring projects">
+        <Button v-if="neighbors.previous" variant="ghost" size="sm" as-child>
+          <RouterLink
+            :to="routeTo.project(neighbors.previous.id)"
+            :title="`Previous: ${neighbors.previous.name}`"
+          >
+            <ChevronLeft /> Prev
+          </RouterLink>
+        </Button>
+        <Button v-else variant="ghost" size="sm" disabled><ChevronLeft /> Prev</Button>
+        <span class="px-1 tabular-nums text-muted-foreground"
+          >{{ neighbors.position }} / {{ neighbors.total }}</span
+        >
+        <Button v-if="neighbors.next" variant="ghost" size="sm" as-child>
+          <RouterLink :to="routeTo.project(neighbors.next.id)" :title="`Next: ${neighbors.next.name}`">
+            Next <ChevronRight />
+          </RouterLink>
+        </Button>
+        <Button v-else variant="ghost" size="sm" disabled>Next <ChevronRight /></Button>
+      </nav>
+    </div>
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div class="min-w-0 space-y-1">
         <Input

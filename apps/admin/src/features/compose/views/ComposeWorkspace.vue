@@ -30,6 +30,7 @@ const screen = useComposeScreen(props.template, props.project);
     :status="screen.project.status.value"
     :saving="screen.project.saving.value"
     :failed="screen.project.failed.value"
+    :neighbors="screen.project.neighbors.value"
     @rename="screen.project.rename"
     @retry="screen.project.retry"
   />

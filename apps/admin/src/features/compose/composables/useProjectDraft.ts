@@ -4,17 +4,18 @@ import {
   sanitizeTemplateSettings,
   type ProjectDto,
   type ProjectLastRender,
+  type ProjectNeighborsDto,
   type QualityPreset,
   type StillScale,
   type TemplateDefinition,
   type UpdateProjectRequest,
 } from '@vgen/shared';
 import { computed, onScopeDispose, readonly, ref, shallowRef, type ComputedRef, type Ref } from 'vue';
-import { onBeforeRouteLeave } from 'vue-router';
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router';
 import { useNotify } from '@/composables/useNotify';
 import { localTimeZone } from '@/lib/days';
 import { projectStatus, type ProjectStatusView } from '@/lib/project-status';
-import { useProjectQuery, useUpdateProjectMutation } from '@/queries/projects';
+import { useProjectNeighborsQuery, useProjectQuery, useUpdateProjectMutation } from '@/queries/projects';
 import { useRenderLiveSync } from '@/queries/renders';
 import type { DraftMedia } from '@/stores/compose-draft';
 import { PROJECT_SAVE_DEBOUNCE_MS } from '@/features/compose/constants';
@@ -34,6 +35,8 @@ export interface ProjectSession {
   readonly lastRender: ComputedRef<ProjectLastRender | null>;
   /** "Rendered 14:05", "Rendering 40%"… and whether it was edited since. */
   readonly status: ComputedRef<ProjectStatusView>;
+  /** Place in the projects list and the neighbours (Prev / Next); null while loading. */
+  readonly neighbors: ComputedRef<ProjectNeighborsDto | null>;
 }
 
 export interface ProjectDraftState extends ComposeDraftState {
@@ -55,6 +58,7 @@ export const useProjectDraft = (
   const notify = useNotify();
   const update = useUpdateProjectMutation();
   const live = useProjectQuery(project.id);
+  const neighbors = useProjectNeighborsQuery(project.id);
   // Render events keep the header's "Rendering 40%" / "Rendered 14:05" current.
   useRenderLiveSync();
 
@@ -126,6 +130,8 @@ export const useProjectDraft = (
   }
 
   onBeforeRouteLeave(flush);
+  // Prev / Next stays on the same route (another id): write the pending changes first too.
+  onBeforeRouteUpdate(flush);
   // Closing the tab cannot wait for a request: ask the browser to warn instead.
   useEventListener(window, 'beforeunload', (event: BeforeUnloadEvent) => {
     if (saving.value) event.preventDefault();
@@ -173,6 +179,7 @@ export const useProjectDraft = (
       failed: readonly(failed),
       retry: send,
       lastRender: computed(() => live.data.value?.lastRender ?? project.lastRender),
+      neighbors: computed(() => neighbors.data.value ?? null),
       status: computed(() =>
         projectStatus(
           {
