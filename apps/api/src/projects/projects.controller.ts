@@ -21,6 +21,7 @@ import {
   ProjectDtoSchema,
   ProjectIdsRequestSchema,
   ProjectListQuerySchema,
+  ProjectNeighborsDtoSchema,
   ProjectSelectableQuerySchema,
   RenderProjectsResponseSchema,
   UpdateProjectRequestSchema,
@@ -28,6 +29,7 @@ import {
   type Paginated,
   type ProjectDayDto,
   type ProjectDto,
+  type ProjectNeighborsDto,
   type RenderProjectsResponse,
 } from '@vgen/shared';
 import { z } from 'zod';
@@ -97,6 +99,13 @@ export class ProjectsController {
   @ApiOkResponse({ standardSchema: ProjectDtoSchema })
   get(@Param('id', ParseUUIDPipe) id: string): Promise<ProjectDto> {
     return this.projects.get(id);
+  }
+
+  /** The project's place in the list and its neighbours (the editor's Prev / Next). */
+  @Get(':id/neighbors')
+  @ApiOkResponse({ standardSchema: ProjectNeighborsDtoSchema })
+  neighbors(@Param('id', ParseUUIDPipe) id: string): Promise<ProjectNeighborsDto> {
+    return this.projects.neighbors(id);
   }
 
   /** Saves the editor's changes (name, settings, media, quality, scale, preset). */

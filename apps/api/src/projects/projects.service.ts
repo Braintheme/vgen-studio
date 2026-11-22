@@ -15,6 +15,7 @@ import {
   type ProjectDaysQuery,
   type ProjectDto,
   type ProjectListQuery,
+  type ProjectNeighborsDto,
   type ProjectSelectableQuery,
   type RenderProjectsResponse,
   type TemplateDefinition,
@@ -105,6 +106,22 @@ export class ProjectsService {
     const [dto] = await this.toDtos([await this.require(id)]);
     if (!dto) throw new NotFoundError('Project', id);
     return dto;
+  }
+
+  /** For the editor's Prev / Next: the project's place in the list and its neighbours. */
+  async neighbors(id: string): Promise<ProjectNeighborsDto> {
+    const found = await this.repository.neighbors(id);
+    if (!found) throw new NotFoundError('Project', id);
+    const link = (pos: number) => {
+      const row = found.rows.find((candidate) => candidate.pos === pos);
+      return row ? { id: row.id, name: row.name } : null;
+    };
+    return {
+      position: found.position,
+      total: found.total,
+      previous: link(found.position - 1),
+      next: link(found.position + 1),
+    };
   }
 
   async list(query: ProjectListQuery): Promise<Paginated<ProjectDto>> {

@@ -3,6 +3,7 @@ import {
   paginated,
   ProjectDayDtoSchema,
   ProjectDtoSchema,
+  ProjectNeighborsDtoSchema,
   RenderProjectsResponseSchema,
   type CreateProjectRequest,
   type DeleteProjectsResponse,
@@ -11,6 +12,7 @@ import {
   type ProjectDaysQuery,
   type ProjectDto,
   type ProjectListQuery,
+  type ProjectNeighborsDto,
   type ProjectSelectableQuery,
   type RenderProjectsResponse,
   type UpdateProjectRequest,
@@ -32,6 +34,9 @@ export const projectsApi = {
 
   get: (id: string, options: RequestOptions = {}): Promise<ProjectDto> =>
     getJson(ProjectDtoSchema, `/projects/${id}`, { signal: options.signal }),
+
+  neighbors: (id: string, options: RequestOptions = {}): Promise<ProjectNeighborsDto> =>
+    getJson(ProjectNeighborsDtoSchema, `/projects/${id}/neighbors`, { signal: options.signal }),
 
   create: (request: CreateProjectRequest): Promise<ProjectDto> =>
     postJson(ProjectDtoSchema, '/projects', request),

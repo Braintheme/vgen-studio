@@ -73,6 +73,20 @@ export const UpdateProjectRequestSchema = ProjectDraftSchema.partial()
   .refine((value) => Object.keys(value).length > 0, 'Nothing to update');
 export type UpdateProjectRequest = z.infer<typeof UpdateProjectRequestSchema>;
 
+const ProjectLinkSchema = z.object({ id: z.uuid(), name: z.string() });
+
+/** Where a project sits in the projects list (newest first): its place and its neighbours. */
+export const ProjectNeighborsDtoSchema = z.object({
+  /** 1-based place in the list. */
+  position: z.number().int().min(1),
+  total: z.number().int().min(1),
+  /** The newer neighbour (above it in the table). */
+  previous: ProjectLinkSchema.nullable(),
+  /** The older neighbour (below it in the table). */
+  next: ProjectLinkSchema.nullable(),
+});
+export type ProjectNeighborsDto = z.infer<typeof ProjectNeighborsDtoSchema>;
+
 export const DuplicateProjectRequestSchema = z.object({
   /** Defaults to "<name> (copy)". */
   name: NameSchema.optional(),

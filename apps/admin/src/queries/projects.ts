@@ -15,6 +15,7 @@ import type {
   ProjectDaysQuery,
   ProjectDto,
   ProjectListQuery,
+  ProjectNeighborsDto,
   ProjectSelectableQuery,
   RenderProjectsResponse,
   UpdateProjectRequest,
@@ -30,6 +31,7 @@ type ProjectPage = Paginated<ProjectDto>;
 export const invalidateProjectLists = (client: QueryClient): void => {
   void client.invalidateQueries({ queryKey: queryKeys.projects.lists() });
   void client.invalidateQueries({ queryKey: queryKeys.projects.dayCounts() });
+  void client.invalidateQueries({ queryKey: [...queryKeys.projects.all, 'neighbors'] });
 };
 
 /** Applies a project update to every cached list page and to its detail cache. */
@@ -85,6 +87,15 @@ export const useProjectQuery = (
     queryFn: ({ signal }) => projectsApi.get(toValue(id), { signal }),
     // The editor owns the project's content while it is open: no refetch on focus over it.
     refetchOnWindowFocus: false,
+  });
+
+/** The editor's Prev / Next: the project's place in the list and its neighbours. */
+export const useProjectNeighborsQuery = (
+  id: MaybeRefOrGetter<string>,
+): UseQueryReturnType<ProjectNeighborsDto, ApiRequestError> =>
+  useQuery({
+    queryKey: computed(() => queryKeys.projects.neighbors(toValue(id))),
+    queryFn: ({ signal }) => projectsApi.neighbors(toValue(id), { signal }),
   });
 
 export const useCreateProjectMutation = (): UseMutationReturnType<

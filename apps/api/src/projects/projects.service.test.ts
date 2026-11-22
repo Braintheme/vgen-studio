@@ -1,7 +1,7 @@
 import type { MediaAssetEntity, ProjectEntity } from '@vgen/db';
 import type { StylePresetDto } from '@vgen/shared';
 import { describe, expect, it, vi } from 'vitest';
-import { ValidationFailedError } from '../common/errors.js';
+import { NotFoundError, ValidationFailedError } from '../common/errors.js';
 import type { MediaService } from '../media/media.service.js';
 import type { PresetsService } from '../presets/presets.service.js';
 import type { RendersService } from '../renders/renders.service.js';
@@ -70,6 +70,13 @@ const setup = (presets: StylePresetDto[] = [preset()]) => {
     update: vi.fn(() => Promise.resolve()),
     delete: vi.fn((ids: readonly string[]) => Promise.resolve(ids.filter((id) => stored.has(id)))),
     lastRenders: vi.fn(() => Promise.resolve(new Map())),
+    neighbors: vi.fn(
+      (): Promise<{
+        position: number;
+        total: number;
+        rows: { id: string; name: string; pos: number }[];
+      } | null> => Promise.resolve(null),
+    ),
   };
   const media = {
     findMany: vi.fn(() =>
@@ -249,5 +256,30 @@ describe('ProjectsService.duplicate', () => {
 
     await service.duplicate(P1, 'Golden Lake · v2');
     expect(repository.create.mock.lastCall?.[0]).toMatchObject({ name: 'Golden Lake · v2' });
+  });
+});
+
+describe('ProjectsService.neighbors', () => {
+  it('links the newer and the older neighbour, none past the ends', async () => {
+    const { service, repository } = setup();
+    repository.neighbors.mockResolvedValueOnce({
+      position: 1,
+      total: 3,
+      rows: [
+        { id: P1, name: 'Newest', pos: 1 },
+        { id: P2, name: 'Second', pos: 2 },
+      ],
+    });
+    expect(await service.neighbors(P1)).toEqual({
+      position: 1,
+      total: 3,
+      previous: null,
+      next: { id: P2, name: 'Second' },
+    });
+  });
+
+  it('says when the project is gone', async () => {
+    const { service } = setup();
+    await expect(service.neighbors(P1)).rejects.toBeInstanceOf(NotFoundError);
   });
 });

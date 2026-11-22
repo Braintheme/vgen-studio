@@ -115,6 +115,32 @@ export class ProjectsRepository {
     return (result.raw as { id: string }[]).map((row) => row.id);
   }
 
+  /** The project's place in the list (newest first, as the table shows it) and its neighbours. */
+  async neighbors(id: string): Promise<{
+    position: number;
+    total: number;
+    rows: { id: string; name: string; pos: number }[];
+  } | null> {
+    const rows: { id: string; name: string; pos: string; total: string }[] =
+      await this.repository.manager.query(
+        `WITH ordered AS (
+         SELECT id, name, row_number() OVER (ORDER BY created_at DESC, id DESC) AS pos FROM project
+       ), target AS (SELECT pos FROM ordered WHERE id = $1)
+       SELECT o.id, o.name, o.pos, (SELECT count(*) FROM project) AS total
+       FROM ordered o, target t
+       WHERE o.pos BETWEEN t.pos - 1 AND t.pos + 1
+       ORDER BY o.pos`,
+        [id],
+      );
+    const self = rows.find((row) => row.id === id);
+    if (!self) return null;
+    return {
+      position: Number(self.pos),
+      total: Number(self.total),
+      rows: rows.map((row) => ({ id: row.id, name: row.name, pos: Number(row.pos) })),
+    };
+  }
+
   /** The newest render of each project that has one. */
   async lastRenders(projectIds: readonly string[]): Promise<Map<string, LastRenderRow>> {
     if (projectIds.length === 0) return new Map();
