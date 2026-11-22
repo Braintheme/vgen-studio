@@ -8,7 +8,13 @@ import {
 } from '@vgen/shared';
 import { computed, type ComputedRef, type WritableComputedRef } from 'vue';
 import { useComposeDraftStore, type DraftMedia } from '@/stores/compose-draft';
+import { DRAFT_SAVE_DEBOUNCE_MS } from '@/features/compose/constants';
 
+/**
+ * Where the editor keeps what is being composed: the template's browser draft
+ * (`useComposeDraft`) or a project on the server (`useProjectDraft`). The editor only
+ * talks to this interface.
+ */
 export interface ComposeDraftState {
   /** Form start values: the saved draft, validated against the current template schema. */
   readonly initialSettings: Readonly<Record<string, unknown>>;
@@ -21,6 +27,10 @@ export interface ComposeDraftState {
   readonly presetId: WritableComputedRef<string | null>;
   readonly saveSettings: (settings: Readonly<Record<string, unknown>>) => void;
   readonly setMedia: (media: DraftMedia) => void;
+  /** How long form edits settle before `saveSettings` (the source may debounce on its own). */
+  readonly settingsDebounceMs: number;
+  /** Writes whatever is still pending (before a render, before leaving). */
+  readonly flush: () => Promise<void>;
 }
 
 /**
@@ -81,5 +91,8 @@ export const useComposeDraft = (
     setMedia: (media) => {
       update({ media });
     },
+    settingsDebounceMs: DRAFT_SAVE_DEBOUNCE_MS,
+    // The browser store writes synchronously.
+    flush: () => Promise.resolve(),
   };
 };

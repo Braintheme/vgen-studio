@@ -103,6 +103,24 @@ PNG → one delivery JPEG each: sRGB, q90, no EXIF), stored as `render_job.slide
 on the fly by `GET /renders/:id/archive`; the job's `scale` (1 / 2) multiplies the frame. The
 admin hides timing and music for them and pages slides in the preview.
 
+Projects: one future video each, kept on the server (`project` table, `/projects` API), created
+from a template (+ its default preset) or a preset, by the owner ("New project") or by a script
+(Claude: see docs/architecture.md "API for scripts"). `/projects/:id` is the same editor as the
+quick flow with the project as its draft source (autosave); the Projects page groups them by day
+and renders / deletes in bulk; renders link back (`render_job.project_id`). The quick flow
+(Templates → editor) keeps its browser draft and is unchanged.
+
+Assembling videos from a shoot folder ("смонтируй видео из папки"): the `assemble-videos` skill
+(`.claude/skills/assemble-videos/`: scan, sheets, tilt, upload helpers and the owner's rules for
+matching, fragments, horizon and titles). It creates projects; the owner reviews and renders.
+
+Media groups: named sets of library files (Media page: upload, select, "Create group"); "From
+library" on a list slot adds a whole group (e.g. a preset's settings screenshots); the skill takes
+the groups the owner names (`GET /media-groups`).
+
+Renders page: grouped by day, bulk save into a folder picked once (File System Access API on
+`localhost`, plain downloads elsewhere), a "downloaded" mark and filter, rows per page 20 / 50 / 100.
+
 Video media: uploads get a poster, an H.264 proxy and a filmstrip; a video slot points at a
 `videoRangeField` and the worker cuts that fragment (see docs/architecture.md "Video media").
 

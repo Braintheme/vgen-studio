@@ -5,8 +5,14 @@ export interface NoticeOptions {
   readonly id?: string;
 }
 
+/** A button in the toast (e.g. "Open" for something just created). */
+export interface NoticeAction {
+  readonly label: string;
+  readonly onClick: () => void;
+}
+
 export interface Notify {
-  readonly success: (message: string, description?: string) => void;
+  readonly success: (message: string, description?: string, action?: NoticeAction) => void;
   /** Low-key notice for things the app fixed on its own; the same `id` updates one toast. */
   readonly info: (message: string, description?: string, options?: NoticeOptions) => void;
   readonly warning: (message: string, description?: string) => void;
@@ -24,8 +30,8 @@ const describe = (error: unknown): string | undefined => {
 
 /** Consistent toasts across features. */
 export const useNotify = (): Notify => ({
-  success: (message, description) => {
-    toast.success(message, { description });
+  success: (message, description, action) => {
+    toast.success(message, { description, ...(action ? { action } : {}) });
   },
   info: (message, description, options) => {
     toast.info(message, { description, id: options?.id });

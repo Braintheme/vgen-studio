@@ -11,6 +11,7 @@ import { MediaModule } from './media/media.module.js';
 import { MusicModule } from './music/music.module.js';
 import { PresetsModule } from './presets/presets.module.js';
 import { PreviewsModule } from './previews/previews.module.js';
+import { ProjectsModule } from './projects/projects.module.js';
 import { QueueModule } from './queue/queue.module.js';
 import { RedisModule } from './redis/redis.module.js';
 import { RendersModule } from './renders/renders.module.js';
@@ -41,6 +42,7 @@ import { TemplatesModule } from './templates/templates.module.js';
     PresetsModule,
     PreviewsModule,
     RendersModule,
+    ProjectsModule,
   ],
 })
 export class AppModule {}

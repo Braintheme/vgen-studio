@@ -53,6 +53,9 @@ export const useMediaCleanup = (deps: MediaCleanupDeps): MediaCleanupState => {
       summary.inRenders > 0
         ? `${files(summary.inRenders)} used by renders: those videos stay, but re-rendering them will fail.`
         : '',
+      summary.inProjects > 0
+        ? `${files(summary.inProjects)} used by projects: those slots become empty.`
+        : '',
       summary.inDrafts > 0
         ? `${files(summary.inDrafts)} in a template's draft: those slots become empty.`
         : '',

@@ -23,6 +23,18 @@ export const router = createRouter({
           component: () => import('@/features/compose/views/ComposeView.vue'),
         },
         {
+          name: ROUTE_NAMES.projects,
+          path: ROUTE_PATHS.projects,
+          meta: { title: 'Projects' },
+          component: () => import('@/features/projects/views/ProjectsView.vue'),
+        },
+        {
+          name: ROUTE_NAMES.project,
+          path: ROUTE_PATHS.project,
+          meta: { title: 'Project' },
+          component: () => import('@/features/compose/views/ProjectEditorView.vue'),
+        },
+        {
           name: ROUTE_NAMES.renders,
           path: ROUTE_PATHS.renders,
           meta: { title: 'Renders' },

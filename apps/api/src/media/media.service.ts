@@ -167,12 +167,22 @@ export class MediaService {
     await this.removeFiles(asset);
   }
 
-  /** The library page: uploaded photos and videos, with how many renders use each. */
+  /** The library page: uploaded photos and videos, with how many renders, projects and groups use each. */
   async listLibrary(query: MediaLibraryQuery): Promise<MediaLibraryPage> {
     const { items, total, totalBytes } = await this.repository.listLibrary(query);
-    const counts = await this.repository.renderCounts(items.map((asset) => asset.id));
+    const ids = items.map((asset) => asset.id);
+    const [renders, projects, groups] = await Promise.all([
+      this.repository.renderCounts(ids),
+      this.repository.projectCounts(ids),
+      this.repository.groupCounts(ids),
+    ]);
     return {
-      items: items.map((asset) => ({ ...toMediaDto(asset), renderCount: counts.get(asset.id) ?? 0 })),
+      items: items.map((asset) => ({
+        ...toMediaDto(asset),
+        renderCount: renders.get(asset.id) ?? 0,
+        projectCount: projects.get(asset.id) ?? 0,
+        groupCount: groups.get(asset.id) ?? 0,
+      })),
       total,
       page: query.page,
       pageSize: query.pageSize,

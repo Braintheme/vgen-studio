@@ -38,6 +38,7 @@ const jobEntity = (overrides: Partial<RenderJobEntity> = {}): RenderJobEntity =>
   quality: 'social',
   scale: 1,
   presetId: null,
+  projectId: null,
   outputName: 'x.mp4',
   outputAssetId: null,
   slideAssetIds: [],

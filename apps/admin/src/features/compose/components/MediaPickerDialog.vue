@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { MediaTileView } from '@/lib/ui-types';
-import type { MediaPickerSlot } from '@/features/compose/types';
+import type { MediaPickerGroup, MediaPickerSlot } from '@/features/compose/types';
 
 /** Choose already uploaded photos / videos for a media slot, loading more as needed. */
 const props = defineProps<{
@@ -23,10 +23,14 @@ const props = defineProps<{
   loading: boolean;
   loadingMore: boolean;
   selectedCount: number;
+  /** Groups for a list slot (screenshots…): one click selects a whole group. */
+  groups: readonly MediaPickerGroup[];
+  groupNote: string | null;
 }>();
 
 const emit = defineEmits<{
   toggle: [id: string];
+  selectGroup: [groupId: string];
   loadMore: [];
   confirm: [];
 }>();
@@ -52,6 +56,29 @@ const hint = computed(() => {
         <DialogDescription>{{ hint }}</DialogDescription>
       </DialogHeader>
       <div class="min-h-0 flex-1 overflow-y-auto p-6">
+        <div v-if="groups.length > 0" class="mb-5 grid gap-2">
+          <span class="text-sm font-medium">Groups</span>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="group in groups"
+              :key="group.id"
+              type="button"
+              class="flex items-center gap-2 rounded-md border p-1.5 pr-3 text-left text-sm hover:bg-accent"
+              @click="emit('selectGroup', group.id)"
+            >
+              <img
+                v-if="group.previewUrl"
+                :src="group.previewUrl"
+                alt=""
+                class="size-9 rounded object-cover"
+              />
+              <span class="font-medium">{{ group.name }}</span>
+              <span class="tabular-nums text-muted-foreground">{{ group.count }}</span>
+            </button>
+          </div>
+          <p v-if="groupNote" class="text-xs text-amber-600 dark:text-amber-400">{{ groupNote }}</p>
+          <span class="mt-2 text-sm font-medium">All files</span>
+        </div>
         <MediaLibraryGrid
           :tiles="tiles"
           :loading="loading"

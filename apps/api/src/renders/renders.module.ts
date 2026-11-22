@@ -20,5 +20,6 @@ import { RendersService } from './renders.service.js';
   ],
   controllers: [RendersController],
   providers: [RendersRepository, RenderEventsService, RendersService],
+  exports: [RendersService],
 })
 export class RendersModule {}

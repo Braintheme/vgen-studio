@@ -1,5 +1,5 @@
 import { watchDebounced } from '@vueuse/core';
-import type { QualityPreset, StillScale, TemplateDefinition } from '@vgen/shared';
+import type { ProjectDto, QualityPreset, StillScale, TemplateDefinition } from '@vgen/shared';
 import { computed, type ComputedRef, type ShallowRef, type WritableComputedRef } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
@@ -9,9 +9,10 @@ import type { PlayerAdapter } from '@/engines/players';
 import { visibleSections, type FormSectionSpec } from '@/lib/schema-form';
 import { ROUTE_PARAMS } from '@/lib/routes';
 import { cloneJson } from '@/lib/utils';
-import { COLLAPSED_SCOPE, DRAFT_NOTICE_TITLE, DRAFT_SAVE_DEBOUNCE_MS } from '@/features/compose/constants';
+import { COLLAPSED_SCOPE, DRAFT_NOTICE_TITLE } from '@/features/compose/constants';
 import type { OutputSummary, PosterPreviewView, VideoRangeSource } from '@/features/compose/types';
 import { useComposeDraft } from './useComposeDraft';
+import { useProjectDraft, type ProjectSession } from './useProjectDraft';
 import { useComposeForm } from './useComposeForm';
 import { useComposeMusic, type ComposeMusicState } from './useComposeMusic';
 import { useComposePresets, type ComposePresetsState } from './useComposePresets';
@@ -48,6 +49,8 @@ export interface ComposeScreenReady {
   readonly scale: WritableComputedRef<StillScale>;
   readonly generate: () => Promise<void>;
   readonly generating: ComputedRef<boolean>;
+  /** The project being edited; null in the quick flow (the template's browser draft). */
+  readonly project: ProjectSession | null;
 }
 
 export interface ComposeScreenMissing {
@@ -55,29 +58,37 @@ export interface ComposeScreenMissing {
   readonly templateId: string;
 }
 
-export type ComposeScreen = ComposeScreenReady | ComposeScreenMissing;
+export type ComposeTarget =
+  { readonly status: 'ready'; readonly template: TemplateDefinition } | ComposeScreenMissing;
 
-/**
- * The "Create video" screen, built entirely from the template definition: draft,
- * schema form, media slots, live preview and generation.
- */
-export const useComposeScreen = (): ComposeScreen => {
+/** The quick flow's template, from `/compose/:templateId`. */
+export const useComposeTarget = (): ComposeTarget => {
   const route = useRoute();
   const raw = route.params[ROUTE_PARAMS.templateId];
   const templateId = (Array.isArray(raw) ? raw[0] : raw) ?? '';
   const template = findTemplateDefinition(templateId);
-  if (!template) return { status: 'missing', templateId };
+  return template ? { status: 'ready', template } : { status: 'missing', templateId };
+};
 
+/**
+ * The editor, built entirely from the template definition: draft, schema form, media slots,
+ * live preview and generation. The draft is the template's browser draft, or `project`.
+ */
+export const useComposeScreen = (
+  template: TemplateDefinition,
+  project: ProjectDto | null,
+): ComposeScreenReady => {
   // Everything fixed automatically in a stored draft is listed in one toast.
   const reportDraftFix = useGroupedNotice(DRAFT_NOTICE_TITLE);
-  const draft = useComposeDraft(template, reportDraftFix);
+  const projectDraft = project ? useProjectDraft(template, project, reportDraftFix) : null;
+  const draft = projectDraft ?? useComposeDraft(template, reportDraftFix);
   const form = useComposeForm(template, draft.initialSettings);
   watchDebounced(
     () => form.values,
     (values) => {
       draft.saveSettings(cloneJson(values));
     },
-    { debounce: DRAFT_SAVE_DEBOUNCE_MS, deep: true },
+    { debounce: draft.settingsDebounceMs, deep: true },
   );
 
   const settings = useValidSettings(template, form.values);
@@ -132,6 +143,8 @@ export const useComposeScreen = (): ComposeScreen => {
     quality: draft.quality,
     scale: draft.scale,
     presetId: draft.presetId,
+    projectId: project?.id ?? null,
+    beforeQueue: draft.flush,
   });
 
   return {
@@ -153,5 +166,6 @@ export const useComposeScreen = (): ComposeScreen => {
     scale: draft.scale,
     generate: generation.generate,
     generating: generation.generating,
+    project: projectDraft?.session ?? null,
   };
 };

@@ -144,12 +144,92 @@ card) and hide `durationSec`; the admin then sizes the music fragment by the der
 ## Media library
 
 The admin's **Media** page lists uploaded photos and videos (`GET /media`: type filter, sort,
-pages, total size; each item with how many renders use it, found in the renders' props
-snapshots). Files can be deleted in bulk (`POST /media/bulk-delete`) or with "unused older than
+pages, total size; each item with how many renders and projects use it, found in the renders'
+props snapshots and the projects' media). Files can be deleted in bulk (`POST /media/bulk-delete`) or with "unused older than
 N days" (`POST /media/cleanup`, counted first with `dryRun`). Drafts live in the browser, so the
-admin sends the files its drafts hold as `keepIds`: they are never cleaned up. Deleting a file a
+admin sends the files its drafts hold as `keepIds`: they are never cleaned up, and neither are
+files a project uses. Deleting a file a
 render uses keeps that render's video; only re-rendering it fails. Media slots can also pick
 already uploaded files ("From library") instead of uploading them again. No automatic cleanup.
+
+**Media groups** (`media_group` + `media_group_item`, `/media-groups`): named sets of library files
+the owner makes on the Media page (upload, select, "Create group"; rename, add, remove, delete —
+deleting a group keeps its files, deleting a file drops it from its groups). Files are listed in
+natural name order. "From library" on a list slot (e.g. `preset-reel`'s settings screenshots)
+offers the groups: one click selects a whole group. Files in a group count as used (kept by
+"Clean up unused"); the library can be filtered by group (`GET /media?groupId=`).
+
+## Projects
+
+A **project** is one future video kept on the server (`project` table): a template, its settings
+(the editor's raw form values: everything but media), its media (slot key → asset id(s) or null),
+quality, scale and the preset it started from. The quick flow (Templates → editor → Generate)
+does not use projects: it keeps the template's browser draft.
+
+- **Editor.** `/projects/:id` is the same editor as `/compose/:templateId`
+  (`features/compose/views/ComposeWorkspace.vue`); only its draft source differs
+  (`useProjectDraft` instead of the browser's `useComposeDraft`, one `ComposeDraftState`
+  interface). Changes are batched (`PROJECT_SAVE_DEBOUNCE_MS`) and saved with
+  `PATCH /projects/:id`; leaving the page writes what is pending. A project opened after its
+  template changed is sanitized like a draft and saved back. Generate writes pending changes
+  first, queues a render with `projectId`, and stays on the page.
+- **Status.** Each project carries its newest render (`render_job.project_id`, SET NULL when the
+  project is deleted: renders stay). `updated_at` moves on content changes only (not on rename):
+  "edited since render" = `updated_at` later than the last render's start.
+- **Bulk.** `POST /projects/render { ids }` builds every render exactly as the editor does
+  (`props = { ...settings, media }`) and reports the projects that could not start
+  (`Missing media: …`, invalid settings) without stopping the others. `GET /projects/days?tz=` and
+  `GET /projects/selectable?tz=&day=` back the day headers and "select the day", like renders.
+
+### API for scripts (Claude)
+
+A script prepares projects; the owner reviews them in the editor and renders. All under
+`/api/v1`; errors come as `{ error: { code, message, details: [{ path, message }] } }`.
+
+1. **Template**: `GET /templates` (ids, names), `GET /templates/:id` → `mediaSlots` (key, kind,
+   required, `multiple`), `propsSchema` (JSON Schema with titles and `scope`), `defaults`, `ui`.
+   Text fields are objects: `{ "enabled": true, "value": "…" }`. A clip's fragment is a
+   `videoRangeField`: `{ "startSec": 4.2, "endSec": 16.2 }` (e.g. `params.clip` of `preset-reel`;
+   its length limits are in the schema).
+2. **Look**: `GET /presets?templateId=` (style presets; `isDefault` marks the template's default).
+3. **Music**: `GET /music` (the library); a template's music is `music: { trackId, startSec, … }`
+   (`trackId: null` = the library's default track). **Media groups**: `GET /media-groups` (name +
+   files in order), e.g. a preset's settings screenshots for a list slot.
+4. **Media**: `POST /media` (multipart, field `files`, up to 10 per request; JPEG / PNG / WebP photos,
+   videos) → assets with `id`, `originalName`, `kind`. Uploads get previews, a proxy and a
+   filmstrip in the background; files already uploaded are listed by `GET /media`.
+5. **Project**: `POST /projects` with `templateId` (its default preset applies) or `presetId`,
+   an optional `name`, `settings` (deep-merged over the template defaults and the preset's
+   style: titles, music, clip range…) and `media` (`{ "clip": "<id>", "before": "<id>", … }`).
+   Settings and media are checked strictly: unknown slots, missing files, a video in a photo
+   slot or a too long text answer 400 with the field's path. Later changes: `PATCH /projects/:id`
+   (settings are replaced whole: send the full object); a copy: `POST /projects/:id/duplicate`
+   (`{ "name"? }`, content only, not rendered).
+
+Example:
+
+```json
+POST /api/v1/projects
+{
+  "presetId": "<preset-reel preset>",
+  "name": "Tatras — POV raws",
+  "settings": {
+    "texts": {
+      "titleLead": { "value": "POV:" },
+      "titleHero": { "value": "they asked" },
+      "titleTail": { "value": "for the *RAWs*" }
+    },
+    "params": { "clip": { "startSec": 12.4, "endSec": 24.4 } },
+    "music": { "trackId": "<track id>", "startSec": 30 }
+  },
+  "media": { "clip": "<video id>", "before": "<photo id>", "after": "<photo id>" }
+}
+```
+
+`*word*` marks the accent of the three-line title; the free-text Instagram look is
+`params.titleStyle: "instagram"` with `texts.titleText` (line breaks as `\n`). The owner then opens
+Projects, adjusts what is off and renders (one, a day, or all not rendered). The whole routine
+for a shoot folder is the `assemble-videos` skill (`.claude/skills/assemble-videos/SKILL.md`).
 
 ## Sound cues
 

@@ -1,6 +1,9 @@
 import type {
   CreatePreviewRequest,
   MediaLibraryQuery,
+  ProjectDaysQuery,
+  ProjectListQuery,
+  ProjectSelectableQuery,
   RenderDaysQuery,
   RenderListQuery,
   RenderReadyQuery,
@@ -21,6 +24,16 @@ export const queryKeys = {
     days: (query: RenderDaysQuery) => [...queryKeys.renders.dayCounts(), query] as const,
     ready: (query: RenderReadyQuery) => [...queryKeys.renders.all, 'ready', query] as const,
   },
+  projects: {
+    all: ['projects'] as const,
+    lists: () => [...queryKeys.projects.all, 'list'] as const,
+    list: (query: ProjectListQuery) => [...queryKeys.projects.lists(), query] as const,
+    details: () => [...queryKeys.projects.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.projects.details(), id] as const,
+    dayCounts: () => [...queryKeys.projects.all, 'days'] as const,
+    days: (query: ProjectDaysQuery) => [...queryKeys.projects.dayCounts(), query] as const,
+    selectable: (query: ProjectSelectableQuery) => [...queryKeys.projects.all, 'selectable', query] as const,
+  },
   templates: {
     all: ['templates'] as const,
     list: (engine?: string) => [...queryKeys.templates.all, 'list', engine ?? 'all'] as const,
@@ -38,6 +51,7 @@ export const queryKeys = {
     libraryInfinite: (query: MediaLibraryInfiniteQuery) =>
       [...queryKeys.media.libraryAll, 'infinite', query] as const,
     peaks: (peaksUrl: string) => [...queryKeys.media.all, 'peaks', peaksUrl] as const,
+    groups: ['media', 'groups'] as const,
   },
   music: {
     all: ['music'] as const,

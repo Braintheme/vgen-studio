@@ -33,6 +33,10 @@ export interface MediaTileView {
   readonly durationLabel: string | null;
   /** Renders whose settings use the file (their videos stay; re-rendering needs the file). */
   readonly renderCount: number;
+  /** Projects whose media include the file (they keep it from "Clean up unused"). */
+  readonly projectCount: number;
+  /** Media groups holding the file. */
+  readonly groupCount: number;
   /** Templates whose current draft holds the file. */
   readonly draftTemplates: readonly string[];
   readonly selected: boolean;

@@ -25,6 +25,7 @@ export const toRenderDto = (
     quality: QualityPresetSchema.parse(job.quality),
     scale: StillScaleSchema.parse(job.scale),
     presetId: job.presetId,
+    projectId: job.projectId,
     outputName: job.outputName,
     output: output
       ? {

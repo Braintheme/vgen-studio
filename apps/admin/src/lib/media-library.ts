@@ -20,6 +20,8 @@ export const toMediaTiles = (
     durationLabel:
       item.kind === 'video' && item.durationSec !== null ? formatDuration(item.durationSec) : null,
     renderCount: item.renderCount,
+    projectCount: item.projectCount,
+    groupCount: item.groupCount,
     draftTemplates: draftUsage.get(item.id) ?? [],
     selected: selected.has(item.id),
   }));
@@ -30,25 +32,29 @@ export interface SelectionSummary {
   readonly bytes: number;
   /** Files some render uses (re-rendering those renders will fail). */
   readonly inRenders: number;
+  /** Files a project uses (its slot becomes empty). */
+  readonly inProjects: number;
   /** Files a template's draft holds (the slot becomes empty). */
   readonly inDrafts: number;
 }
 
 export const summarizeSelection = (
-  items: Iterable<Pick<MediaLibraryItemDto, 'id' | 'size' | 'renderCount'>>,
+  items: Iterable<Pick<MediaLibraryItemDto, 'id' | 'size' | 'renderCount' | 'projectCount'>>,
   draftUsage: ReadonlyMap<string, readonly string[]>,
 ): SelectionSummary => {
   let count = 0;
   let bytes = 0;
   let inRenders = 0;
+  let inProjects = 0;
   let inDrafts = 0;
   for (const item of items) {
     count += 1;
     bytes += item.size;
     if (item.renderCount > 0) inRenders += 1;
+    if (item.projectCount > 0) inProjects += 1;
     if ((draftUsage.get(item.id)?.length ?? 0) > 0) inDrafts += 1;
   }
-  return { count, bytes, inRenders, inDrafts };
+  return { count, bytes, inRenders, inProjects, inDrafts };
 };
 
 /** The page after `page` while files remain (an infinite list's next page). */

@@ -18,7 +18,7 @@ lib  →  api / engines  →  queries  →  stores  →  composables  →  compo
 | api         | `src/api`                                                 | HTTP only: the one axios client (`http.ts`), one file per resource, SSE (`events.ts`)                                      | know about Vue, state or UI                                               |
 | engines     | `src/engines`                                             | the only gateway to `@vgen/catalog`: template definitions (zod schemas, defaults, metadata) and lazy engine player loaders | import Vue or app layers                                                  |
 | queries     | `src/queries`                                             | Vue Query: cache keys (`keys.ts`), queries, mutations, live cache sync                                                     | call axios directly, hold local state                                     |
-| stores      | `src/stores`                                              | Pinia, **local** UI state only (theme, later the video draft)                                                              | import `api/` or `queries/`; hold server data (that is Vue Query's cache) |
+| stores      | `src/stores`                                              | Pinia, **local** UI state only (theme, the quick flow's drafts, rows per page)                                             | import `api/` or `queries/`; hold server data (that is Vue Query's cache) |
 | composables | `src/composables`, `features/*/composables`               | logic: combine queries + stores, prepare data for the UI, user actions                                                     | import `api/` or components                                               |
 | components  | `src/components/{common,layout}`, `features/*/components` | presentation: props in, emits / `defineModel` out                                                                          | import api, queries, stores, composables, router                          |
 | views       | `features/*/views`                                        | page = composables + components wired together                                                                             | contain logic, call api/queries/stores                                    |
@@ -140,6 +140,22 @@ Sections fold (shadcn `Collapsible`; folded fields stay mounted, so their values
 form). `SchemaForm` takes `v-model:collapsed` (folded section ids); the compose screen keeps them
 per template through `useCollapsedSections('compose:<templateId>')`, persisted by the `ui` store
 in `localStorage`.
+
+## One editor, two draft sources
+
+The compose screen (`features/compose/views/ComposeWorkspace.vue` + `useComposeScreen`) is the
+only editor. It reads and writes its content through `ComposeDraftState`
+(`useComposeDraft.ts`): settings, media, quality, scale, presetId, `saveSettings`, `setMedia`,
+`flush`. Two sources implement it:
+
+- `useComposeDraft`: the template's browser draft (`stores/compose-draft`), for the quick flow
+  `/compose/:templateId`; Generate then opens Renders.
+- `useProjectDraft`: a project on the server, for `/projects/:projectId`; changes are batched and
+  saved with `PATCH /projects/:id`, written before Generate and when leaving the page; Generate
+  links the render to the project and stays.
+
+Anything new in the editor goes into the shared composables and components, never into one
+source. The editor's views are keyed by template / project, so they build their composables once.
 
 ## Engine previews
 
