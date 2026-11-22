@@ -13,7 +13,8 @@ const aspectRatio = computed(() => `${FORMATS[props.format].width} / ${FORMATS[p
 </script>
 
 <template>
-  <div class="flex h-14 w-14 items-center justify-center">
+  <!-- Left-aligned: a tall 9:16 thumbnail sits right after the row's checkbox. -->
+  <div class="flex h-14 w-14 items-center justify-start">
     <img
       v-if="url"
       :src="url"

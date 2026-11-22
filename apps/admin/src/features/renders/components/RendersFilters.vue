@@ -27,6 +27,7 @@ const field = <K extends keyof RenderFilters>(key: K) =>
 const status = field('status');
 const templateId = field('templateId');
 const engine = field('engine');
+const downloaded = field('downloaded');
 
 const hasFilters = computed(() => hasActiveFilters(filters.value));
 
@@ -45,6 +46,12 @@ const reset = (): void => {
       :options="options.templates"
     />
     <FilterSelect v-model="engine" label="Engine" all-label="All engines" :options="options.engines" />
+    <FilterSelect
+      v-model="downloaded"
+      label="Downloaded"
+      all-label="Downloaded or not"
+      :options="options.downloaded"
+    />
     <Button v-if="hasFilters" variant="ghost" size="sm" @click="reset">Reset</Button>
   </div>
 </template>

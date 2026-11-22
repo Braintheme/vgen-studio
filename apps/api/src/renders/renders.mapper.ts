@@ -57,6 +57,7 @@ export const toRenderDto = (
     attempts: job.attempts,
     startedAt: job.startedAt?.toISOString() ?? null,
     finishedAt: job.finishedAt?.toISOString() ?? null,
+    downloadedAt: job.downloadedAt?.toISOString() ?? null,
     createdAt: job.createdAt.toISOString(),
   };
 };

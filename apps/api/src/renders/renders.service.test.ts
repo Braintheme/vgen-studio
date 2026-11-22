@@ -46,6 +46,7 @@ const jobEntity = (overrides: Partial<RenderJobEntity> = {}): RenderJobEntity =>
   attempts: 0,
   startedAt: null,
   finishedAt: null,
+  downloadedAt: null,
   createdAt: new Date('2026-10-12T10:00:00Z'),
   updatedAt: new Date('2026-10-12T10:00:00Z'),
   ...overrides,
@@ -68,6 +69,8 @@ const setup = (
     markEnqueueFailed: vi.fn(() => Promise.resolve()),
     deleteFinished: vi.fn(() => Promise.resolve(true)),
     list: vi.fn(),
+    ready: vi.fn(() => Promise.resolve([] as RenderJobEntity[])),
+    markDownloaded: vi.fn(() => Promise.resolve()),
   };
   const queue = {
     enqueue: vi.fn(() => Promise.resolve()),
@@ -261,5 +264,35 @@ describe('RendersService.duplicate', () => {
       details: [{ path: 'props.media.after', message: `Media "${AFTER}" was deleted` }],
     });
     expect(queue.enqueue).not.toHaveBeenCalled();
+  });
+});
+
+describe('RendersService.ready', () => {
+  it('returns the selected renders as DTOs, with the downloaded mark and the file link', async () => {
+    const { service, repository, mediaService } = setup();
+    const output = { id: AUDIO, size: 1234, durationSec: 13 } as MediaAssetEntity;
+    repository.ready.mockResolvedValue([
+      jobEntity({
+        status: 'done',
+        outputAssetId: AUDIO,
+        downloadedAt: new Date('2026-11-22T09:30:00Z'),
+      }),
+    ]);
+    mediaService.findMany.mockResolvedValue([output]);
+
+    const query = { tz: 'Europe/Kyiv', day: '2026-11-22' };
+    const [render] = await service.ready(query);
+
+    expect(repository.ready).toHaveBeenCalledWith(query);
+    expect(render?.downloadedAt).toBe('2026-11-22T09:30:00.000Z');
+    expect(render?.output).toMatchObject({ assetId: AUDIO, size: 1234 });
+  });
+});
+
+describe('RendersService.markDownloaded', () => {
+  it('marks the given renders', async () => {
+    const { service, repository } = setup();
+    await service.markDownloaded([AUDIO, BEFORE]);
+    expect(repository.markDownloaded).toHaveBeenCalledWith([AUDIO, BEFORE]);
   });
 });
