@@ -1,4 +1,10 @@
-import type { CreatePreviewRequest, MediaLibraryQuery, RenderListQuery } from '@vgen/shared';
+import type {
+  CreatePreviewRequest,
+  MediaLibraryQuery,
+  RenderDaysQuery,
+  RenderListQuery,
+  RenderReadyQuery,
+} from '@vgen/shared';
 
 /** A library listing without its page (the infinite list asks for pages itself). */
 export type MediaLibraryInfiniteQuery = Omit<MediaLibraryQuery, 'page'>;
@@ -10,6 +16,10 @@ export const queryKeys = {
     lists: () => [...queryKeys.renders.all, 'list'] as const,
     list: (query: RenderListQuery) => [...queryKeys.renders.lists(), query] as const,
     detail: (id: string) => [...queryKeys.renders.all, 'detail', id] as const,
+    /** Day counts; kept apart from `lists()`, whose entries are pages. */
+    dayCounts: () => [...queryKeys.renders.all, 'days'] as const,
+    days: (query: RenderDaysQuery) => [...queryKeys.renders.dayCounts(), query] as const,
+    ready: (query: RenderReadyQuery) => [...queryKeys.renders.all, 'ready', query] as const,
   },
   templates: {
     all: ['templates'] as const,

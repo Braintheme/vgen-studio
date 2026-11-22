@@ -17,17 +17,22 @@ import {
   CreateRenderRequestSchema,
   CreateRenderResponseSchema,
   DuplicateRenderResponseSchema,
+  MarkRendersDownloadedRequestSchema,
   paginated,
+  RenderDayDtoSchema,
+  RenderDaysQuerySchema,
   RenderJobDtoSchema,
   RenderListQuerySchema,
+  RenderReadyQuerySchema,
   type CreateRenderResponse,
   type DuplicateRenderResponse,
   type Paginated,
+  type RenderDayDto,
   type RenderJobDto,
 } from '@vgen/shared';
 import type { Response } from 'express';
 import type { Observable } from 'rxjs';
-import type { z } from 'zod';
+import { z } from 'zod';
 import { contentDisposition } from '../common/content-disposition.js';
 import { RendersService } from './renders.service.js';
 import { writeZip } from './zip-stream.js';
@@ -51,6 +56,34 @@ export class RendersController {
     @Query({ schema: RenderListQuerySchema }) query: z.output<typeof RenderListQuerySchema>,
   ): Promise<Paginated<RenderJobDto>> {
     return this.renders.list(query);
+  }
+
+  /** Renders per calendar day of a time zone, over every page (the table's day headers). */
+  @Get('days')
+  @ApiOkResponse({ standardSchema: z.array(RenderDayDtoSchema) })
+  days(
+    @Query({ schema: RenderDaysQuerySchema }) query: z.output<typeof RenderDaysQuerySchema>,
+  ): Promise<RenderDayDto[]> {
+    return this.renders.days(query);
+  }
+
+  /** Done renders in a scope, optionally of one day (bulk selection). Declared before `:id`. */
+  @Get('ready')
+  @ApiOkResponse({ standardSchema: z.array(RenderJobDtoSchema) })
+  ready(
+    @Query({ schema: RenderReadyQuerySchema }) query: z.output<typeof RenderReadyQuerySchema>,
+  ): Promise<RenderJobDto[]> {
+    return this.renders.ready(query);
+  }
+
+  /** Marks renders as downloaded (the admin calls it once a file is saved). */
+  @Post('downloaded')
+  @HttpCode(204)
+  async markDownloaded(
+    @Body({ schema: MarkRendersDownloadedRequestSchema })
+    body: z.output<typeof MarkRendersDownloadedRequestSchema>,
+  ): Promise<void> {
+    await this.renders.markDownloaded(body.ids);
   }
 
   /** Server-sent events for every render (status and progress). Declared before `:id`. */

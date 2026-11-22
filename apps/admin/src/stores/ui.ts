@@ -6,10 +6,12 @@ export type ThemeMode = (typeof THEME_MODES)[number];
 
 const THEME_STORAGE_KEY = 'vgen-theme';
 const COLLAPSED_SECTIONS_STORAGE_KEY = 'vgen-collapsed-sections';
+const PAGE_SIZES_STORAGE_KEY = 'vgen-page-sizes';
 
 /**
  * Local UI state (never server data). The theme is persisted and applied as a `dark` class;
- * collapsed form sections are persisted per scope (e.g. one template's settings form).
+ * collapsed form sections are persisted per scope (e.g. one template's settings form), and so
+ * are the rows per page of a table (e.g. `renders`).
  */
 export const useUiStore = defineStore('ui', () => {
   const themeMode = useColorMode({ storageKey: THEME_STORAGE_KEY, emitAuto: true });
@@ -29,5 +31,25 @@ export const useUiStore = defineStore('ui', () => {
     collapsedSections.value = { ...collapsedSections.value, [scope]: [...ids] };
   };
 
-  return { themeMode, setThemeMode, collapsedSections, collapsedSectionsOf, setCollapsedSections };
+  const pageSizes = useLocalStorage<Record<string, number>>(PAGE_SIZES_STORAGE_KEY, {});
+
+  /** The table's remembered rows per page, if it is one of `options`; else the first option. */
+  const pageSizeOf = (scope: string, options: readonly number[]): number => {
+    const stored = pageSizes.value[scope];
+    return stored !== undefined && options.includes(stored) ? stored : (options[0] ?? 20);
+  };
+
+  const setPageSize = (scope: string, size: number): void => {
+    pageSizes.value = { ...pageSizes.value, [scope]: size };
+  };
+
+  return {
+    themeMode,
+    setThemeMode,
+    collapsedSections,
+    collapsedSectionsOf,
+    setCollapsedSections,
+    pageSizeOf,
+    setPageSize,
+  };
 });

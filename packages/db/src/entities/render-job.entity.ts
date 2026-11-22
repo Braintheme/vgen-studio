@@ -98,6 +98,10 @@ export class RenderJobEntity {
   @Column({ type: 'timestamptz', nullable: true })
   finishedAt: Date | null;
 
+  /** Last time the output was saved from the admin; null = never. */
+  @Column({ type: 'timestamptz', nullable: true })
+  downloadedAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

@@ -70,16 +70,26 @@ const uploading = computed(() => props.mediaSlot.uploadProgress !== null);
         <Progress :model-value="(mediaSlot.uploadProgress ?? 0) * 100" class="h-1.5" />
       </div>
     </div>
-    <Button
-      v-if="mediaSlot.kind === 'image' || mediaSlot.kind === 'video'"
-      variant="link"
-      size="sm"
-      class="h-auto justify-self-start p-0 text-xs"
-      :disabled="uploading"
-      @click="emit('browse')"
-    >
-      <Images class="size-3.5" /> From library
-    </Button>
+    <div class="flex min-w-0 items-center justify-between gap-3">
+      <Button
+        v-if="mediaSlot.kind === 'image' || mediaSlot.kind === 'video'"
+        variant="link"
+        size="sm"
+        class="h-auto shrink-0 p-0 text-xs"
+        :disabled="uploading"
+        @click="emit('browse')"
+      >
+        <Images class="size-3.5" /> From library
+      </Button>
+      <!-- The chosen file, to tell similar shots (and before / after) apart at a glance. -->
+      <span
+        v-if="preview"
+        class="ml-auto min-w-0 truncate text-xs text-muted-foreground"
+        :title="preview.originalName"
+      >
+        {{ preview.originalName }}
+      </span>
+    </div>
     <p v-if="mediaSlot.error" class="text-xs text-destructive">{{ mediaSlot.error }}</p>
   </div>
 </template>

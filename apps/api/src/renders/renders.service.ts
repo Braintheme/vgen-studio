@@ -13,7 +13,10 @@ import {
   type QualityPreset,
   type RenderEvent,
   type RenderJobDto,
+  type RenderDayDto,
+  type RenderDaysQuery,
   type RenderListQuery,
+  type RenderReadyQuery,
   type TemplateDefinition,
 } from '@vgen/shared';
 import { concat, defer, from, interval, map, merge, type Observable } from 'rxjs';
@@ -105,6 +108,22 @@ export class RendersService {
       page: query.page,
       pageSize: query.pageSize,
     };
+  }
+
+  days(query: RenderDaysQuery): Promise<RenderDayDto[]> {
+    return this.repository.days(query);
+  }
+
+  /** Done renders in a scope (optionally one day of it): what a bulk selection picks. */
+  async ready(query: RenderReadyQuery): Promise<RenderJobDto[]> {
+    const jobs = await this.repository.ready(query);
+    const assets = await this.assetsOf(jobs);
+    return jobs.map((job) => toRenderDto(job, assets));
+  }
+
+  /** Remembers that the owner saved these renders' files (unknown ids are ignored). */
+  async markDownloaded(ids: readonly string[]): Promise<void> {
+    await this.repository.markDownloaded(ids);
   }
 
   async get(id: string): Promise<RenderJobDto> {

@@ -1,7 +1,11 @@
 import type { ColumnDef } from '@tanstack/vue-table';
 import type { RenderJobDto } from '@vgen/shared';
 import { h } from 'vue';
-import { formatDateTime, formatRelativeTime } from '@/lib/format';
+import { Checkbox } from '@/components/ui/checkbox';
+import { formatTime } from '@/lib/days';
+import { formatDateTime } from '@/lib/format';
+import { isSavable, type CheckState } from '@/lib/render-files';
+import RenderDownloadedMark from './RenderDownloadedMark.vue';
 import RenderProgress from './RenderProgress.vue';
 import RenderRowActions from './RenderRowActions.vue';
 import RenderStatusBadge from './RenderStatusBadge.vue';
@@ -16,10 +20,35 @@ export interface RenderColumnHandlers {
   readonly onDuplicate: (render: RenderJobDto) => void;
   readonly onShowError: (render: RenderJobDto) => void;
   readonly onShowSlides: (render: RenderJobDto) => void;
+  readonly onDownloaded: (render: RenderJobDto) => void;
+  readonly isSelected: (id: string) => boolean;
+  readonly onToggle: (render: RenderJobDto) => void;
+  readonly pageState: () => CheckState;
+  readonly onTogglePage: () => void;
 }
 
 /** Column definitions of the renders table; cells are small presentational components. */
 export const createRenderColumns = (handlers: RenderColumnHandlers): ColumnDef<RenderJobDto>[] => [
+  {
+    id: 'select',
+    size: 32,
+    header: () =>
+      h(Checkbox, {
+        modelValue: handlers.pageState(),
+        'aria-label': 'Select the page',
+        'onUpdate:modelValue': handlers.onTogglePage,
+      }),
+    cell: ({ row }) =>
+      isSavable(row.original)
+        ? h(Checkbox, {
+            modelValue: handlers.isSelected(row.original.id),
+            'aria-label': `Select ${row.original.outputName}`,
+            'onUpdate:modelValue': () => {
+              handlers.onToggle(row.original);
+            },
+          })
+        : null,
+  },
   {
     id: 'thumbnail',
     header: '',
@@ -48,17 +77,24 @@ export const createRenderColumns = (handlers: RenderColumnHandlers): ColumnDef<R
       h('div', { class: 'flex flex-col items-start gap-1.5' }, [
         h(RenderStatusBadge, { status: row.original.status }),
         h(RenderProgress, { status: row.original.status, progress: row.original.progress }),
+        row.original.downloadedAt
+          ? h(RenderDownloadedMark, { downloadedAt: row.original.downloadedAt })
+          : null,
       ]),
   },
   {
     id: 'created',
     header: 'Created',
-    size: 160,
+    size: 100,
+    // The day is in the group header above the row.
     cell: ({ row }) =>
       h(
         'span',
-        { class: 'text-sm text-muted-foreground', title: formatDateTime(row.original.createdAt) },
-        formatRelativeTime(row.original.createdAt),
+        {
+          class: 'text-sm tabular-nums text-muted-foreground',
+          title: formatDateTime(row.original.createdAt),
+        },
+        formatTime(row.original.createdAt),
       ),
   },
   {
@@ -74,6 +110,7 @@ export const createRenderColumns = (handlers: RenderColumnHandlers): ColumnDef<R
         onDuplicate: handlers.onDuplicate,
         onShowError: handlers.onShowError,
         onShowSlides: handlers.onShowSlides,
+        onDownloaded: handlers.onDownloaded,
       }),
   },
 ];

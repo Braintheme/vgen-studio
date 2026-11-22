@@ -83,6 +83,14 @@ carousel slides; see "Render flow").
 4. Cancel: a queued job is removed from BullMQ; a running one gets a Redis message → the worker
    aborts the BullMQ job's `AbortSignal` → the engine stops. Failures never crash a worker:
    permanent errors fail at once, transient ones retry (`RENDER_ATTEMPTS`).
+5. Saving outputs: the admin's renders table is grouped by calendar day of the browser's time
+   zone (`GET /renders/days?tz=` counts every page per day). Renders are selected per row, page,
+   day or "not downloaded" (`GET /renders/ready?tz=&day=`: done renders of a scope, at most 500)
+   and saved into a folder the owner picks once (File System Access API, Chrome on `localhost`;
+   plain downloads one by one elsewhere; image renders as their ZIP; existing files are never
+   overwritten). Every saved file (and a download from the row menu) sets
+   `render_job.downloaded_at` (`POST /renders/downloaded`), shown in the row and filterable
+   (`downloaded=yes|no`).
 
 ## Previews
 

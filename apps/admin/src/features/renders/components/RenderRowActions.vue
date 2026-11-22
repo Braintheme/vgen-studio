@@ -32,6 +32,7 @@ const emit = defineEmits<{
   duplicate: [render: RenderJobDto];
   showError: [render: RenderJobDto];
   showSlides: [render: RenderJobDto];
+  downloaded: [render: RenderJobDto];
 }>();
 
 const isActive = computed(() => ACTIVE_RENDER_STATUSES.has(props.render.status));
@@ -47,7 +48,13 @@ const isActive = computed(() => ACTIVE_RENDER_STATUSES.has(props.render.status))
     <DropdownMenuContent align="end" class="w-44">
       <template v-if="render.output">
         <DropdownMenuItem as-child>
-          <a :href="render.output.downloadUrl" :download="render.outputName"><Download /> Download</a>
+          <a
+            :href="render.output.downloadUrl"
+            :download="render.outputName"
+            @click="emit('downloaded', render)"
+          >
+            <Download /> Download
+          </a>
         </DropdownMenuItem>
         <DropdownMenuItem as-child>
           <a :href="render.output.url" target="_blank" rel="noopener"><ExternalLink /> Open video</a>
@@ -55,7 +62,13 @@ const isActive = computed(() => ACTIVE_RENDER_STATUSES.has(props.render.status))
       </template>
       <template v-if="render.stills">
         <DropdownMenuItem as-child>
-          <a :href="render.stills.archiveUrl" :download="render.outputName"><Download /> Download ZIP</a>
+          <a
+            :href="render.stills.archiveUrl"
+            :download="render.outputName"
+            @click="emit('downloaded', render)"
+          >
+            <Download /> Download ZIP
+          </a>
         </DropdownMenuItem>
         <DropdownMenuItem @select="emit('showSlides', render)"><Images /> View slides</DropdownMenuItem>
       </template>

@@ -13,9 +13,12 @@ import {
   type CreateRenderResponse,
   type DuplicateRenderResponse,
   type Paginated,
+  type RenderDayDto,
+  type RenderDaysQuery,
   type RenderEvent,
   type RenderJobDto,
   type RenderListQuery,
+  type RenderReadyQuery,
 } from '@vgen/shared';
 import { computed, onScopeDispose, readonly, ref, toValue, type MaybeRefOrGetter, type Ref } from 'vue';
 import type { ApiRequestError } from '@/api/errors';
@@ -41,6 +44,33 @@ export const useRendersQuery = (
     placeholderData: keepPreviousData,
     refetchInterval: computed(() => toValue(options.pollInterval) ?? false),
   });
+
+/** Lists and day counts change together (new, finished, deleted or downloaded renders). */
+const invalidateRenderLists = (client: QueryClient): void => {
+  void client.invalidateQueries({ queryKey: queryKeys.renders.lists() });
+  void client.invalidateQueries({ queryKey: queryKeys.renders.dayCounts() });
+};
+
+/** Render counts per calendar day under the table's filters (its day headers). */
+export const useRenderDaysQuery = (
+  query: MaybeRefOrGetter<RenderDaysQuery>,
+): UseQueryReturnType<RenderDayDto[], ApiRequestError> =>
+  useQuery({
+    queryKey: computed(() => queryKeys.renders.days(toValue(query))),
+    queryFn: ({ signal }) => rendersApi.days(toValue(query), { signal }),
+    placeholderData: keepPreviousData,
+  });
+
+/** Loads the done renders of a scope on demand (bulk selection); always fresh. */
+export const useReadyRendersLoader = (): ((query: RenderReadyQuery) => Promise<RenderJobDto[]>) => {
+  const client = useQueryClient();
+  return (query) =>
+    client.query({
+      queryKey: queryKeys.renders.ready(query),
+      queryFn: ({ signal }) => rendersApi.ready(query, { signal }),
+      staleTime: 0,
+    });
+};
 
 /** Applies a render update to every cached list page and to the detail cache. */
 const patchRenderCaches = (
@@ -78,9 +108,7 @@ const applyRenderEvent = (client: QueryClient, event: RenderEvent): void => {
     error: event.error,
   }));
   // Final states carry new links (output, thumbnail); unknown jobs are new rows.
-  if (isFinalRenderStatus(event.status) || !known) {
-    void client.invalidateQueries({ queryKey: queryKeys.renders.lists() });
-  }
+  if (isFinalRenderStatus(event.status) || !known) invalidateRenderLists(client);
 };
 
 export interface RenderLiveSync {
@@ -133,7 +161,7 @@ export const useDeleteRenderMutation = (): UseMutationReturnType<void, ApiReques
     mutationFn: (id: string) => rendersApi.remove(id),
     onSuccess: (_result, id) => {
       client.removeQueries({ queryKey: queryKeys.renders.detail(id) });
-      void client.invalidateQueries({ queryKey: queryKeys.renders.lists() });
+      invalidateRenderLists(client);
     },
   });
 };
@@ -148,7 +176,7 @@ export const useDuplicateRenderMutation = (): UseMutationReturnType<
   return useMutation({
     mutationFn: (id: string) => rendersApi.duplicate(id),
     onSuccess: () => {
-      void client.invalidateQueries({ queryKey: queryKeys.renders.lists() });
+      invalidateRenderLists(client);
     },
   });
 };
@@ -163,7 +191,25 @@ export const useCreateRenderMutation = (): UseMutationReturnType<
   return useMutation({
     mutationFn: (request: CreateRenderRequest) => rendersApi.create(request),
     onSuccess: () => {
-      void client.invalidateQueries({ queryKey: queryKeys.renders.lists() });
+      invalidateRenderLists(client);
+    },
+  });
+};
+
+/** Remembers that renders were saved: marks them at once on screen, then refreshes the counts. */
+export const useMarkDownloadedMutation = (): UseMutationReturnType<
+  void,
+  ApiRequestError,
+  readonly string[],
+  unknown
+> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: readonly string[]) => rendersApi.markDownloaded(ids),
+    onSuccess: (_result, ids) => {
+      const downloadedAt = new Date().toISOString();
+      for (const id of ids) patchRenderCaches(client, id, (render) => ({ ...render, downloadedAt }));
+      invalidateRenderLists(client);
     },
   });
 };
